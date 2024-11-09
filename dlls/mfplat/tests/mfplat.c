@@ -1383,8 +1383,10 @@ static void test_source_resolver(void)
     ok(mediasource != NULL, "got %p\n", mediasource);
     ok(obj_type == MF_OBJECT_MEDIASOURCE, "got %d\n", obj_type);
 
-    IMFMediaSource_Shutdown(mediasource);
+    /* Release without calling Shutdown(). In this case, Shutdown() should be called internally when
+     * releasing the last ref, which will release any references held by contained media streams. */
     refcount = IMFMediaSource_Release(mediasource);
+    todo_wine
     ok(!refcount, "Unexpected refcount %ld\n", refcount);
     IMFByteStream_Release(stream);
 
@@ -1698,7 +1700,10 @@ static void test_source_resolver(void)
 
     IMFRateSupport_Release(rate_support);
     IMFGetService_Release(get_service);
-    IMFMediaSource_Release(mediasource);
+
+    refcount = IMFMediaSource_Release(mediasource);
+    ok(!refcount, "Unexpected refcount %ld\n", refcount);
+
     IMFByteStream_Release(stream);
 
     /* Create directly through scheme handler. */
