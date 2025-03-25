@@ -319,7 +319,7 @@ static void test_BluetoothAdapterStatics(void)
     WindowsDeleteString( default_str );
 
     hr = IBluetoothAdapterStatics_GetDefaultAsync( bluetoothadapter_statics, &adapter_async );
-    todo_wine ok( hr == S_OK, "got hr %#lx.\n", hr );
+    ok( hr == S_OK, "got hr %#lx.\n", hr );
     if (FAILED( hr ))
     {
         skip( "GetDefaultAsync failed.\n" );
@@ -337,8 +337,8 @@ static void test_BluetoothAdapterStatics(void)
 
     str = NULL;
     hr = IBluetoothAdapter_get_DeviceId( adapter, &str );
-    todo_wine ok( hr == S_OK, "got hr %#lx.\n", hr );
-    todo_wine ok( !WindowsIsStringEmpty( str ), "got str %s.\n", debugstr_hstring( str ) );
+    ok( hr == S_OK, "got hr %#lx.\n", hr );
+    ok( !WindowsIsStringEmpty( str ), "got str %s.\n", debugstr_hstring( str ) );
     WindowsDeleteString( str );
 
     hr = IBluetoothAdapter_get_BluetoothAddress( adapter, &address );

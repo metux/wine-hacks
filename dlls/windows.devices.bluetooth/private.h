@@ -28,6 +28,7 @@
 #include "winstring.h"
 
 #include "activation.h"
+#include "bthdef.h"
 
 #define WIDL_using_Windows_Foundation
 #define WIDL_using_Windows_Foundation_Collections
@@ -35,9 +36,16 @@
 #define WIDL_using_Windows_Networking
 #include "windows.networking.connectivity.h"
 #include "windows.networking.h"
+#define WIDL_using_Windows_Devices_Radios
+#include "windows.devices.radios.h"
 #define WIDL_using_Windows_Devices_Bluetooth
 #include "windows.devices.bluetooth.rfcomm.h"
 #include "windows.devices.bluetooth.h"
+
+#include "async_private.h"
+
+HRESULT async_operation_inspectable_create( const GUID *iid, IUnknown *invoker, IUnknown *param, async_operation_callback callback,
+                                            IAsyncOperation_IInspectable **out );
 
 extern IActivationFactory *bluetoothadapter_factory;
 extern IActivationFactory *bluetoothdevice_statics_factory;
@@ -80,5 +88,7 @@ extern IActivationFactory *bluetoothledevice_statics_factory;
     }
 #define DEFINE_IINSPECTABLE( pfx, iface_type, impl_type, base_iface )                              \
     DEFINE_IINSPECTABLE_( pfx, iface_type, impl_type, impl_from_##iface_type, iface_type##_iface, &impl->base_iface )
+#define DEFINE_IINSPECTABLE_OUTER( pfx, iface_type, impl_type, outer_iface )                       \
+    DEFINE_IINSPECTABLE_( pfx, iface_type, impl_type, impl_from_##iface_type, iface_type##_iface, impl->outer_iface )
 
 #endif
