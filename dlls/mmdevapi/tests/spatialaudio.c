@@ -56,6 +56,8 @@ static void test_formats(void)
     ok(hr == S_OK, "Getting format failed: 0x%08lx\n", hr);
     ok(fmt != NULL, "Expected to get non-NULL format\n");
 
+    /* On native 48kHz is reported even when a different sampling rate is configured
+     * on the device (and returned as IAudioClient mix format). */
     ok(fmt->wFormatTag == WAVE_FORMAT_IEEE_FLOAT, "Wrong format, expected WAVE_FORMAT_IEEE_FLOAT got %hx\n", fmt->wFormatTag);
     ok(fmt->nChannels == 1, "Wrong number of channels, expected 1 got %hu\n", fmt->nChannels);
     ok(fmt->nSamplesPerSec == 48000, "Wrong sample ret, expected 48000 got %lu\n", fmt->nSamplesPerSec);
@@ -272,6 +274,15 @@ static void test_audio_object_activation(void)
     hr = ISpatialAudioObjectRenderStream_ActivateSpatialAudioObject(sas, AudioObjectType_Dynamic, &sao2);
     ok(hr == SPTLAUDCLNT_E_NO_MORE_OBJECTS, "Expected to not have no more dynamic objects: 0x%08lx\n", hr);
 
+    hr = ISpatialAudioObjectRenderStream_ActivateSpatialAudioObject(sas, AudioObjectType_SideLeft | AudioObjectType_SideRight | AudioObjectType_FrontLeft, &sao2);
+    todo_wine
+    ok(hr == SPTLAUDCLNT_E_OBJECT_ALREADY_ACTIVE, "Expected audio object to be already active: 0x%08lx\n", hr);
+
+    hr = ISpatialAudioObjectRenderStream_ActivateSpatialAudioObject(sas, AudioObjectType_SideLeft | AudioObjectType_SideRight, &sao2);
+    todo_wine
+    ok(hr == S_OK, "Cannot create spatial audio object with two types: 0x%08lx\n", hr);
+
+    ISpatialAudioObject_Release(sao2);
     ISpatialAudioObject_Release(sao1);
     ISpatialAudioObjectRenderStream_Release(sas);
 }
