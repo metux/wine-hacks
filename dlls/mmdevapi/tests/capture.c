@@ -657,6 +657,9 @@ static void test_formats(AUDCLNT_SHAREMODE mode)
                "Initialize(noexcl., %c%lux%2ux%u) returns %08lx(%08lx)\n",
                format_chr, fmt.nSamplesPerSec, fmt.wBitsPerSample, fmt.nChannels, hr, hrs);
         else
+            /* When both AUDCLNT_E_UNSUPPORTED_FORMAT and AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED apply,
+             * IsFormatSupported() should return AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED, but currently doesn't. */
+            todo_if(hr == AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED)
             ok(hrs == S_OK ? hr == S_OK
                : hr == AUDCLNT_E_ENDPOINT_CREATE_FAILED || hr == AUDCLNT_E_UNSUPPORTED_FORMAT,
                "Initialize(exclus., %c%lux%2ux%u) returns %08lx\n",
