@@ -6938,6 +6938,9 @@ static void test_media_session_Start(void)
         ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
         hr = IMFMediaSession_Close(session);
         ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+        /* Wait for close to avoid the occasional assertion when MFShutdown() is called in Wine.
+         * Waiting for MESessionClosed would be correct, but Windows doesn't send it here. */
+        Sleep(10);
         hr = IMFMediaSession_Shutdown(session);
         ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
         hr = IMFMediaSource_Shutdown(source);
