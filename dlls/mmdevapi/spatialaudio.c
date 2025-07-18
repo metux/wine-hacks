@@ -702,16 +702,8 @@ static void static_mask_to_channels(AudioObjectType static_mask, WORD *count, DW
 
 static HRESULT activate_stream(SpatialAudioStreamImpl *stream)
 {
-    WAVEFORMATEXTENSIBLE *object_fmtex = (WAVEFORMATEXTENSIBLE *)stream->params.ObjectFormat;
     HRESULT hr;
     REFERENCE_TIME period;
-
-    if(!(object_fmtex->Format.wFormatTag == WAVE_FORMAT_IEEE_FLOAT ||
-                (object_fmtex->Format.wFormatTag == WAVE_FORMAT_EXTENSIBLE &&
-                 IsEqualGUID(&object_fmtex->SubFormat, &KSDATAFORMAT_SUBTYPE_IEEE_FLOAT)))){
-        FIXME("Only float formats are supported for now\n");
-        return E_INVALIDARG;
-    }
 
     hr = IMMDevice_Activate(stream->sa_client->mmdev, &IID_IAudioClient,
             CLSCTX_INPROC_SERVER, NULL, (void**)&stream->client);
