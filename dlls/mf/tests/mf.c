@@ -6764,7 +6764,6 @@ static void test_media_session_Start(void)
     ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
     hr = wait_media_event(session, callback, MESessionStarted, 1000, &propvar);
     ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
-    flaky_wine
     check_sample_delivery(grabber_callback->ready_event);
 
     hr = IMFMediaSession_Stop(session);
