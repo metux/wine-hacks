@@ -6748,6 +6748,27 @@ static void test_media_session_Start(void)
     todo_wine
     check_sample_delivery(grabber_callback->ready_event);
 
+    /* Pause followed by immediate restart at current time.
+     * Planet of the Apes: Last Frontier does this in a cutscene. */
+    propvar.vt = VT_I8;
+    propvar.hVal.QuadPart = 0;
+    hr = IMFMediaSession_Start(session, &GUID_NULL, &propvar);
+    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+    hr = IMFMediaSession_Pause(session);
+    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+    hr = wait_media_event(session, callback, MESessionPaused, 1000, &propvar);
+    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+    hr = IMFPresentationClock_GetTime(presentation_clock, &time);
+    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+    propvar.vt = VT_I8;
+    propvar.hVal.QuadPart = time;
+    hr = IMFMediaSession_Start(session, &GUID_NULL, &propvar);
+    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+    hr = wait_media_event(session, callback, MESessionStarted, 1000, &propvar);
+    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+    todo_wine
+    check_sample_delivery(grabber_callback->ready_event);
+
     hr = IMFMediaSession_Stop(session);
     ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
     hr = IMFMediaSession_Close(session);
