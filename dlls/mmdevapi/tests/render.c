@@ -532,6 +532,8 @@ static void test_formats(AUDCLNT_SHAREMODE mode)
     fmt.cbSize = 0;
 
     for(i = 0; i < ARRAY_SIZE(win_formats); i++) {
+        HRESULT expected;
+        BOOL compatible;
         char format_chr;
 
         hr = IMMDevice_Activate(dev, &IID_IAudioClient, CLSCTX_INPROC_SERVER,
@@ -571,8 +573,8 @@ static void test_formats(AUDCLNT_SHAREMODE mode)
         /* In shared mode you can only change bit width, not sampling rate or channel count. */
         if (mode == AUDCLNT_SHAREMODE_SHARED)
         {
-            BOOL compatible = fmt.nSamplesPerSec == pwfx->nSamplesPerSec && fmt.nChannels == pwfx->nChannels;
-            HRESULT expected = compatible ? S_OK : S_FALSE;
+            compatible = fmt.nSamplesPerSec == pwfx->nSamplesPerSec && fmt.nChannels == pwfx->nChannels;
+            expected = compatible ? S_OK : S_FALSE;
             ok(hr == expected, "Got %lx expected %lx\n", hr, expected);
         }
 
@@ -586,7 +588,6 @@ static void test_formats(AUDCLNT_SHAREMODE mode)
                format_chr, pwfx2->nSamplesPerSec, pwfx2->wBitsPerSample, pwfx2->nChannels);
         }
 
-        /* Vista returns E_INVALIDARG upon AUDCLNT_STREAMFLAGS_RATEADJUST */
         hr = IAudioClient_Initialize(ac, mode, 0, 5000000, 0, &fmt, NULL);
         if ((hrs == S_OK) ^ (hr == S_OK))
             trace("Initialize (%s, %c%lux%2ux%u) returns %08lx unlike IsFormatSupported\n",
@@ -594,6 +595,41 @@ static void test_formats(AUDCLNT_SHAREMODE mode)
                   format_chr, fmt.nSamplesPerSec, fmt.wBitsPerSample, fmt.nChannels, hr);
         if (mode == AUDCLNT_SHAREMODE_SHARED)
             ok(hrs == S_OK ? hr == S_OK : hr == AUDCLNT_E_UNSUPPORTED_FORMAT,
+               "Initialize(shared,  %c%lux%2ux%u) returns %08lx\n",
+               format_chr, fmt.nSamplesPerSec, fmt.wBitsPerSample, fmt.nChannels, hr);
+        else if (hrs == AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED)
+            /* Unsupported format implies "create failed" and shadows "not allowed" */
+            ok(hrs == hexcl && (hr == AUDCLNT_E_ENDPOINT_CREATE_FAILED || hr == hrs),
+               "Initialize(noexcl., %c%lux%2ux%u) returns %08lx(%08lx)\n",
+               format_chr, fmt.nSamplesPerSec, fmt.wBitsPerSample, fmt.nChannels, hr, hrs);
+        else
+            /* On testbot 48000x16x1 claims support, but does not Initialize.
+             * Some cards Initialize 44100|48000x16x1 yet claim no support;
+             * F. Gouget's w7 bots do that for 12000|96000x8|16x1|2 */
+            ok(hrs == S_OK ? hr == S_OK || broken(hr == AUDCLNT_E_ENDPOINT_CREATE_FAILED)
+               : hr == AUDCLNT_E_ENDPOINT_CREATE_FAILED || hr == AUDCLNT_E_UNSUPPORTED_FORMAT ||
+                 broken(hr == S_OK &&
+                     ((fmt.nChannels == 1 && fmt.wBitsPerSample == 16) ||
+                      (fmt.nSamplesPerSec == 12000 || fmt.nSamplesPerSec == 96000))),
+               "Initialize(exclus., %c%lux%2ux%u) returns %08lx\n",
+               format_chr, fmt.nSamplesPerSec, fmt.wBitsPerSample, fmt.nChannels, hr);
+
+        IAudioClient_Release(ac);
+
+        hr = IMMDevice_Activate(dev, &IID_IAudioClient, CLSCTX_INPROC_SERVER,
+                NULL, (void**)&ac);
+        ok(hr == S_OK, "Activation failed with %08lx\n", hr);
+        if(hr != S_OK)
+            continue;
+
+        /* With AUDCLNT_STREAMFLAGS_RATEADJUST compatibility is relaxed. */
+        compatible = fmt.nChannels == pwfx->nChannels;
+        expected = compatible ? S_OK : AUDCLNT_E_UNSUPPORTED_FORMAT;
+
+        hr = IAudioClient_Initialize(ac, mode, AUDCLNT_STREAMFLAGS_RATEADJUST, 5000000, 0, &fmt, NULL);
+        if (mode == AUDCLNT_SHAREMODE_SHARED)
+            todo_wine_if(hr == AUDCLNT_E_UNSUPPORTED_FORMAT && compatible)
+            ok(hr == expected || broken(hr == E_INVALIDARG) /* Vista */,
                "Initialize(shared,  %c%lux%2ux%u) returns %08lx\n",
                format_chr, fmt.nSamplesPerSec, fmt.wBitsPerSample, fmt.nChannels, hr);
         else if (hrs == AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED)
