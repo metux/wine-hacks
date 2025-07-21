@@ -628,7 +628,6 @@ static void test_formats(AUDCLNT_SHAREMODE mode)
 
         hr = IAudioClient_Initialize(ac, mode, AUDCLNT_STREAMFLAGS_RATEADJUST, 5000000, 0, &fmt, NULL);
         if (mode == AUDCLNT_SHAREMODE_SHARED)
-            todo_wine_if(hr == AUDCLNT_E_UNSUPPORTED_FORMAT && compatible)
             ok(hr == expected || broken(hr == E_INVALIDARG) /* Vista */,
                "Initialize(shared,  %c%lux%2ux%u) returns %08lx\n",
                format_chr, fmt.nSamplesPerSec, fmt.wBitsPerSample, fmt.nChannels, hr);

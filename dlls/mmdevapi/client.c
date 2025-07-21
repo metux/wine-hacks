@@ -400,12 +400,17 @@ static HRESULT stream_init(struct audio_client *client, const BOOLEAN force_def_
 
     if (mode == AUDCLNT_SHAREMODE_SHARED) {
         WAVEFORMATEX *mix_fmt;
+        BOOL compatible;
         HRESULT hr;
 
         if (FAILED(hr = IAudioClient3_GetMixFormat(&client->IAudioClient3_iface, &mix_fmt)))
             return hr;
 
-        if (fmt->nChannels != mix_fmt->nChannels || fmt->nSamplesPerSec != mix_fmt->nSamplesPerSec)
+        compatible = fmt->nChannels == mix_fmt->nChannels;
+        if (!(flags & AUDCLNT_STREAMFLAGS_RATEADJUST))
+            compatible &= fmt->nSamplesPerSec == mix_fmt->nSamplesPerSec;
+
+        if (!compatible)
         {
             CoTaskMemFree(mix_fmt);
             return AUDCLNT_E_UNSUPPORTED_FORMAT;
