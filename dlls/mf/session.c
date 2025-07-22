@@ -3850,10 +3850,9 @@ static void transform_node_deliver_samples(struct media_session *session, struct
             IMFMediaEvent_Release(event);
         }
 
-        while (stream->requests && drained)
+        if (drained)
         {
             session_deliver_sample_to_node(session, down_node, input, NULL);
-            stream->requests--;
         }
     }
 

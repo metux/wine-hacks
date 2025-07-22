@@ -6718,7 +6718,6 @@ static void test_media_session_Start(void)
     hr = IMFPresentationClock_GetTime(presentation_clock, &time);
     ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
     ok(llabs(time) <= allowed_error, "Unexpected time %I64d.\n", time);
-    todo_wine
     check_sample_delivery(grabber_callback->ready_event);
 
     /* Seek to 1s while in paused state */
@@ -6745,7 +6744,6 @@ static void test_media_session_Start(void)
     ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
     ok(time > old_time, "Unexpected time %I64d.\n", time);
 
-    todo_wine
     check_sample_delivery(grabber_callback->ready_event);
 
     /* Pause followed by immediate restart at current time.
@@ -6766,7 +6764,7 @@ static void test_media_session_Start(void)
     ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
     hr = wait_media_event(session, callback, MESessionStarted, 1000, &propvar);
     ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
-    todo_wine
+    flaky_wine
     check_sample_delivery(grabber_callback->ready_event);
 
     hr = IMFMediaSession_Stop(session);
