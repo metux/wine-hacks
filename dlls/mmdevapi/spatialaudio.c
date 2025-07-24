@@ -702,6 +702,7 @@ static void static_mask_to_channels(AudioObjectType static_mask, WORD *count, DW
 
 static HRESULT activate_stream(SpatialAudioStreamImpl *stream)
 {
+    IWineAudioClient *wine_audio_client;
     HRESULT hr;
     REFERENCE_TIME period;
 
@@ -731,9 +732,17 @@ static HRESULT activate_stream(SpatialAudioStreamImpl *stream)
     stream->stream_fmtex.Samples.wValidBitsPerSample = stream->stream_fmtex.Format.wBitsPerSample;
     stream->stream_fmtex.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
 
-    hr = IAudioClient_Initialize(stream->client, AUDCLNT_SHAREMODE_SHARED,
+    hr = IAudioClient_QueryInterface(stream->client, &IID_IWineAudioClient, (void**)&wine_audio_client);
+    if(FAILED(hr)){
+        WARN("Getting the private interface failed: %08lx\n", hr);
+        IAudioClient_Release(stream->client);
+        return hr;
+    }
+
+    hr = IWineAudioClient_InitializeWine(wine_audio_client, FALSE, AUDCLNT_SHAREMODE_SHARED,
             AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_NOPERSIST,
             period, 0, &stream->stream_fmtex.Format, NULL);
+    IWineAudioClient_Release(wine_audio_client);
     if(FAILED(hr)){
         WARN("Initialize failed: %08lx\n", hr);
         IAudioClient_Release(stream->client);
