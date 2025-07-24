@@ -712,6 +712,7 @@ static HRESULT IDirectSoundCaptureBufferImpl_Create(
         HRESULT err = DS_OK;
         LPBYTE newbuf;
         DWORD buflen;
+        IWineAudioClient *wine_audio_client;
 
         This->numIfaces = 0;
         This->ref = 0;
@@ -743,9 +744,19 @@ static HRESULT IDirectSoundCaptureBufferImpl_Create(
             return err;
         }
 
-        err = IAudioClient_Initialize(device->client,
-                AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
-                200 * 100000, 0, device->pwfx, NULL);
+        if (FAILED(IAudioClient_QueryInterface(device->client, &IID_IWineAudioClient, (void**)&wine_audio_client)))
+            wine_audio_client = NULL;
+
+        if (wine_audio_client) {
+            err = IWineAudioClient_InitializeWine(wine_audio_client, FALSE,
+                    AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+                    200 * 100000, 0, device->pwfx, NULL);
+            IWineAudioClient_Release(wine_audio_client);
+        } else {
+            err = IAudioClient_Initialize(device->client,
+                    AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+                    200 * 100000, 0, device->pwfx, NULL);
+        }
         if(FAILED(err)){
             WARN("Initialize failed: %08lx\n", err);
             IAudioClient_Release(device->client);
@@ -1004,6 +1015,7 @@ static HRESULT DirectSoundCaptureDevice_Initialize(
     struct _TestFormat *fmt;
     DirectSoundCaptureDevice *device;
     IAudioClient *client;
+    IWineAudioClient *wine_audio_client;
 
     TRACE("(%p, %s)\n", ppDevice, debugstr_guid(lpcGUID));
 
@@ -1047,13 +1059,18 @@ static HRESULT DirectSoundCaptureDevice_Initialize(
         return DSERR_NODRIVER;
     }
 
+    if (FAILED(IAudioClient_QueryInterface(client, &IID_IWineAudioClient, (void**)&wine_audio_client)))
+        wine_audio_client = NULL;
+
     for(fmt = formats_to_test; fmt->flag; ++fmt){
-        if(DSOUND_check_supported(client, fmt->rate, fmt->depth, fmt->channels)){
+        if(DSOUND_check_supported(client, wine_audio_client, fmt->rate, fmt->depth, fmt->channels)){
             device->drvcaps.dwFormats |= fmt->flag;
             if(fmt->channels > device->drvcaps.dwChannels)
                 device->drvcaps.dwChannels = fmt->channels;
         }
     }
+    if (wine_audio_client)
+        IWineAudioClient_Release(wine_audio_client);
     IAudioClient_Release(client);
 
     *ppDevice = device;

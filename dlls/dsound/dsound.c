@@ -247,8 +247,8 @@ static ULONG DirectSoundDevice_Release(DirectSoundDevice * device)
     return ref;
 }
 
-BOOL DSOUND_check_supported(IAudioClient *client, DWORD rate,
-        DWORD depth, WORD channels)
+BOOL DSOUND_check_supported(IAudioClient *client, IWineAudioClient *wine_audio_client,
+        DWORD rate, DWORD depth, WORD channels)
 {
     WAVEFORMATEX fmt, *junk;
     HRESULT hr;
@@ -261,7 +261,10 @@ BOOL DSOUND_check_supported(IAudioClient *client, DWORD rate,
     fmt.nAvgBytesPerSec = rate * fmt.nBlockAlign;
     fmt.cbSize = 0;
 
-    hr = IAudioClient_IsFormatSupported(client, AUDCLNT_SHAREMODE_SHARED, &fmt, &junk);
+    if (wine_audio_client)
+        hr = IWineAudioClient_IsFormatSupportedWine(wine_audio_client, FALSE, AUDCLNT_SHAREMODE_SHARED, &fmt, &junk);
+    else
+        hr = IAudioClient_IsFormatSupported(client, AUDCLNT_SHAREMODE_SHARED, &fmt, &junk);
     if(SUCCEEDED(hr))
         CoTaskMemFree(junk);
 
@@ -274,6 +277,7 @@ static HRESULT DirectSoundDevice_Initialize(DirectSoundDevice ** ppDevice, LPCGU
     GUID devGUID;
     DirectSoundDevice *device;
     IMMDevice *mmdevice;
+    IWineAudioClient *wine_audio_client;
 
     TRACE("(%p,%s)\n",ppDevice,debugstr_guid(lpcGUID));
 
@@ -338,33 +342,39 @@ static HRESULT DirectSoundDevice_Initialize(DirectSoundDevice ** ppDevice, LPCGU
 
     ZeroMemory(&device->drvcaps, sizeof(device->drvcaps));
 
-    if(DSOUND_check_supported(device->client, 11025, 8, 1) ||
-            DSOUND_check_supported(device->client, 22050, 8, 1) ||
-            DSOUND_check_supported(device->client, 44100, 8, 1) ||
-            DSOUND_check_supported(device->client, 48000, 8, 1) ||
-            DSOUND_check_supported(device->client, 96000, 8, 1))
+    if (FAILED(IAudioClient_QueryInterface(device->client, &IID_IWineAudioClient, (void**)&wine_audio_client)))
+        wine_audio_client = NULL;
+
+    if(DSOUND_check_supported(device->client, wine_audio_client, 11025, 8, 1) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 22050, 8, 1) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 44100, 8, 1) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 48000, 8, 1) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 96000, 8, 1))
         device->drvcaps.dwFlags |= DSCAPS_PRIMARY8BIT | DSCAPS_PRIMARYMONO;
 
-    if(DSOUND_check_supported(device->client, 11025, 16, 1) ||
-            DSOUND_check_supported(device->client, 22050, 16, 1) ||
-            DSOUND_check_supported(device->client, 44100, 16, 1) ||
-            DSOUND_check_supported(device->client, 48000, 16, 1) ||
-            DSOUND_check_supported(device->client, 96000, 16, 1))
+    if(DSOUND_check_supported(device->client, wine_audio_client, 11025, 16, 1) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 22050, 16, 1) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 44100, 16, 1) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 48000, 16, 1) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 96000, 16, 1))
         device->drvcaps.dwFlags |= DSCAPS_PRIMARY16BIT | DSCAPS_PRIMARYMONO;
 
-    if(DSOUND_check_supported(device->client, 11025, 8, 2) ||
-            DSOUND_check_supported(device->client, 22050, 8, 2) ||
-            DSOUND_check_supported(device->client, 44100, 8, 2) ||
-            DSOUND_check_supported(device->client, 48000, 8, 2) ||
-            DSOUND_check_supported(device->client, 96000, 8, 2))
+    if(DSOUND_check_supported(device->client, wine_audio_client, 11025, 8, 2) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 22050, 8, 2) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 44100, 8, 2) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 48000, 8, 2) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 96000, 8, 2))
         device->drvcaps.dwFlags |= DSCAPS_PRIMARY8BIT | DSCAPS_PRIMARYSTEREO;
 
-    if(DSOUND_check_supported(device->client, 11025, 16, 2) ||
-            DSOUND_check_supported(device->client, 22050, 16, 2) ||
-            DSOUND_check_supported(device->client, 44100, 16, 2) ||
-            DSOUND_check_supported(device->client, 48000, 16, 2) ||
-            DSOUND_check_supported(device->client, 96000, 16, 2))
+    if(DSOUND_check_supported(device->client, wine_audio_client, 11025, 16, 2) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 22050, 16, 2) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 44100, 16, 2) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 48000, 16, 2) ||
+            DSOUND_check_supported(device->client, wine_audio_client, 96000, 16, 2))
         device->drvcaps.dwFlags |= DSCAPS_PRIMARY16BIT | DSCAPS_PRIMARYSTEREO;
+
+    if (wine_audio_client)
+        IWineAudioClient_Release(wine_audio_client);
 
     /* the dsound mixer supports all of the following */
     device->drvcaps.dwFlags |= DSCAPS_SECONDARY8BIT | DSCAPS_SECONDARY16BIT;

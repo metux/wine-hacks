@@ -108,7 +108,7 @@ static DWORD DSOUND_FindSpeakerConfig(IMMDevice *mmdevice, int channels)
 }
 
 static HRESULT DSOUND_WaveFormat(DirectSoundDevice *device, IAudioClient *client,
-				 BOOL forcewave, WAVEFORMATEX **wfx)
+				 IWineAudioClient *wine_audio_client, BOOL forcewave, WAVEFORMATEX **wfx)
 {
     WAVEFORMATEXTENSIBLE *retwfe = NULL;
     WAVEFORMATEX *w;
@@ -139,7 +139,12 @@ static HRESULT DSOUND_WaveFormat(DirectSoundDevice *device, IAudioClient *client
             testwfe.Format.nBlockAlign = testwfe.Format.nChannels * testwfe.Format.wBitsPerSample / 8;
             testwfe.Format.nAvgBytesPerSec = testwfe.Format.nSamplesPerSec * testwfe.Format.nBlockAlign;
 
-            if (FAILED(IAudioClient_IsFormatSupported(client, AUDCLNT_SHAREMODE_SHARED, &testwfe.Format, (WAVEFORMATEX**)&retwfe)))
+            if (wine_audio_client)
+                hr = IWineAudioClient_IsFormatSupportedWine(wine_audio_client, FALSE, AUDCLNT_SHAREMODE_SHARED, &testwfe.Format, (WAVEFORMATEX**)&retwfe);
+            else
+                hr = IAudioClient_IsFormatSupported(client, AUDCLNT_SHAREMODE_SHARED, &testwfe.Format, (WAVEFORMATEX**)&retwfe);
+
+            if (FAILED(hr))
                 w = DSOUND_CopyFormat(&mixwfe->Format);
             else if (retwfe)
                 w = DSOUND_CopyFormat(&retwfe->Format);
@@ -180,7 +185,10 @@ static HRESULT DSOUND_WaveFormat(DirectSoundDevice *device, IAudioClient *client
     if (!w)
         return DSERR_OUTOFMEMORY;
 
-    hr = IAudioClient_IsFormatSupported(client, AUDCLNT_SHAREMODE_SHARED, w, (WAVEFORMATEX**)&retwfe);
+    if (wine_audio_client)
+        hr = IWineAudioClient_IsFormatSupportedWine(wine_audio_client, FALSE, AUDCLNT_SHAREMODE_SHARED, w, (WAVEFORMATEX**)&retwfe);
+    else
+        hr = IAudioClient_IsFormatSupported(client, AUDCLNT_SHAREMODE_SHARED, w, (WAVEFORMATEX**)&retwfe);
     if (retwfe) {
         memcpy(w, retwfe, sizeof(WAVEFORMATEX) + retwfe->Format.cbSize);
         CoTaskMemFree(retwfe);
@@ -288,6 +296,7 @@ HRESULT DSOUND_ReopenDevice(DirectSoundDevice *device, BOOL forcewave)
     DWORD frag_frames;
     WAVEFORMATEX *wfx = NULL;
     DWORD oldspeakerconfig = device->speaker_config;
+    IWineAudioClient *wine_audio_client;
 
     TRACE("(%p, %d)\n", device, forcewave);
 
@@ -298,15 +307,26 @@ HRESULT DSOUND_ReopenDevice(DirectSoundDevice *device, BOOL forcewave)
         return hres;
     }
 
-    hres = DSOUND_WaveFormat(device, client, forcewave, &wfx);
+    if (FAILED(IAudioClient_QueryInterface(client, &IID_IWineAudioClient, (void**)&wine_audio_client)))
+        wine_audio_client = NULL;
+
+    hres = DSOUND_WaveFormat(device, client, wine_audio_client, forcewave, &wfx);
     if (FAILED(hres)) {
+        IWineAudioClient_Release(wine_audio_client);
         IAudioClient_Release(client);
         return hres;
     }
 
-    hres = IAudioClient_Initialize(client,
-            AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST |
-            AUDCLNT_STREAMFLAGS_EVENTCALLBACK, 800000, 0, wfx, NULL);
+    if (wine_audio_client) {
+        hres = IWineAudioClient_InitializeWine(wine_audio_client, FALSE,
+                AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST |
+                AUDCLNT_STREAMFLAGS_EVENTCALLBACK, 800000, 0, wfx, NULL);
+        IWineAudioClient_Release(wine_audio_client);
+    } else {
+        hres = IAudioClient_Initialize(client,
+                AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST |
+                AUDCLNT_STREAMFLAGS_EVENTCALLBACK, 800000, 0, wfx, NULL);
+    }
     if(FAILED(hres)){
         IAudioClient_Release(client);
         ERR("Initialize failed: %08lx\n", hres);
