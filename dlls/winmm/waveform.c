@@ -44,6 +44,7 @@
 #include "audiopolicy.h"
 
 #include "wine/debug.h"
+#include "wine/winemmdevapi.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(winmm);
 
@@ -429,8 +430,8 @@ static HRESULT WINMM_GetFriendlyName(IMMDevice *device, WCHAR *out,
     return S_OK;
 }
 
-static HRESULT WINMM_TestFormat(IAudioClient *client, DWORD rate, DWORD depth,
-        WORD channels)
+static HRESULT WINMM_TestFormat(IAudioClient *client, IWineAudioClient *wine_audio_client,
+        DWORD rate, DWORD depth, WORD channels)
 {
     WAVEFORMATEX fmt, *junk;
     HRESULT hr;
@@ -443,8 +444,12 @@ static HRESULT WINMM_TestFormat(IAudioClient *client, DWORD rate, DWORD depth,
     fmt.nAvgBytesPerSec = rate * fmt.nBlockAlign;
     fmt.cbSize = 0;
 
-    hr = IAudioClient_IsFormatSupported(client, AUDCLNT_SHAREMODE_SHARED,
-            &fmt, &junk);
+    if (wine_audio_client)
+        hr = IWineAudioClient_IsFormatSupportedWine(wine_audio_client,
+                FALSE, AUDCLNT_SHAREMODE_SHARED, &fmt, &junk);
+    else
+        hr = IAudioClient_IsFormatSupported(client, AUDCLNT_SHAREMODE_SHARED,
+                &fmt, &junk);
     if(SUCCEEDED(hr))
         CoTaskMemFree(junk);
 
@@ -486,18 +491,24 @@ static DWORD WINMM_GetSupportedFormats(IMMDevice *device)
     HRESULT hr;
     struct _TestFormat *fmt;
     IAudioClient *client;
+    IWineAudioClient *wine_audio_client;
 
     hr = IMMDevice_Activate(device, &IID_IAudioClient,
             CLSCTX_INPROC_SERVER, NULL, (void**)&client);
     if(FAILED(hr))
         return 0;
 
+    if (FAILED(IAudioClient_QueryInterface(client, &IID_IWineAudioClient, (void**)&wine_audio_client)))
+        wine_audio_client = NULL;
+
     for(fmt = formats_to_test; fmt->flag; ++fmt){
-        hr = WINMM_TestFormat(client, fmt->rate, fmt->depth, fmt->channels);
+        hr = WINMM_TestFormat(client, wine_audio_client, fmt->rate, fmt->depth, fmt->channels);
         if(hr == S_OK)
             flags |= fmt->flag;
     }
 
+    if (wine_audio_client)
+        IWineAudioClient_Release(wine_audio_client);
     IAudioClient_Release(client);
 
     return flags;
@@ -882,6 +893,7 @@ static MMRESULT WINMM_TryDeviceMapping(WINMM_Device *device, WAVEFORMATEX *fmt,
         WORD channels, DWORD freq, DWORD bits_per_samp, BOOL is_query, BOOL is_out)
 {
     WAVEFORMATEX target, *closer_fmt = NULL;
+    IWineAudioClient *wine_audio_client;
     HRESULT hr;
     MMRESULT mr;
 
@@ -896,11 +908,21 @@ static MMRESULT WINMM_TryDeviceMapping(WINMM_Device *device, WAVEFORMATEX *fmt,
     target.nAvgBytesPerSec = target.nSamplesPerSec * target.nBlockAlign;
     target.cbSize = 0;
 
-    hr = IAudioClient_IsFormatSupported(device->client,
-            AUDCLNT_SHAREMODE_SHARED, &target, &closer_fmt);
+    if (FAILED(IAudioClient_QueryInterface(device->client, &IID_IWineAudioClient, (void**)&wine_audio_client)))
+        wine_audio_client = NULL;
+
+    if (wine_audio_client)
+        hr = IWineAudioClient_IsFormatSupportedWine(wine_audio_client, FALSE,
+                AUDCLNT_SHAREMODE_SHARED, &target, &closer_fmt);
+    else
+        hr = IAudioClient_IsFormatSupported(device->client,
+                AUDCLNT_SHAREMODE_SHARED, &target, &closer_fmt);
     CoTaskMemFree(closer_fmt);
-    if(hr != S_OK)
+    if(hr != S_OK) {
+        if (wine_audio_client)
+            IWineAudioClient_Release(wine_audio_client);
         return WAVERR_BADFORMAT;
+    }
 
     /* device supports our target format, so see if MSACM can
      * do the conversion */
@@ -911,18 +933,31 @@ static MMRESULT WINMM_TryDeviceMapping(WINMM_Device *device, WAVEFORMATEX *fmt,
         mr = acmStreamOpen(&device->acm_handle, NULL, &target, fmt, NULL,
                 0, 0, 0);
     if(mr != MMSYSERR_NOERROR)
+    {
+        if (wine_audio_client)
+            IWineAudioClient_Release(wine_audio_client);
         return mr;
+    }
 
     /* yes it can. initialize the audioclient and return success */
     if(is_query){
         acmStreamClose(device->acm_handle, 0);
         device->acm_handle = NULL;
+        if (wine_audio_client)
+            IWineAudioClient_Release(wine_audio_client);
         return MMSYSERR_NOERROR;
     }
 
-    hr = IAudioClient_Initialize(device->client, AUDCLNT_SHAREMODE_SHARED,
-            AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_NOPERSIST,
-            AC_BUFLEN, 0, &target, &device->parent->session);
+    if (wine_audio_client) {
+        hr = IWineAudioClient_InitializeWine(wine_audio_client, FALSE, AUDCLNT_SHAREMODE_SHARED,
+                AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_NOPERSIST,
+                AC_BUFLEN, 0, &target, &device->parent->session);
+        IWineAudioClient_Release(wine_audio_client);
+    } else {
+        hr = IAudioClient_Initialize(device->client, AUDCLNT_SHAREMODE_SHARED,
+                AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_NOPERSIST,
+                AC_BUFLEN, 0, &target, &device->parent->session);
+    }
     if(hr != S_OK){
         WARN("Initialize failed: %08lx\n", hr);
         acmStreamClose(device->acm_handle, 0);
@@ -1062,6 +1097,7 @@ static MMRESULT WINMM_MapDevice(WINMM_Device *device, BOOL is_query, BOOL is_out
 static LRESULT WINMM_OpenDevice(WINMM_Device *device, WINMM_OpenInfo *info,
         BOOL is_out)
 {
+    IWineAudioClient *wine_audio_client;
     LRESULT ret = MMSYSERR_NOMEM;
     HRESULT hr;
 
@@ -1118,11 +1154,20 @@ static LRESULT WINMM_OpenDevice(WINMM_Device *device, WINMM_OpenInfo *info,
                 sizeof(WAVEFORMATEX) + info->format->cbSize);
     }
 
+    if (FAILED(IAudioClient_QueryInterface(device->client, &IID_IWineAudioClient, (void**)&wine_audio_client)))
+        wine_audio_client = NULL;
+
     if(info->flags & WAVE_FORMAT_QUERY){
         WAVEFORMATEX *closer_fmt = NULL;
 
-        hr = IAudioClient_IsFormatSupported(device->client,
-                AUDCLNT_SHAREMODE_SHARED, device->orig_fmt, &closer_fmt);
+        if (wine_audio_client) {
+            hr = IWineAudioClient_IsFormatSupportedWine(wine_audio_client, FALSE,
+                    AUDCLNT_SHAREMODE_SHARED, device->orig_fmt, &closer_fmt);
+            IWineAudioClient_Release(wine_audio_client);
+        } else {
+            hr = IAudioClient_IsFormatSupported(device->client,
+                    AUDCLNT_SHAREMODE_SHARED, device->orig_fmt, &closer_fmt);
+        }
         CoTaskMemFree(closer_fmt);
         if((hr == S_FALSE || hr == AUDCLNT_E_UNSUPPORTED_FORMAT) && !(info->flags & WAVE_FORMAT_DIRECT))
             ret = WINMM_MapDevice(device, TRUE, is_out);
@@ -1131,9 +1176,15 @@ static LRESULT WINMM_OpenDevice(WINMM_Device *device, WINMM_OpenInfo *info,
         goto error;
     }
 
-    hr = IAudioClient_Initialize(device->client, AUDCLNT_SHAREMODE_SHARED,
-            AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_NOPERSIST,
-            AC_BUFLEN, 0, device->orig_fmt, &device->parent->session);
+    if (wine_audio_client) {
+        hr = IWineAudioClient_InitializeWine(wine_audio_client, FALSE, AUDCLNT_SHAREMODE_SHARED,
+                AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_NOPERSIST,
+                AC_BUFLEN, 0, device->orig_fmt, &device->parent->session);
+        IWineAudioClient_Release(wine_audio_client);
+    } else
+        hr = IAudioClient_Initialize(device->client, AUDCLNT_SHAREMODE_SHARED,
+                AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_NOPERSIST,
+                AC_BUFLEN, 0, device->orig_fmt, &device->parent->session);
     if(FAILED(hr)){
         if(hr == AUDCLNT_E_UNSUPPORTED_FORMAT && !(info->flags & WAVE_FORMAT_DIRECT)){
             ret = WINMM_MapDevice(device, FALSE, is_out);
