@@ -342,7 +342,7 @@ static void test_BluetoothAdapterStatics(void)
     WindowsDeleteString( str );
 
     hr = IBluetoothAdapter_get_BluetoothAddress( adapter, &address );
-    todo_wine ok( hr == S_OK, "got hr %#lx.\n", hr );
+    ok( hr == S_OK, "got hr %#lx.\n", hr );
 
     hr = IBluetoothAdapter_get_IsLowEnergySupported( adapter, &value );
     todo_wine ok( hr == S_OK, "got hr %#lx.\n", hr );
