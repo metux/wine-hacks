@@ -6479,6 +6479,7 @@ NTSTATUS WINAPI NtFlushBuffersFileEx( HANDLE handle, ULONG flags, void *params, 
 static NTSTATUS cancel_io( HANDLE handle, IO_STATUS_BLOCK *io, IO_STATUS_BLOCK *io_status,
                            BOOL only_thread )
 {
+    HANDLE cancel_handle;
     unsigned int status;
 
     SERVER_START_REQ( cancel_async )
@@ -6487,12 +6488,17 @@ static NTSTATUS cancel_io( HANDLE handle, IO_STATUS_BLOCK *io, IO_STATUS_BLOCK *
         req->iosb        = wine_server_client_ptr( io );
         req->only_thread = only_thread;
         if (!(status = wine_server_call( req )))
-        {
-            io_status->Status = status;
-            io_status->Information = 0;
-        }
+            cancel_handle = wine_server_ptr_handle( reply->cancel_handle );
     }
     SERVER_END_REQ;
+
+    if (!status && cancel_handle)
+        NtWaitForMultipleObjects( 1, &cancel_handle, FALSE, TRUE, NULL );
+    else if (status == STATUS_INVALID_HANDLE)
+        return status;
+
+    io_status->Status = status;
+    io_status->Information = 0;
 
     return status;
 }
