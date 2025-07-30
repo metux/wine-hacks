@@ -25,6 +25,8 @@
 #include <wine/list.h>
 #include <wine/unixlib.h>
 
+#include <wine/winemmdevapi.h>
+
 #include "unixlib.h"
 
 typedef struct audio_session {
@@ -57,7 +59,7 @@ typedef struct audio_session_wrapper {
 } AudioSessionWrapper;
 
 struct audio_client {
-    IAudioClient3 IAudioClient3_iface;
+    IWineAudioClient IWineAudioClient_iface;
     IAudioRenderClient IAudioRenderClient_iface;
     IAudioCaptureClient IAudioCaptureClient_iface;
     IAudioClock IAudioClock_iface;

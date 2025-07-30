@@ -702,16 +702,9 @@ static void static_mask_to_channels(AudioObjectType static_mask, WORD *count, DW
 
 static HRESULT activate_stream(SpatialAudioStreamImpl *stream)
 {
-    WAVEFORMATEXTENSIBLE *object_fmtex = (WAVEFORMATEXTENSIBLE *)stream->params.ObjectFormat;
+    IWineAudioClient *wine_audio_client;
     HRESULT hr;
     REFERENCE_TIME period;
-
-    if(!(object_fmtex->Format.wFormatTag == WAVE_FORMAT_IEEE_FLOAT ||
-                (object_fmtex->Format.wFormatTag == WAVE_FORMAT_EXTENSIBLE &&
-                 IsEqualGUID(&object_fmtex->SubFormat, &KSDATAFORMAT_SUBTYPE_IEEE_FLOAT)))){
-        FIXME("Only float formats are supported for now\n");
-        return E_INVALIDARG;
-    }
 
     hr = IMMDevice_Activate(stream->sa_client->mmdev, &IID_IAudioClient,
             CLSCTX_INPROC_SERVER, NULL, (void**)&stream->client);
@@ -739,9 +732,17 @@ static HRESULT activate_stream(SpatialAudioStreamImpl *stream)
     stream->stream_fmtex.Samples.wValidBitsPerSample = stream->stream_fmtex.Format.wBitsPerSample;
     stream->stream_fmtex.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
 
-    hr = IAudioClient_Initialize(stream->client, AUDCLNT_SHAREMODE_SHARED,
+    hr = IAudioClient_QueryInterface(stream->client, &IID_IWineAudioClient, (void**)&wine_audio_client);
+    if(FAILED(hr)){
+        WARN("Getting the private interface failed: %08lx\n", hr);
+        IAudioClient_Release(stream->client);
+        return hr;
+    }
+
+    hr = IWineAudioClient_InitializeWine(wine_audio_client, FALSE, AUDCLNT_SHAREMODE_SHARED,
             AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_NOPERSIST,
             period, 0, &stream->stream_fmtex.Format, NULL);
+    IWineAudioClient_Release(wine_audio_client);
     if(FAILED(hr)){
         WARN("Initialize failed: %08lx\n", hr);
         IAudioClient_Release(stream->client);
@@ -931,9 +932,6 @@ static IAudioFormatEnumeratorVtbl IAudioFormatEnumerator_vtbl = {
 HRESULT SpatialAudioClient_Create(IMMDevice *mmdev, ISpatialAudioClient **out)
 {
     SpatialAudioImpl *obj;
-    IAudioClient *aclient;
-    WAVEFORMATEX *closest;
-    HRESULT hr;
 
     obj = calloc(1, sizeof(*obj));
 
@@ -948,45 +946,6 @@ HRESULT SpatialAudioClient_Create(IMMDevice *mmdev, ISpatialAudioClient **out)
     obj->object_fmtex.Format.nBlockAlign = (obj->object_fmtex.Format.nChannels * obj->object_fmtex.Format.wBitsPerSample) / 8;
     obj->object_fmtex.Format.nAvgBytesPerSec = obj->object_fmtex.Format.nSamplesPerSec * obj->object_fmtex.Format.nBlockAlign;
     obj->object_fmtex.Format.cbSize = 0;
-
-    hr = IMMDevice_Activate(mmdev, &IID_IAudioClient,
-            CLSCTX_INPROC_SERVER, NULL, (void**)&aclient);
-    if(FAILED(hr)){
-        WARN("Activate failed: %08lx\n", hr);
-        free(obj);
-        return hr;
-    }
-
-    hr = IAudioClient_IsFormatSupported(aclient, AUDCLNT_SHAREMODE_SHARED, &obj->object_fmtex.Format, &closest);
-
-    IAudioClient_Release(aclient);
-
-    if(hr == S_FALSE){
-        if(sizeof(WAVEFORMATEX) + closest->cbSize > sizeof(obj->object_fmtex)){
-            ERR("Returned format too large: %s\n", debugstr_fmtex(closest));
-            CoTaskMemFree(closest);
-            free(obj);
-            return AUDCLNT_E_UNSUPPORTED_FORMAT;
-        }else if(!((closest->wFormatTag == WAVE_FORMAT_IEEE_FLOAT ||
-                    (closest->wFormatTag == WAVE_FORMAT_EXTENSIBLE &&
-                     IsEqualGUID(&((WAVEFORMATEXTENSIBLE *)closest)->SubFormat,
-                         &KSDATAFORMAT_SUBTYPE_IEEE_FLOAT))) &&
-                    closest->wBitsPerSample == 32)){
-            ERR("Returned format not 32-bit float: %s\n", debugstr_fmtex(closest));
-            CoTaskMemFree(closest);
-            free(obj);
-            return AUDCLNT_E_UNSUPPORTED_FORMAT;
-        }
-        WARN("The audio stack doesn't support 48kHz 32bit float. Using the closest match. Audio may be glitchy. %s\n", debugstr_fmtex(closest));
-        memcpy(&obj->object_fmtex,
-               closest,
-               sizeof(WAVEFORMATEX) + closest->cbSize);
-        CoTaskMemFree(closest);
-    } else if(hr != S_OK){
-        WARN("Checking supported formats failed: %08lx\n", hr);
-        free(obj);
-        return hr;
-    }
 
     obj->mmdev = mmdev;
     IMMDevice_AddRef(mmdev);

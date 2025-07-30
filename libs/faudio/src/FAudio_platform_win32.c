@@ -43,6 +43,8 @@
 #include <mmdeviceapi.h>
 #include <devpkey.h>
 
+#include <wine/winemmdevapi.h>
+
 DEFINE_GUID(CLSID_CWMADecMediaObject, 0x2eeb4adf, 0x4578, 0x4d10, 0xbc, 0xa7, 0xbb, 0x95, 0x5f, 0x56, 0x32, 0x0a);
 DEFINE_MEDIATYPE_GUID(MFAudioFormat_XMAudio2, FAUDIO_FORMAT_XMAUDIO2);
 
@@ -343,6 +345,7 @@ void FAudio_PlatformInit(
 	uint32_t *updateSize,
 	void** platformDevice
 ) {
+    IWineAudioClient *wine_audio_client = NULL;
 	struct FAudioAudioClientThreadArgs *args;
 	struct FAudioWin32PlatformData *data;
 	REFERENCE_TIME duration;
@@ -410,15 +413,27 @@ void FAudio_PlatformInit(
 	FAudio_assert(!FAILED(hr) && "Failed to create audio client!");
 	IMMDevice_Release(device);
 
+    if (FAILED(IAudioClient_QueryInterface(data->client, &IID_IWineAudioClient, (void**)&wine_audio_client)))
+        wine_audio_client = NULL;
+
 	if (flags & FAUDIO_1024_QUANTUM) duration = 213333;
 	else duration = 100000;
 
-	hr = IAudioClient_IsFormatSupported(
-		data->client,
-		AUDCLNT_SHAREMODE_SHARED,
-		&args->format.Format,
-		&closest
-	);
+    if (wine_audio_client)
+        hr = IWineAudioClient_IsFormatSupportedWine(
+            wine_audio_client,
+            FALSE,
+            AUDCLNT_SHAREMODE_SHARED,
+            &args->format.Format,
+            &closest
+        );
+    else
+        hr = IAudioClient_IsFormatSupported(
+            data->client,
+            AUDCLNT_SHAREMODE_SHARED,
+            &args->format.Format,
+            &closest
+        );
 	FAudio_assert(!FAILED(hr) && "Failed to find supported audio format!");
 
 	if (closest)
@@ -428,16 +443,31 @@ void FAudio_PlatformInit(
 		CoTaskMemFree(closest);
 	}
 
-	hr = IAudioClient_Initialize(
-		data->client,
-		AUDCLNT_SHAREMODE_SHARED,
-		AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
-		duration * 3,
-		0,
-		&args->format.Format,
-		&GUID_NULL
-	);
+    if (wine_audio_client)
+        hr = IWineAudioClient_InitializeWine(
+            wine_audio_client,
+            FALSE,
+            AUDCLNT_SHAREMODE_SHARED,
+            AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+            duration * 3,
+            0,
+            &args->format.Format,
+            &GUID_NULL
+        );
+    else
+        hr = IAudioClient_Initialize(
+            data->client,
+            AUDCLNT_SHAREMODE_SHARED,
+            AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+            duration * 3,
+            0,
+            &args->format.Format,
+            &GUID_NULL
+        );
 	FAudio_assert(!FAILED(hr) && "Failed to initialize audio client!");
+
+    if (wine_audio_client)
+        IWineAudioClient_Release(wine_audio_client);
 
 	hr = IAudioClient_SetEventHandle(data->client, audioEvent);
 	FAudio_assert(!FAILED(hr) && "Failed to set audio client event!");

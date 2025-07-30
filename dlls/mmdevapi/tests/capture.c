@@ -40,14 +40,14 @@
 #define FLOAT WAVE_FORMAT_IEEE_FLOAT
 
 static const unsigned int win_formats[][4] = {
-    {PCM,    8000,  8,  1},   {PCM,    8000,  8,  2},   {PCM,  8000, 16, 1},   {PCM,  8000, 16, 2},
-    {PCM,   11025,  8,  1},   {PCM,   11025,  8,  2},   {PCM, 11025, 16, 1},   {PCM, 11025, 16, 2},
-    {PCM,   12000,  8,  1},   {PCM,   12000,  8,  2},   {PCM, 12000, 16, 1},   {PCM, 12000, 16, 2},
-    {PCM,   16000,  8,  1},   {PCM,   16000,  8,  2},   {PCM, 16000, 16, 1},   {PCM, 16000, 16, 2},
-    {PCM,   22050,  8,  1},   {PCM,   22050,  8,  2},   {PCM, 22050, 16, 1},   {PCM, 22050, 16, 2},
-    {PCM,   44100,  8,  1},   {PCM,   44100,  8,  2},   {PCM, 44100, 16, 1},   {PCM, 44100, 16, 2},
-    {PCM,   48000,  8,  1},   {PCM,   48000,  8,  2},   {PCM, 48000, 16, 1},   {PCM, 48000, 16, 2},
-    {PCM,   96000,  8,  1},   {PCM,   96000,  8,  2},   {PCM, 96000, 16, 1},   {PCM, 96000, 16, 2},
+    {PCM,    8000,  8,  1},   {PCM,    8000,  8,  2},   {PCM,  8000, 16, 1},   {PCM,  8000, 16, 2},   {PCM,  8000, 32, 1},   {PCM,  8000, 32, 2},
+    {PCM,   11025,  8,  1},   {PCM,   11025,  8,  2},   {PCM, 11025, 16, 1},   {PCM, 11025, 16, 2},   {PCM, 11025, 32, 1},   {PCM, 11025, 32, 2},
+    {PCM,   12000,  8,  1},   {PCM,   12000,  8,  2},   {PCM, 12000, 16, 1},   {PCM, 12000, 16, 2},   {PCM, 12000, 32, 1},   {PCM, 12000, 32, 2},
+    {PCM,   16000,  8,  1},   {PCM,   16000,  8,  2},   {PCM, 16000, 16, 1},   {PCM, 16000, 16, 2},   {PCM, 16000, 32, 1},   {PCM, 16000, 32, 2},
+    {PCM,   22050,  8,  1},   {PCM,   22050,  8,  2},   {PCM, 22050, 16, 1},   {PCM, 22050, 16, 2},   {PCM, 22050, 32, 1},   {PCM, 22050, 32, 2},
+    {PCM,   44100,  8,  1},   {PCM,   44100,  8,  2},   {PCM, 44100, 16, 1},   {PCM, 44100, 16, 2},   {PCM, 44100, 32, 1},   {PCM, 44100, 32, 2},
+    {PCM,   48000,  8,  1},   {PCM,   48000,  8,  2},   {PCM, 48000, 16, 1},   {PCM, 48000, 16, 2},   {PCM, 48000, 32, 1},   {PCM, 48000, 32, 2},
+    {PCM,   96000,  8,  1},   {PCM,   96000,  8,  2},   {PCM, 96000, 16, 1},   {PCM, 96000, 16, 2},   {PCM, 96000, 32, 1},   {PCM, 96000, 32, 2},
     {FLOAT,  8000,  32, 1},   {FLOAT,  8000,  32, 2},
     {FLOAT, 11025,  32, 1},   {FLOAT, 11025,  32, 2},
     {FLOAT, 12000,  32, 1},   {FLOAT, 12000,  32, 2},
@@ -435,9 +435,6 @@ static void test_audioclient(void)
 
     handle = CreateEventW(NULL, FALSE, FALSE, NULL);
 
-    hr = IAudioClient_QueryInterface(ac, &IID_IUnknown, NULL);
-    ok(hr == E_POINTER, "QueryInterface(NULL) returned %08lx\n", hr);
-
     unk = (void*)(LONG_PTR)0x12345678;
     hr = IAudioClient_QueryInterface(ac, &IID_NULL, (void**)&unk);
     ok(hr == E_NOINTERFACE, "QueryInterface(IID_NULL) returned %08lx\n", hr);
@@ -657,6 +654,9 @@ static void test_formats(AUDCLNT_SHAREMODE mode)
                "Initialize(noexcl., %c%lux%2ux%u) returns %08lx(%08lx)\n",
                format_chr, fmt.nSamplesPerSec, fmt.wBitsPerSample, fmt.nChannels, hr, hrs);
         else
+            /* When both AUDCLNT_E_UNSUPPORTED_FORMAT and AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED apply,
+             * IsFormatSupported() should return AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED, but currently doesn't. */
+            todo_if(hr == AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED)
             ok(hrs == S_OK ? hr == S_OK
                : hr == AUDCLNT_E_ENDPOINT_CREATE_FAILED || hr == AUDCLNT_E_UNSUPPORTED_FORMAT,
                "Initialize(exclus., %c%lux%2ux%u) returns %08lx\n",

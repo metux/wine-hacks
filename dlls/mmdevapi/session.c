@@ -105,7 +105,7 @@ static ULONG WINAPI control_Release(IAudioSessionControl2 *iface)
             sessions_lock();
             This->client->session_wrapper = NULL;
             sessions_unlock();
-            IAudioClient3_Release(&This->client->IAudioClient3_iface);
+            IWineAudioClient_Release(&This->client->IWineAudioClient_iface);
         }
 
         free(This);
@@ -710,7 +710,7 @@ struct audio_session_wrapper *session_wrapper_create(struct audio_client *client
 
     if (client) {
         ret->session = client->session;
-        IAudioClient3_AddRef(&client->IAudioClient3_iface);
+        IWineAudioClient_AddRef(&client->IWineAudioClient_iface);
     }
 
     return ret;

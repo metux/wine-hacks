@@ -31,6 +31,7 @@
 #include "uuids.h"
 
 #include "wine/list.h"
+#include "wine/winemmdevapi.h"
 
 #define DS_MAX_CHANNELS 6
 
@@ -242,7 +243,7 @@ DWORD CALLBACK DSOUND_mixthread(void *ptr);
 void DSOUND_Calc3DBuffer(IDirectSoundBufferImpl *dsb);
 
 /* capture.c */
- 
+
 HRESULT DSOUND_CaptureCreate(REFIID riid, void **ppv);
 HRESULT DSOUND_CaptureCreate8(REFIID riid, void **ppv);
 HRESULT IDirectSoundCaptureImpl_Create(IUnknown *outer_unk, REFIID riid, void **ppv, BOOL has_dsc8);
@@ -265,7 +266,7 @@ void setup_dsound_options(void);
 
 HRESULT get_mmdevice(EDataFlow flow, const GUID *tgt, IMMDevice **device);
 
-BOOL DSOUND_check_supported(IAudioClient *client, DWORD rate,
-        DWORD depth, WORD channels);
+BOOL DSOUND_check_supported(IAudioClient *client, IWineAudioClient *wine_audio_client,
+        DWORD rate, DWORD depth, WORD channels);
 HRESULT enumerate_mmdevices(EDataFlow flow, GUID *guids,
         LPDSENUMCALLBACKW cb, void *user);

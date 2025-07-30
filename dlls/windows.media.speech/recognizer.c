@@ -24,6 +24,7 @@
 #include "mmdeviceapi.h"
 
 #include "wine/debug.h"
+#include "wine/winemmdevapi.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(speech);
 
@@ -1042,6 +1043,7 @@ DEFINE_IINSPECTABLE(recognizer_factory, ISpeechRecognizerFactory, struct recogni
 static HRESULT recognizer_factory_create_audio_capture(struct session *session)
 {
     const REFERENCE_TIME buffer_duration = 5000000; /* 0.5 second */
+    IWineAudioClient *wine_audio_client = NULL;
     IMMDeviceEnumerator *mm_enum = NULL;
     IMMDevice *mm_device = NULL;
     WAVEFORMATEX wfx = { 0 };
@@ -1071,8 +1073,16 @@ static HRESULT recognizer_factory_create_audio_capture(struct session *session)
     wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
     TRACE("wfx tag %u, channels %u, samples %lu, bits %u, align %u.\n", wfx.wFormatTag, wfx.nChannels, wfx.nSamplesPerSec, wfx.wBitsPerSample, wfx.nBlockAlign);
 
-    if (FAILED(hr = IAudioClient_Initialize(session->audio_client, AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, buffer_duration, 0, &wfx, NULL)))
-        goto cleanup;
+    if (FAILED(IAudioClient_QueryInterface(session->audio_client, &IID_IWineAudioClient, (void**)&wine_audio_client)))
+        wine_audio_client = NULL;
+
+    if (wine_audio_client) {
+        if (FAILED(hr = IWineAudioClient_InitializeWine(wine_audio_client, FALSE, AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, buffer_duration, 0, &wfx, NULL)))
+            goto cleanup;
+    } else {
+        if (FAILED(hr = IAudioClient_Initialize(session->audio_client, AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, buffer_duration, 0, &wfx, NULL)))
+            goto cleanup;
+    }
 
     if (FAILED(hr = IAudioClient_SetEventHandle(session->audio_client, session->audio_buf_event)))
         goto cleanup;
@@ -1082,6 +1092,7 @@ static HRESULT recognizer_factory_create_audio_capture(struct session *session)
     session->capture_wfx = wfx;
 
 cleanup:
+    if (wine_audio_client) IWineAudioClient_Release(wine_audio_client);
     if (mm_device) IMMDevice_Release(mm_device);
     if (mm_enum) IMMDeviceEnumerator_Release(mm_enum);
     CoTaskMemFree(str);
