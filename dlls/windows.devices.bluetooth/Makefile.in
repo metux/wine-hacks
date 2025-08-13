@@ -1,7 +1,9 @@
 MODULE  = windows.devices.bluetooth.dll
-IMPORTS = combase
+IMPORTS = bluetoothapis combase setupapi
 
 SOURCES = \
+	async.c \
+	async_private.idl \
 	bluetoothadapter.c \
 	bluetoothdevice.c \
 	classes.idl \
