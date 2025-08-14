@@ -58,6 +58,7 @@ struct opc_uri
 };
 
 extern HRESULT opc_package_create(IOpcFactory *factory, IOpcPackage **package);
+extern HRESULT opc_package_create_with_partset(IOpcFactory *factory, IOpcPartSet *part_set, IOpcPackage **package);
 extern HRESULT opc_part_uri_create(IUri *uri, struct opc_uri *source_uri, IOpcPartUri **part_uri);
 extern HRESULT opc_root_uri_create(IOpcUri **opc_uri);
 
@@ -69,3 +70,4 @@ extern HRESULT compress_add_file(struct zip_archive *archive, const WCHAR *path,
         OPC_COMPRESSION_OPTIONS options);
 extern HRESULT compress_finalize_archive(struct zip_archive *archive);
 extern void compress_release_archive(struct zip_archive *archive);
+extern HRESULT compress_open_archive(IOpcFactory *factory, IStream *stream, IOpcPartSet *part_set);

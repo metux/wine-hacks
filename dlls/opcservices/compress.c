@@ -126,6 +126,7 @@ struct zip64_end_of_central_directory_locator
     uint64_t eocd64_offset;
     uint32_t disk_num;
 };
+
 #pragma pack(pop)
 
 enum zip_signatures
@@ -564,6 +565,13 @@ HRESULT compress_add_file(struct zip_archive *archive, const WCHAR *path,
     }
 
     archive->files[archive->file_count++] = file;
+
+    return S_OK;
+}
+
+HRESULT compress_open_archive(IOpcFactory *factory, IStream *stream, IOpcPartSet *part_set)
+{
+    FIXME("(%p, %p, %p) stub\n", factory, stream, part_set);
 
     return S_OK;
 }
