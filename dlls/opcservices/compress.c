@@ -26,9 +26,11 @@
 #include "windef.h"
 #include "winternl.h"
 #include "msopc.h"
+#include "xmllite.h"
 
 #include "opc_private.h"
 
+#include "wine/rbtree.h"
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(msopc);
@@ -746,14 +748,184 @@ fail:
     return hr;
 }
 
+struct content_type_entry
+{
+    struct rb_entry entry;
+    WCHAR *extension_or_part_name;
+    WCHAR *type;
+};
+
+static int content_type_entry_compare(const void *key, const struct rb_entry *entry)
+{
+    const WCHAR *key2 = RB_ENTRY_VALUE(entry, struct content_type_entry, entry)->extension_or_part_name;
+    return wcsicmp(key, key2);
+}
+
+static void content_type_entry_destroy(struct rb_entry *entry, void *data)
+{
+    free(RB_ENTRY_VALUE(entry, struct content_type_entry, entry));
+}
+
+static HRESULT xml_get_attribute(IXmlReader *reader, const WCHAR *name, WCHAR **val_ret)
+{
+    const WCHAR *val;
+    HRESULT hr;
+
+    hr = IXmlReader_MoveToAttributeByName(reader, name, NULL);
+    if (hr != S_OK)
+        return FAILED(hr) ? hr : OPC_E_INVALID_CONTENT_TYPE_XML;
+    if (FAILED(hr = IXmlReader_GetValue(reader, &val, NULL)))
+        return hr;
+    *val_ret = wcsdup(val);
+    return *val_ret ? S_OK : E_OUTOFMEMORY;
+}
+
+static HRESULT xml_get_next_node(IXmlReader *reader, XmlNodeType exp_type, const WCHAR *exp_name)
+{
+    XmlNodeType type;
+    HRESULT hr;
+
+    do {
+        hr = IXmlReader_Read(reader, &type);
+        if (hr != S_OK)
+            return hr;
+    } while (type == XmlNodeType_Whitespace);
+    if (exp_type != XmlNodeType_None && type != exp_type)
+        return OPC_E_INVALID_CONTENT_TYPE_XML;
+    if (exp_name)
+    {
+        const WCHAR *name;
+
+        if (FAILED(hr = IXmlReader_GetLocalName(reader, &name, NULL)))
+            return hr;
+        if (wcscmp(name, exp_name))
+            return OPC_E_INVALID_CONTENT_TYPE_XML;
+    }
+    return hr;
+}
+
+static HRESULT content_types_add_type(IXmlReader *reader, const WCHAR *attr_name, struct rb_tree *types)
+{
+    struct content_type_entry *type;
+    WCHAR *ext_or_part, *content_type;
+    HRESULT hr;
+
+    if (FAILED(hr = xml_get_attribute(reader, attr_name, &ext_or_part))) return hr;
+    if (FAILED(hr = xml_get_attribute(reader, L"ContentType", &content_type)))
+    {
+        free(ext_or_part);
+        return hr;
+    }
+    if (!(type = malloc(sizeof(*type))))
+    {
+        free(content_type);
+        free(ext_or_part);
+        return E_OUTOFMEMORY;
+    }
+    type->extension_or_part_name = ext_or_part;
+    type->type = content_type;
+    if (rb_put(types, ext_or_part, &type->entry))
+    {
+        free(content_type);
+        free(ext_or_part);
+        free(type);
+        return OPC_E_DUPLICATE_DEFAULT_EXTENSION;
+    }
+    return S_OK;
+}
+
+static HRESULT content_types_add_default(IXmlReader *reader, struct rb_tree *defaults)
+{
+    return content_types_add_type(reader, L"Extension", defaults);
+}
+
+static HRESULT content_types_add_override(IXmlReader *reader, struct rb_tree *overrides)
+{
+    return content_types_add_type(reader, L"PartName", overrides);
+}
+
+static HRESULT compress_read_content_types(IStream *archive, const struct zip_entry *content_types,
+                                           struct rb_tree *defaults, struct rb_tree *overrides)
+{
+    static const LARGE_INTEGER start = {0};
+    IXmlReader *reader;
+    IStream *xml;
+    HRESULT hr;
+
+    if (FAILED(hr = CreateStreamOnHGlobal(NULL, TRUE, &xml))) return hr;
+    if (FAILED(hr = decompress_file_to_stream(archive, content_types, xml)))
+    {
+        IStream_Release(xml);
+        return hr;
+    }
+    if (FAILED(hr = IStream_Seek(xml, start, STREAM_SEEK_SET, NULL)))
+    {
+        IStream_Release(xml);
+        return hr;
+    }
+    if (FAILED(hr = CreateXmlReader(&IID_IXmlReader, (void *)&reader, NULL)))
+    {
+        IStream_Release(xml);
+        return hr;
+    }
+
+    hr = IXmlReader_SetInput(reader, (IUnknown *)xml);
+    IStream_Release(xml);
+    if (FAILED(hr))
+    {
+        IXmlReader_Release(reader);
+        return hr;
+    }
+
+    if (FAILED(hr = xml_get_next_node(reader, XmlNodeType_XmlDeclaration, L"xml")))
+        goto fail;
+    if (FAILED(hr = xml_get_next_node(reader, XmlNodeType_Element, L"Types")))
+        goto fail;
+    while(SUCCEEDED(hr = xml_get_next_node(reader, XmlNodeType_None, NULL)))
+    {
+        const WCHAR *name;
+        XmlNodeType type;
+
+        if (FAILED(hr = IXmlReader_GetNodeType(reader, &type))) goto fail;
+        if (type != XmlNodeType_Element && type != XmlNodeType_EndElement) continue;
+        if (FAILED(hr = IXmlReader_GetLocalName(reader, &name, NULL))) goto fail;
+        if (type == XmlNodeType_EndElement) break;
+
+        if (!wcscmp(name, L"Default"))
+            hr = content_types_add_default(reader, defaults);
+        else if (!wcscmp(name, L"Override"))
+            hr = content_types_add_override(reader, overrides);
+        else
+            FIXME("Unknown node: %s\n", debugstr_w(name));
+
+        if (FAILED(hr)) goto fail;
+    }
+    if (SUCCEEDED(hr))
+    {
+        IXmlReader_Release(reader);
+        return hr;
+    }
+fail:
+    rb_destroy(defaults, content_type_entry_destroy, NULL);
+    rb_destroy(overrides, content_type_entry_destroy, NULL);
+    IXmlReader_Release(reader);
+    return hr;
+}
+
 /* The stream should be at the start of the central directory. */
 static HRESULT compress_read_entries(IOpcFactory *factory, IStream *stream, ULONG dir_records, IOpcPartSet *partset)
 {
     static const char *content_types_name = "[Content_Types].xml";
+    struct zip_entry content_types = {0};
     BOOL found_content_types = FALSE;
     struct zip_part *parts = NULL;
+    struct rb_tree type_overrides;
+    struct rb_tree type_defaults;
     ULONG i, part_count = 0;
     HRESULT hr;
+
+    rb_init(&type_defaults, content_type_entry_compare);
+    rb_init(&type_overrides, content_type_entry_compare);
 
     for (i = 0; i < dir_records; i++)
     {
@@ -828,6 +1000,7 @@ static HRESULT compress_read_entries(IOpcFactory *factory, IStream *stream, ULON
                 hr = OPC_E_ZIP_DUPLICATE_NAME;
                 goto done;
             }
+            content_types = entry;
             found_content_types = TRUE;
         }
         else
@@ -870,13 +1043,33 @@ static HRESULT compress_read_entries(IOpcFactory *factory, IStream *stream, ULON
         hr = OPC_E_MISSING_CONTENT_TYPES;
         goto done;
     }
+    hr = compress_read_content_types(stream, &content_types, &type_defaults, &type_overrides);
 
-    for (i = 0; i < part_count; i++)
+    for (i = 0; i < part_count && SUCCEEDED(hr); i++)
     {
+        const struct content_type_entry *content_type;
+        const struct rb_entry *entry;
         IStream *content;
         IOpcPart *part;
+        BSTR str;
 
-        hr = IOpcPartSet_CreatePart(partset, parts[i].name, L"", parts[i].entry.opt, &part);
+        if (FAILED(hr = IOpcPartUri_GetAbsoluteUri(parts[i].name, &str))) goto done;
+        /* First, check if if there is "Override" entry for this part. */
+        entry = rb_get(&type_overrides, str);
+        SysFreeString(str);
+        if (!entry)
+        {
+            if (FAILED(hr = IOpcPartUri_GetExtension(parts[i].name, &str))) goto done;
+            entry = rb_get(&type_defaults, &str[1]); /* Omit the leading dot. */
+        }
+        if (!entry)
+        {
+            hr = E_INVALIDARG;
+            goto done;
+        }
+
+        content_type = RB_ENTRY_VALUE(entry, struct content_type_entry, entry);
+        hr = IOpcPartSet_CreatePart(partset, parts[i].name, content_type->type, parts[i].entry.opt, &part);
         if (FAILED(hr)) goto done;
         if (FAILED(hr = IOpcPart_GetContentStream(part, &content)))
         {
@@ -887,10 +1080,11 @@ static HRESULT compress_read_entries(IOpcFactory *factory, IStream *stream, ULON
         hr = decompress_file_to_stream(stream, &parts[i].entry, content);
         IStream_Release(content);
         IOpcPart_Release(part);
-        if (FAILED(hr)) goto done;
     }
 
 done:
+    rb_destroy(&type_defaults, content_type_entry_destroy, NULL);
+    rb_destroy(&type_overrides, content_type_entry_destroy, NULL);
     for (i = 0; i < part_count; i++)
         IOpcPartUri_Release(parts[i].name);
     free(parts);
