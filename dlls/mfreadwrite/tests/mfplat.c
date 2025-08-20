@@ -1703,7 +1703,7 @@ static void test_sink_writer_get_object(void)
 
     hr = IMFSinkWriter_QueryInterface(writer, &IID_IMFSinkWriterEx, (void **)&writer_ex);
     todo_wine
-    ok(hr == S_OK, "QueryInterface returned %#lx.\n", hr);
+    ok(hr == S_OK || broken(hr == E_NOINTERFACE) /* Win7 */, "QueryInterface returned %#lx.\n", hr);
 
     hr = MFCreateMediaType(&stream_type);
     ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
@@ -1732,13 +1732,13 @@ static void test_sink_writer_get_object(void)
     init_media_type(input_type, video_input_type_desc, -1);
     hr = IMFSinkWriter_SetInputMediaType(writer, 0, input_type, NULL);
     todo_wine
-    ok(hr == S_OK, "SetInputMediaType returned %#lx.\n", hr);
+    ok(hr == S_OK || broken(hr == MF_E_INVALIDMEDIATYPE) /* Win7 */, "SetInputMediaType returned %#lx.\n", hr);
     IMFMediaType_Release(input_type);
 
     /* Get transform after SetInputMediaType. */
     hr = IMFSinkWriter_GetServiceForStream(writer, 0, &GUID_NULL, &IID_IMFTransform, (void **)&transform);
     todo_wine
-    ok(hr == S_OK, "GetServiceForStream returned %#lx.\n", hr);
+    ok(hr == S_OK || broken(hr == MF_E_UNSUPPORTED_SERVICE) /* Win7 */, "GetServiceForStream returned %#lx.\n", hr);
     if (hr == S_OK)
     IMFTransform_Release(transform);
 
@@ -1858,7 +1858,7 @@ static void test_sink_writer_add_stream(void)
 
     hr = IMFSinkWriter_SetInputMediaType(writer, 0, input_type, NULL);
     todo_wine
-    ok(hr == S_OK, "SetInputMediaType returned %#lx.\n", hr);
+    ok(hr == S_OK || broken(hr == MF_E_INVALIDMEDIATYPE) /* Win7 */, "SetInputMediaType returned %#lx.\n", hr);
 
     IMFMediaType_Release(input_type);
 
@@ -1918,7 +1918,12 @@ static void test_sink_writer_sample_process(void)
     init_media_type(input_type, video_input_type_desc, -1);
     hr = IMFSinkWriter_SetInputMediaType(writer, 0, input_type, NULL);
     todo_wine
-    ok(hr == S_OK, "SetInputMediaType returned %#lx.\n", hr);
+    ok(hr == S_OK || broken(hr == MF_E_INVALIDMEDIATYPE) /* Win7 */, "SetInputMediaType returned %#lx.\n", hr);
+    if (broken(hr == MF_E_INVALIDMEDIATYPE))
+    {
+        win_skip("SetInputMediaType failed, skipping tests on Win7\n");
+        goto skip_tests;
+    }
     IMFMediaType_Release(input_type);
 
     /* BeginWriting after adding stream. */
@@ -1964,6 +1969,7 @@ static void test_sink_writer_sample_process(void)
         ok(file_size.QuadPart > 0x400, "Unexpected file size %I64x.\n", file_size.QuadPart);
         CloseHandle(file);
     }
+skip_tests:
     IMFSinkWriter_Release(writer);
     DeleteFileW(temp_file);
 }
