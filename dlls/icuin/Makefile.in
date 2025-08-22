@@ -1,0 +1,3 @@
+MODULE = icuin.dll
+
+EXTRADLLFLAGS = -Wb,--prefer-native
