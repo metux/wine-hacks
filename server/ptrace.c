@@ -43,7 +43,7 @@
 #ifdef HAVE_SYS_THR_H
 # include <sys/thr.h>
 #endif
-#if defined(HAVE_SYS_UIO_H) && defined(__NR_process_vm_readv)
+#if defined(HAVE_SYS_UIO_H) && defined(__NR_process_vm_readv) && defined(__NR_process_vm_writev)
 # include <sys/uio.h>
 #define USE_PROCESS_VM
 #endif
@@ -381,8 +381,43 @@ static int read_process_memory_vm( struct thread *thread, client_ptr_t ptr, data
     set_error( len >= 0 ? STATUS_PARTIAL_COPY : STATUS_ACCESS_DENIED );
     return 0;
 }
+
+static int write_process_memory_vm( struct thread *thread, client_ptr_t ptr, data_size_t size, const char *src,
+                                    data_size_t *written )
+{
+    static int not_supported;
+    struct iovec local, remote;
+    ssize_t len;
+
+    if (not_supported) return -1;
+    if (thread->unix_pid == -1 || !is_process_init_done( thread->process ))
+    {
+        set_error( STATUS_ACCESS_DENIED );
+        return 0;
+    }
+
+    local.iov_len = remote.iov_len = size;
+    local.iov_base = (void *)src;
+    remote.iov_base = (void *)(unsigned long)ptr;
+    len = syscall( __NR_process_vm_writev, thread->unix_pid, &local, 1, &remote, 1, 0 );
+    if (len < 0 && (errno == ENOSYS || errno == EPERM))
+    {
+        not_supported = 1;
+        return -1;
+    }
+
+    if (written) *written = max( len, 0 );
+    if (len != size) set_error( STATUS_PARTIAL_COPY );
+    return len == size;
+}
 #else
 static int read_process_memory_vm( struct thread *thread, client_ptr_t ptr, data_size_t size, char *dest )
+{
+    return -1;
+}
+
+static int write_process_memory_vm( struct thread *thread, client_ptr_t ptr, data_size_t size, const char *src,
+                                    data_size_t *written )
 {
     return -1;
 }
@@ -479,24 +514,14 @@ static int check_process_write_access( struct thread *thread, long *addr, data_s
     return (write_thread_long( thread, addr + len - 1, 0, 0 ) != -1);
 }
 
-/* write data to a process memory space */
-int write_process_memory( struct process *process, client_ptr_t ptr, data_size_t size, const char *src,
-                          data_size_t *written )
+static int write_process_memory_ptrace( struct thread *thread, client_ptr_t ptr, data_size_t size, const char *src,
+                                        data_size_t *written )
 {
-    struct thread *thread = get_ptrace_thread( process );
     int ret = 0;
     long data = 0;
     data_size_t len;
     long *addr;
     unsigned long first_mask, first_offset, last_mask, last_offset;
-
-    if (!thread) return 0;
-
-    if ((unsigned long)ptr != ptr)
-    {
-        set_error( STATUS_ACCESS_DENIED );
-        return 0;
-    }
 
     /* compute the mask for the first long */
     first_mask = ~0;
@@ -525,7 +550,7 @@ int write_process_memory( struct process *process, client_ptr_t ptr, data_size_t
             char procmem[24];
             int fd;
 
-            snprintf( procmem, sizeof(procmem), "/proc/%u/mem", process->unix_pid );
+            snprintf( procmem, sizeof(procmem), "/proc/%u/mem", thread->process->unix_pid );
             if ((fd = open( procmem, O_WRONLY )) != -1)
             {
                 ssize_t r = pwrite( fd, src, size, ptr );
@@ -567,6 +592,25 @@ int write_process_memory( struct process *process, client_ptr_t ptr, data_size_t
     }
     if (ret && written) *written = size;
     return ret;
+}
+
+/* write data to a process memory space */
+int write_process_memory( struct process *process, client_ptr_t ptr, data_size_t size, const char *src,
+                          data_size_t *written )
+{
+    struct thread *thread = get_ptrace_thread( process );
+    int ret;
+
+    if (!thread) return 0;
+
+    if ((unsigned long)ptr != ptr)
+    {
+        set_error( STATUS_ACCESS_DENIED );
+        return 0;
+    }
+
+    if ((ret = write_process_memory_vm( thread, ptr, size, src, written )) != -1) return ret;
+    return write_process_memory_ptrace( thread, ptr, size, src, written );
 }
 
 /* retrieve an LDT selector entry */
