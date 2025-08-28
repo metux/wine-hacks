@@ -1122,6 +1122,8 @@ UINT macdrv_UpdateDisplayDevices(const struct gdi_device_manager *device_manager
                 {
                     .rc_monitor = rect_from_cgrect(monitor->rc_monitor),
                     .rc_work = rect_from_cgrect(monitor->rc_work),
+                    .edid_len = monitor->edid_len,
+                    .edid = monitor->edid,
                 };
                 device_manager->add_monitor( &gdi_monitor, param );
             }
@@ -1142,7 +1144,7 @@ UINT macdrv_UpdateDisplayDevices(const struct gdi_device_manager *device_manager
             if (!(modes = display_get_modes(adapter->id, &mode_count))) break;
             device_manager->add_modes( &current_mode, mode_count, modes, param );
             free(modes);
-            macdrv_free_monitors(monitors);
+            macdrv_free_monitors(monitors, monitor_count);
         }
 
         macdrv_free_adapters(adapters);

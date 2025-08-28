@@ -24,6 +24,7 @@
 #ifdef HAVE_MTLDEVICE_REGISTRYID
 #import <Metal/Metal.h>
 #endif
+#include <dlfcn.h>
 #include "macdrv_cocoa.h"
 
 #pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
@@ -651,6 +652,84 @@ void macdrv_free_adapters(struct macdrv_adapter* adapters)
         free(adapters);
 }
 
+static unsigned int get_edid_from_dcpav_service_proxy(const struct macdrv_display *display, unsigned char **prop)
+{
+    typedef CFTypeRef IOAVServiceRef;
+    static IOAVServiceRef (*pIOAVServiceCreateWithService)(CFAllocatorRef, io_service_t);
+    static IOReturn (*pIOAVServiceCopyEDID)(IOAVServiceRef, CFDataRef*);
+    static dispatch_once_t once;
+    io_iterator_t iterator;
+    kern_return_t result;
+    io_service_t service;
+    int len = 0;
+
+    *prop = NULL;
+    dispatch_once(&once, ^{
+            void *handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_LAZY | RTLD_LOCAL);
+            if (handle)
+            {
+                pIOAVServiceCreateWithService = dlsym(handle, "IOAVServiceCreateWithService");
+                pIOAVServiceCopyEDID = dlsym(handle, "IOAVServiceCopyEDID");
+            }
+        });
+
+    if (!pIOAVServiceCreateWithService || !pIOAVServiceCopyEDID)
+        return len;
+
+    result = IOServiceGetMatchingServices(0, IOServiceMatching("DCPAVServiceProxy"), &iterator);
+    if (result != KERN_SUCCESS)
+        return len;
+
+    while((service = IOIteratorNext(iterator)))
+    {
+        uint32_t vendor_number, model_number, serial_number;
+        const unsigned char *edid_ptr;
+        IOAVServiceRef avservice;
+        CFDataRef edid = NULL;
+        IOReturn edid_result;
+
+        avservice = pIOAVServiceCreateWithService(kCFAllocatorDefault, service);
+        if (!avservice)
+        {
+            IOObjectRelease(service);
+            continue;
+        }
+
+        edid_result = pIOAVServiceCopyEDID(avservice, &edid);
+        if (edid_result != kIOReturnSuccess || !edid)
+        {
+            CFRelease(avservice);
+            IOObjectRelease(service);
+            continue;
+        }
+
+        edid_ptr = CFDataGetBytePtr(edid);
+        vendor_number = (uint16_t)(edid_ptr[9] | (edid_ptr[8] << 8));
+        model_number = *((uint16_t *)&edid_ptr[10]);
+        serial_number = *((uint32_t *)&edid_ptr[12]);
+        if (display->vendor_number == vendor_number &&
+                display->model_number == model_number &&
+                display->serial_number == serial_number)
+        {
+            len = CFDataGetLength(edid);
+            if (len && (*prop = malloc(len)))
+                memcpy(*prop, edid_ptr, len);
+            else
+                len = 0;
+        }
+
+        CFRelease(edid);
+        CFRelease(avservice);
+        IOObjectRelease(service);
+
+        if (len)
+            break;
+    }
+
+    IOObjectRelease(iterator);
+    return len;
+}
+
 /***********************************************************************
  *              macdrv_get_monitors
  *
@@ -712,6 +791,8 @@ int macdrv_get_monitors(uint32_t adapter_id, struct macdrv_monitor** new_monitor
 
                 monitors[monitor_count].rc_monitor = displays[j].frame;
                 monitors[monitor_count].rc_work = displays[j].work_frame;
+                monitors[monitor_count].edid_len = get_edid_from_dcpav_service_proxy(&displays[j],
+                        &monitors[monitor_count].edid);
                 monitor_count++;
                 break;
             }
@@ -734,7 +815,7 @@ done:
     if (displays)
         macdrv_free_displays(displays);
     if (ret)
-        macdrv_free_monitors(monitors);
+        macdrv_free_monitors(monitors, capacity);
     return ret;
 }
 
@@ -743,8 +824,11 @@ done:
  *
  * Frees an monitor list allocated from macdrv_get_monitors()
  */
-void macdrv_free_monitors(struct macdrv_monitor* monitors)
+void macdrv_free_monitors(struct macdrv_monitor* monitors, int monitor_count)
 {
+    while (monitor_count--)
+        if (monitors[monitor_count].edid)
+            free(monitors[monitor_count].edid);
     if (monitors)
         free(monitors);
 }
