@@ -88,6 +88,9 @@ int macdrv_get_displays(struct macdrv_display** displays, int* count)
                                      primary_frame);
                 disps[i].frame = cgrect_win_from_mac(disps[i].frame);
                 disps[i].work_frame = cgrect_win_from_mac(disps[i].work_frame);
+                disps[i].vendor_number = CGDisplayVendorNumber(disps[i].displayID);
+                disps[i].model_number = CGDisplayModelNumber(disps[i].displayID);
+                disps[i].serial_number = CGDisplaySerialNumber(disps[i].displayID);
             }
 
             *displays = disps;

@@ -94,6 +94,9 @@ struct macdrv_display {
     CGDirectDisplayID displayID;
     CGRect frame;
     CGRect work_frame;
+    uint32_t vendor_number;
+    uint32_t model_number;
+    uint32_t serial_number;
 };
 
 
