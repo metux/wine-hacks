@@ -3886,16 +3886,12 @@ msgid "Advanced settings (restart prefix required to take effect)"
 msgstr ""
 
 #: dlls/joy.cpl/joy.rc:52
-#, fuzzy
-#| msgid "&Enable"
 msgid "Enable SDL"
-msgstr "&Activer"
+msgstr "Activer SDL"
 
 #: dlls/joy.cpl/joy.rc:53
-#, fuzzy
-#| msgid "Disabled"
 msgid "Disable hidraw"
-msgstr "Désactivé"
+msgstr "Désactivé hidraw"
 
 #: dlls/joy.cpl/joy.rc:58
 msgid "DInput"
@@ -3918,12 +3914,8 @@ msgid "Force Feedback Effect"
 msgstr "Effet de retour de force"
 
 #: dlls/joy.cpl/joy.rc:67
-#, fuzzy
-#| msgid ""
-#| "Press any button in the controller to activate the chosen effect. The "
-#| "effect direction can be changed with the controller axis."
 msgid ""
-"Hold any button in the controller to play the chosen effect. The effect "
+"Press any button in the controller to activate the chosen effect. The effect "
 "direction can be changed with the controller axis."
 msgstr ""
 "Appuyez sur un bouton du contrôleur pour activer l'effet choisi. La "
@@ -3954,29 +3946,37 @@ msgid ""
 "No user detected on slot #0, make sure your gamepad is plugged in, and not "
 "overridden for DInput in the Joysticks tab."
 msgstr ""
+"Aucun utilisateur détecté sur le slot #0, assurez-vous que votre manette de jeu est branchée, et non "
+"remplacé par DInput dans l'onglet Joysticks."
 
 #: dlls/joy.cpl/joy.rc:85
 msgid ""
 "No user detected on slot #1, make sure your gamepad is plugged in, and not "
 "overridden for DInput in the Joysticks tab."
 msgstr ""
+"Aucun utilisateur détecté sur le slot #1, assurez-vous que votre manette de jeu est branchée, et non "
+"remplacé par DInput dans l'onglet Joysticks."
 
 #: dlls/joy.cpl/joy.rc:89
 msgid ""
 "No user detected on slot #2, make sure your gamepad is plugged in, and not "
 "overridden for DInput in the Joysticks tab."
 msgstr ""
+"Aucun utilisateur détecté sur le slot #2, assurez-vous que votre manette de jeu est branchée, et non "
+"remplacé par DInput dans l'onglet Joysticks."
 
 #: dlls/joy.cpl/joy.rc:93
 msgid ""
 "No user detected on slot #3, make sure your gamepad is plugged in, and not "
 "overridden for DInput in the Joysticks tab."
 msgstr ""
+"Aucun utilisateur détecté sur le slot #3, assurez-vous que votre manette de jeu est branchée, et non "
+"remplacé par DInput dans l'onglet Joysticks."
 
 #: dlls/joy.cpl/joy.rc:98 dlls/joy.cpl/joy.rc:99 dlls/joy.cpl/joy.rc:100
 #: dlls/joy.cpl/joy.rc:101 dlls/joy.cpl/joy.rc:115
 msgid "Rumble"
-msgstr ""
+msgstr "Vibration"
 
 #: dlls/joy.cpl/joy.rc:106
 msgid "Windows.Gaming.Input"
@@ -7296,7 +7296,7 @@ msgstr "Argument non valide.\n"
 
 #: dlls/kernelbase/winerror.mc:3778
 msgid "Cannot assign requested address.\n"
-msgstr ""
+msgstr "Impossible d'attribuer l'adresse demandée.\n"
 
 #: dlls/kernelbase/winerror.mc:3783
 msgid "Connection reset by peer.\n"
@@ -10295,7 +10295,7 @@ msgstr "Ouvrir avec :"
 
 #: dlls/shell32/shell32.rc:391
 msgid "&Change..."
-msgstr "&Changer l'&icône..."
+msgstr "Modifier..."
 
 #: dlls/shell32/shell32.rc:402
 msgid "Last modified:"
@@ -10356,7 +10356,7 @@ msgstr "Panneau de configuration"
 
 #: dlls/shell32/shell32.rc:162
 msgid "Ne&w"
-msgstr ""
+msgstr "Nouveau"
 
 #: dlls/shell32/shell32.rc:164
 msgid "E&xplore"
@@ -10364,7 +10364,7 @@ msgstr "E&xplorer"
 
 #: dlls/shell32/shell32.rc:167
 msgid "Run as &Administrator"
-msgstr ""
+msgstr "Exécuter en tant qu'Administrateur"
 
 #: dlls/shell32/shell32.rc:189
 msgid "Restart"
@@ -13107,7 +13107,7 @@ msgstr "Ethernet"
 
 #: dlls/urlmon/urlmon.rc:64
 msgid "Restricted sites"
-msgstr ""
+msgstr "Sites restreints"
 
 #: dlls/urlmon/urlmon.rc:57
 #, fuzzy
@@ -13119,23 +13119,27 @@ msgstr "Poste de travail"
 msgid ""
 "This zone contains all Web sites that are on your organization's intranet."
 msgstr ""
+"Cette zone contient tous les sites Web qui se trouvent sur l'intranet de votre organisation."
 
 #: dlls/urlmon/urlmon.rc:61
 msgid ""
 "This zone contains Web sites that you trust not to damage your computer or "
 "data."
 msgstr ""
+"Cette zone contient les sites Web dont vous êtes sûr qu'ils n'endommageront pas votre "
+"ordinateur ou vos données."
 
 #: dlls/urlmon/urlmon.rc:63
 msgid "This zone contains all Web sites you haven't placed in other zones"
-msgstr ""
+msgstr "Cette zone contient tous les sites Web que vous n'avez pas placés dans d'autres zones."
 
 #: dlls/urlmon/urlmon.rc:65
 msgid ""
 "This zone contains Web sites that could potentially damage your computer or "
 "data."
 msgstr ""
-
+"Cette zone contient des sites Web susceptibles d'endommager votre ordinateur "
+ou vos données."
 #: dlls/user32/user32.rc:30 dlls/user32/user32.rc:43
 #: programs/taskmgr/taskmgr.rc:138
 msgctxt "window"
@@ -13287,7 +13291,7 @@ msgstr "Élément nommé introuvable"
 
 #: dlls/vbscript/vbscript.rc:55
 msgid "Wrong number of arguments or invalid property assignment"
-msgstr ""
+msgstr "Nombre d'arguments incorrect ou attribution de propriété non valide"
 
 #: dlls/vbscript/vbscript.rc:57
 msgid "Specified DLL function not found"
@@ -13363,8 +13367,6 @@ msgid "Duplex:"
 msgstr "Recto verso :"
 
 #: dlls/wineps.drv/wineps.rc:45
-#, fuzzy
-#| msgid "&Tray:"
 msgid "Paper &Tray:"
 msgstr "&Bac :"
 
@@ -19594,10 +19596,8 @@ msgid "&Theme:"
 msgstr "&Thème :"
 
 #: programs/winecfg/winecfg.rc:295
-#, fuzzy
-#| msgid "&Theme:"
 msgid "&WinRT theme:"
-msgstr "&Thème :"
+msgstr "&Thème WinRT:"
 
 #: programs/winecfg/winecfg.rc:297
 msgid "&Install theme..."
@@ -19616,8 +19616,6 @@ msgid "MIME types"
 msgstr "Types MIME"
 
 #: programs/winecfg/winecfg.rc:311
-#, fuzzy
-#| msgid "Manage file &associations"
 msgid "Manage file and protocol &associations"
 msgstr "&Gérer les associations de fichier"
 
