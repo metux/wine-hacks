@@ -784,6 +784,199 @@ static unsigned int get_edid_from_io_display_edid(const struct macdrv_display *d
     return length;
 }
 
+static uint16_t get_manufacturer_from_vendor(uint32_t vendor)
+{
+    uint16_t manufacturer = 0;
+
+    manufacturer |= ((vendor >> 10) & 0x1f) << 10;
+    manufacturer |= ((vendor >> 5)  & 0x1f) << 5;
+    manufacturer |= (vendor & 0x1f);
+    manufacturer = (manufacturer >> 8) | (manufacturer << 8);
+    return manufacturer;
+}
+
+static void fill_detailed_timing_desc(uint8_t *data, int horizontal, int vertical,
+        double refresh, size_t mwidth, size_t mheight)
+{
+    int h_front_porch = 8, h_sync_pulse = 32, h_back_porch = 40;
+    int v_front_porch = 6, v_sync_pulse = 8, v_back_porch = 40;
+    int h_blanking, v_blanking, h_total, v_total, pixel_clock;
+
+    h_blanking = h_front_porch + h_sync_pulse + h_back_porch;
+    v_blanking = v_front_porch + v_sync_pulse + v_back_porch;
+    h_total = horizontal + h_blanking;
+    v_total = vertical + v_blanking;
+
+    if (refresh <= 0.0) refresh = 60.0;
+    pixel_clock = (int)round(h_total * v_total * refresh / 10000.0);
+
+    memset(data, 0, 18);
+    data[0] = pixel_clock & 0xff;
+    data[1] = (pixel_clock >> 8) & 0xff;
+    data[2] = horizontal;
+    data[3] = h_total - horizontal;
+    data[4] = (((h_total - horizontal) >> 8) & 0xf) | (((horizontal >> 8) & 0xf) << 4);
+    data[5] = vertical;
+    data[6] = v_total - vertical;
+    data[7] = (((v_total - vertical) >> 8) & 0xf) | (((vertical >> 8) & 0xf) << 4);
+    data[8] = h_front_porch;
+    data[9] = h_sync_pulse;
+    data[10] = ((v_front_porch & 0xf) << 4) | (v_sync_pulse & 0xf);
+    data[11] = (((h_front_porch >> 8) & 3) << 6)
+            | (((h_sync_pulse >> 8) & 3) << 4)
+            | (((v_front_porch >> 4) & 3) << 2)
+            | ((v_sync_pulse >> 4) & 3);
+    data[12] = mwidth;
+    data[13] = mheight;
+    data[14] = (((mwidth >> 8) & 0xf) << 4) | ((mheight >> 8) & 0xf);
+    data[17] = 0x1e;
+}
+
+static unsigned int generate_edid(const struct macdrv_display *display, unsigned char **prop)
+{
+    struct display_param {
+        size_t width;
+        size_t height;
+        double refresh;
+    } best_params[3];
+    double mwidth, mheight, refresh;
+    CGDisplayModeRef mode = NULL;
+    size_t width = 0, height = 0;
+    uint8_t edid[128], sum, *p;
+    int i, j, timings = 0;
+    CGSize screen_size;
+    CFArrayRef modes;
+
+    *prop = malloc(128);
+    if (!*prop)
+        return 0;
+
+    screen_size = CGDisplayScreenSize(display->displayID);
+    mwidth = screen_size.width;
+    mheight = screen_size.height;
+
+    memset(&edid, 0, sizeof(edid));
+    *(uint64_t *)&edid[0] = 0x00ffffffffffff00;
+
+    *(uint16_t *)&edid[8] = get_manufacturer_from_vendor(display->vendor_number);
+    *(uint16_t *)&edid[10] = (uint16_t)display->model_number;
+    *(uint32_t *)&edid[12] = display->serial_number;
+    edid[16] = 52; /* weeks */
+    edid[17] = 30; /* year */
+    edid[18] = 1; /* version */
+    edid[19] = 4; /* revision */
+    edid[20] = 0xb5; /* video input parameters: 10 bits DisplayPort */
+    edid[21] = (uint8_t)(mwidth / 10.0); /* horizontal screen size in cm */
+    edid[22] = (uint8_t)(mheight / 10.0); /* vertical screen size in cm */
+    edid[23] = 0x78; /* gamma: 2.2 */
+    edid[24] = 0x06; /* supported features: RGB 4:4:4, sRGB, native pixel format and refresh rate */
+
+    /* color characteristics: sRGB */
+    edid[25] = 0xee;
+    edid[26] = 0x91;
+    edid[27] = 0xa3;
+    edid[28] = 0x54;
+    edid[29] = 0x4c;
+    edid[30] = 0x99;
+    edid[31] = 0x26;
+    edid[32] = 0x0f;
+    edid[33] = 0x50;
+    edid[34] = 0x54;
+
+    for (i = 0; i < 16; ++i) edid[38 + i] = 1;
+
+    /* detailed timing descriptors */
+    p = edid + 54;
+    modes = CGDisplayCopyAllDisplayModes(display->displayID, NULL);
+    if (modes)
+        i = CFArrayGetCount(modes);
+    for (i--; i >= 0; i--)
+    {
+        CGDisplayModeRef candidate_mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(modes, i);
+        int flags = CGDisplayModeGetIOFlags(candidate_mode);
+        if (flags & kDisplayModeNativeFlag || flags & kDisplayModeDefaultFlag)
+        {
+            width = CGDisplayModeGetPixelWidth(candidate_mode);
+            height = CGDisplayModeGetPixelHeight(candidate_mode);
+            refresh = CGDisplayModeGetRefreshRate(candidate_mode);
+            if (!timings)
+            {
+                best_params[0].width = width;
+                best_params[0].height = height;
+                best_params[0].refresh = refresh;
+                timings++;
+            }
+            else
+            {
+                for (j = 0; j < timings; j++)
+                {
+                    if (best_params[j].width < width ||
+                            (best_params[j].width == width && best_params[j].refresh < refresh))
+                    {
+                        struct display_param swap_display_para = best_params[j];
+
+                        best_params[j].width = width;
+                        best_params[j].height = height;
+                        best_params[j].refresh = refresh;
+                        width = swap_display_para.width;
+                        height = swap_display_para.height;
+                        refresh = swap_display_para.refresh;
+                    }
+                }
+                if (timings != 3)
+                {
+                    best_params[timings].width = width;
+                    best_params[timings].height = height;
+                    best_params[timings].refresh = refresh;
+                    timings++;
+                }
+            }
+        }
+    }
+    if (modes)
+        CFRelease(modes);
+    if (!timings)
+    {
+        mode = CGDisplayCopyDisplayMode(display->displayID);
+        width = CGDisplayModeGetPixelWidth(mode);
+        height = CGDisplayModeGetPixelHeight(mode);
+        refresh = CGDisplayModeGetRefreshRate(mode);
+        fill_detailed_timing_desc(p, width, height, refresh, (size_t)mwidth, (size_t)mheight);
+        timings++;
+        CGDisplayModeRelease(mode);
+    }
+    else
+    {
+        for (i = 0; i < timings; i++)
+        {
+            fill_detailed_timing_desc(p, best_params[i].width, best_params[i].height,
+                    best_params[i].refresh, (size_t)mwidth, (size_t)mheight);
+            p += 18;
+            p[3] = 0x10;
+        }
+    }
+    while (timings != 3)
+    {
+        p += 18;
+        p[3] = 0x10;
+        timings++;
+    }
+
+    /* display product name */
+    p[3] = 0xfc;
+    strcpy((char *)p + 5, "Wine Monitor");
+    p[17] = 0x0a;
+
+    /* checksum */
+    sum = 0;
+    for (i = 0; i < 127; ++i)
+        sum += edid[i];
+    edid[127] = 256 - sum;
+
+    memcpy(*prop, edid, 128);
+    return 128;
+}
+
 /***********************************************************************
  *              macdrv_get_monitors
  *
@@ -850,6 +1043,8 @@ int macdrv_get_monitors(uint32_t adapter_id, struct macdrv_monitor** new_monitor
                 if (!monitors[monitor_count].edid_len)
                     monitors[monitor_count].edid_len = get_edid_from_io_display_edid(&displays[j],
                             &monitors[monitor_count].edid);
+                if (!monitors[monitor_count].edid_len)
+                    monitors[monitor_count].edid_len = generate_edid(&displays[j], &monitors[monitor_count].edid);
                 monitor_count++;
                 break;
             }
