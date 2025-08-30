@@ -333,10 +333,8 @@ msgid "Please wait until the current uninstall/modify process is complete."
 msgstr ""
 
 #: dlls/appwiz.cpl/appwiz.rc:55
-#, fuzzy
-#| msgid "Downloading..."
 msgid "Download failed."
-msgstr "Téléchargement..."
+msgstr "Téléchargement à échoué."
 
 #: dlls/avifil32/avifil32.rc:42
 msgid "Compress options"
@@ -391,19 +389,18 @@ msgid "uncompressed"
 msgstr "non compressé"
 
 #: dlls/bluetoothapis/bluetoothapis.rc:31
-#, fuzzy
-#| msgid "&Confirm password:"
 msgid "Confirm pairing"
-msgstr "&Confirmez le mot de passe :"
+msgstr "Confirmez le mot de passe :"
 
 #: dlls/bluetoothapis/bluetoothapis.rc:32
 msgid "Pair with '%1!s!' using the following PIN/passkey value: %2!lu!?"
-msgstr ""
+msgstr "Associez à '%1!s!' en utilisant la valeur PIN/clé d'accès suivante : %2!lu!?"
 
 #: dlls/bluetoothapis/bluetoothapis.rc:33
 msgid ""
 "Pair with unnamed device %1!s! using the following PIN/passkey value: %2!lu!?"
 msgstr ""
+"Appairer avec l'appareil sans nom %1!s! à l'aide du code PIN/mot de passe suivant : %2!lu!?"
 
 #: dlls/browseui/browseui.rc:28
 msgid "Canceling..."
@@ -1367,47 +1364,37 @@ msgid "Options"
 msgstr "Options"
 
 #: dlls/compstui/compstui.rc:31
-#, fuzzy
-#| msgid "Defaults"
 msgid "Default"
 msgstr "Valeurs par défaut"
 
 #: dlls/compstui/compstui.rc:35
-#, fuzzy
-#| msgid "&Copy Background"
 msgid "&Copy count"
 msgstr "&Copier l'arrière-plan"
 
 #: dlls/compstui/compstui.rc:36
-#, fuzzy
-#| msgid "Print to File"
 msgid "Print on Both Sides"
 msgstr "Imprimer dans un fichier"
 
 #: dlls/compstui/compstui.rc:32
-#, fuzzy
-#| msgid "C&olor:"
 msgid "C&olor"
 msgstr "Couleu&r :"
 
 #: dlls/compstui/compstui.rc:34
 msgid "Bla&ck && White"
-msgstr ""
+msgstr "Noir et Blanc"
 
 #: dlls/compstui/compstui.rc:37
-#, fuzzy
 #| msgctxt "hotkey"
-#| msgid "None"
 msgid "&None"
 msgstr "Aucune"
 
 #: dlls/compstui/compstui.rc:38 dlls/compstui/compstui.rc:41
 msgid "Flip on Shor&t Edge"
-msgstr ""
+msgstr "Retourner sur le bord court"
 
 #: dlls/compstui/compstui.rc:39 dlls/compstui/compstui.rc:40
 msgid "Flip on Long E&dge"
-msgstr ""
+msgstr "Retourner sur le bord long"
 
 #: dlls/credui/credui.rc:45
 msgid "&User name:"
@@ -3232,18 +3219,12 @@ msgid "Not yet implemented"
 msgstr "Pas encore implémenté"
 
 #: dlls/desk.cpl/desk.rc:35
-#, fuzzy
-#| msgctxt "display name"
-#| msgid "Desktop"
 msgid "Desktop"
 msgstr "Bureau"
 
 #: dlls/desk.cpl/desk.rc:38
-#, fuzzy
-#| msgctxt "display name"
-#| msgid "Desktop"
 msgid "Virtual Desktop"
-msgstr "Bureau"
+msgstr "Bureau virtuel"
 
 #: dlls/desk.cpl/desk.rc:40 dlls/joy.cpl/joy.rc:41
 msgid "&Reset"
@@ -3251,17 +3232,15 @@ msgstr "&Réinitialiser"
 
 #: dlls/desk.cpl/desk.rc:42
 msgid "Emulate display mode changes (requires restart)"
-msgstr ""
+msgstr "Emulation des changements du mode d'affichage (nécessite un redémarrage)"
 
 #: dlls/desk.cpl/desk.rc:29
-#, fuzzy
-#| msgid "Default Settings"
 msgid "Display Settings"
-msgstr "Paramètres par défaut"
+msgstr "Paramètres de l'écran"
 
 #: dlls/desk.cpl/desk.rc:30
 msgid "Configure monitors and display devices."
-msgstr ""
+msgstr "Configurer les moniteurs et les dispositifs d'affichage."
 
 #: dlls/dinput/dinput.rc:34
 msgid "Configure Devices"
@@ -3517,8 +3496,6 @@ msgid "Show &Tabs"
 msgstr "Afficher les &onglets"
 
 #: dlls/hhctrl.ocx/hhctrl.rc:39
-#, fuzzy
-#| msgid "Select Source"
 msgid "Select Topic"
 msgstr "Sélectionnez une source"
 
@@ -3838,14 +3815,10 @@ msgid "High"
 msgstr "Haute"
 
 #: dlls/ir50_32/ir50_32.rc:28
-#, fuzzy
-#| msgid "Index"
 msgid "Indeo5"
 msgstr "Index"
 
 #: dlls/ir50_32/ir50_32.rc:29
-#, fuzzy
-#| msgid "Wine Video 1 video codec"
 msgid "Indeo Video Interactive version 5 video codec"
 msgstr "Codec vidéo Wine Video 1"
 
@@ -3866,14 +3839,10 @@ msgid "&Enable"
 msgstr "&Activer"
 
 #: dlls/joy.cpl/joy.rc:44
-#, fuzzy
-#| msgid "Connected (xinput device)"
 msgid "Connected (DirectInput devices)"
-msgstr "Connecté (périphérique xinput)"
+msgstr "Connecté (Périphérique DirectInput)"
 
 #: dlls/joy.cpl/joy.rc:46
-#, fuzzy
-#| msgid "Connected (xinput device)"
 msgid "Connected (XInput devices)"
 msgstr "Connecté (périphérique xinput)"
 
@@ -3883,7 +3852,7 @@ msgstr "Désactivé"
 
 #: dlls/joy.cpl/joy.rc:51
 msgid "Advanced settings (restart prefix required to take effect)"
-msgstr ""
+msgstr "Paramètres avancés (le redémarrage est nécessaire pour prendre effet)"
 
 #: dlls/joy.cpl/joy.rc:52
 msgid "Enable SDL"
@@ -4115,10 +4084,8 @@ msgid "Function expected"
 msgstr "Fonction attendue"
 
 #: dlls/jscript/jscript.rc:55
-#, fuzzy
-#| msgid "'[object]' is not a date object"
 msgid "'[object]' is not a string object"
-msgstr "« [objet] » n'est pas un objet de type date"
+msgstr "« [objet] » n'est pas un objet de type chaine"
 
 #: dlls/jscript/jscript.rc:56
 msgid "'[object]' is not a date object"
@@ -4165,8 +4132,6 @@ msgid "Syntax error in regular expression"
 msgstr "Erreur de syntaxe dans l'expression rationnelle"
 
 #: dlls/jscript/jscript.rc:68
-#, fuzzy
-#| msgid "Expected identifier"
 msgid "Unexpected quantifier"
 msgstr "Identifiant attendu"
 
@@ -4191,8 +4156,6 @@ msgid "Precision is out of range"
 msgstr "Précision hors limites"
 
 #: dlls/jscript/jscript.rc:74
-#, fuzzy
-#| msgid "Array object expected"
 msgid "Array or arguments object expected"
 msgstr "Objet tableau attendu"
 
@@ -4209,6 +4172,8 @@ msgid ""
 "'writable' attribute on the property descriptor cannot be set to 'true' on "
 "this object"
 msgstr ""
+"L'attribut 'writable' du descripteur de propriété ne peut pas être défini à 'true' sur "
+"cet object"
 
 #: dlls/jscript/jscript.rc:78
 msgid "Cyclic __proto__ value"
@@ -4216,11 +4181,11 @@ msgstr ""
 
 #: dlls/jscript/jscript.rc:79
 msgid "Cannot create property for a non-extensible object"
-msgstr ""
+msgstr "Impossible de créer une propriété pour un objet non extensible"
 
 #: dlls/jscript/jscript.rc:80
 msgid "Cannot define property '|': object is not extensible"
-msgstr ""
+msgstr "Impossible de définir la propriété '|' : l'objet n'est pas extensible"
 
 #: dlls/jscript/jscript.rc:81
 msgid "Cannot redefine non-configurable property '|'"
@@ -4231,38 +4196,30 @@ msgid "Cannot modify non-writable property '|'"
 msgstr "Impossible de modifier une propriété qui est protégée en écriture '|'"
 
 #: dlls/jscript/jscript.rc:83
-#, fuzzy
-#| msgid "'this' is not a Map object"
 msgid "'this' is not a DataView object"
 msgstr "« this » n'est pas un objet de type Map"
 
 #: dlls/jscript/jscript.rc:84
 msgid "Required argument offset or value in DataView method is not specified"
-msgstr ""
+msgstr "L'offset ou la valeur requis dans la méthode DataView n'est pas spécifié"
 
 #: dlls/jscript/jscript.rc:85
 msgid "DataView operation access beyond specified buffer length"
-msgstr ""
+msgstr "Accès à l'opération DataView au-delà de la longueur de tampon spécifiée"
 
 #: dlls/jscript/jscript.rc:86
 msgid "DataView constructor argument offset is invalid"
-msgstr ""
+msgstr "L'offset de l'argument du constructeur DataView n'est pas valide"
 
 #: dlls/jscript/jscript.rc:87
-#, fuzzy
-#| msgid "'this' is not a Map object"
 msgid "'this' is not a | object"
 msgstr "« this » n'est pas un objet de type Map"
 
 #: dlls/jscript/jscript.rc:88
-#, fuzzy
-#| msgid "'this' is not a Map object"
 msgid "'key' is not an object"
 msgstr "« this » n'est pas un objet de type Map"
 
 #: dlls/jscript/jscript.rc:89
-#, fuzzy
-#| msgid "Array object expected"
 msgid "ArrayBuffer object expected"
 msgstr "Objet tableau attendu"
 
@@ -7303,14 +7260,10 @@ msgid "Connection reset by peer.\n"
 msgstr "Connexion fermée par le pair.\n"
 
 #: dlls/kernelbase/winerror.mc:3793
-#, fuzzy
-#| msgid "Point not found.\n"
 msgid "Host not found.\n"
 msgstr "Point introuvable.\n"
 
 #: dlls/kernelbase/winerror.mc:3798
-#, fuzzy
-#| msgid "Attribute is not found.\n"
 msgid "Nonauthoritative host not found.\n"
 msgstr "L'attribut n'a pas été trouvé.\n"
 
@@ -7894,8 +7847,6 @@ msgid "Invalid media type.\n"
 msgstr "Type de média invalide.\n"
 
 #: dlls/mferror/mferror.mc:67
-#, fuzzy
-#| msgid "No more entries.\n"
 msgid "No more input is accepted.\n"
 msgstr "Il n'y a plus d'entrées.\n"
 
@@ -7964,8 +7915,6 @@ msgid "Unsupported rate.\n"
 msgstr "Le taux d'échantillonage n'est pas pris en charge.\n"
 
 #: dlls/mferror/mferror.mc:200
-#, fuzzy
-#| msgid "Unsupported type.\n"
 msgid "Unsupported thinning.\n"
 msgstr "Type non pris en charge.\n"
 
@@ -7974,8 +7923,6 @@ msgid "Reversing is not supported.\n"
 msgstr "Le sens à rebours n'est pas pris en charge.\n"
 
 #: dlls/mferror/mferror.mc:214
-#, fuzzy
-#| msgid "Unsupported authorization level.\n"
 msgid "Unsupported rate transition.\n"
 msgstr "Niveau d'autorisation non pris en charge.\n"
 
@@ -8000,20 +7947,14 @@ msgid "Multiple subscribers are not supported.\n"
 msgstr "Plusieurs souscripteurs ne sont pas pris en charge.\n"
 
 #: dlls/mferror/mferror.mc:270
-#, fuzzy
-#| msgid "The driver was not enabled."
 msgid "The timer was orphaned.\n"
 msgstr "Le pilote n'a pas été activé."
 
-#: dlls/mferror/mferror.mc:277
-#, fuzzy
-#| msgid "Character translation table open failed.\n"
+#: dlls/mferror/mferror.mc:277"
 msgid "State transition is pending.\n"
 msgstr "Impossible d'ouvrir la table de conversion de caractères.\n"
 
 #: dlls/mferror/mferror.mc:284
-#, fuzzy
-#| msgid "Unsupported authorization level.\n"
 msgid "Unsupported state transition.\n"
 msgstr "Niveau d'autorisation non pris en charge.\n"
 
@@ -8034,8 +7975,6 @@ msgid "Key is invalid.\n"
 msgstr "La clé n'est pas valide.\n"
 
 #: dlls/mferror/mferror.mc:319
-#, fuzzy
-#| msgid "Wrong stub version.\n"
 msgid "Bad startup version.\n"
 msgstr "Version incompatible d'ébauche (stub).\n"
 
@@ -8080,8 +8019,6 @@ msgid "Operation was canceled.\n"
 msgstr "L'opération a été annulée.\n"
 
 #: dlls/mferror/mferror.mc:396
-#, fuzzy
-#| msgid "Server not disabled.\n"
 msgid "Bytestream is not seekable.\n"
 msgstr "Serveur non désactivé.\n"
 
@@ -8102,8 +8039,6 @@ msgid "Unknown bytestream length.\n"
 msgstr "Longueur du flux d'octets inconnue.\n"
 
 #: dlls/mferror/mferror.mc:431
-#, fuzzy
-#| msgid "Invalid index.\n"
 msgid "Invalid work queue index.\n"
 msgstr "Index invalide.\n"
 
@@ -8112,8 +8047,6 @@ msgid "No events available.\n"
 msgstr "Aucun événement disponible.\n"
 
 #: dlls/mferror/mferror.mc:445
-#, fuzzy
-#| msgid "Unsupported authorization level.\n"
 msgid "Invalid media source state transition.\n"
 msgstr "Niveau d'autorisation non pris en charge.\n"
 
@@ -8174,8 +8107,6 @@ msgid "Stream sinks are out of sync.\n"
 msgstr "Les récepteurs de flux sont désynchronisés.\n"
 
 #: dlls/mferror/mferror.mc:550
-#, fuzzy
-#| msgid "Registry has been recovered.\n"
 msgid "Media sink stream sinks set is fixed.\n"
 msgstr "Le registre a été restauré.\n"
 
@@ -8236,8 +8167,6 @@ msgid "Topology request is not supported.\n"
 msgstr "Demande de topologie non prise en charge.\n"
 
 #: dlls/mferror/mferror.mc:662
-#, fuzzy
-#| msgid "Invalid group attributes.\n"
 msgid "Invalid topology time attributes.\n"
 msgstr "Attributs de groupe invalides.\n"
 
@@ -8246,8 +8175,6 @@ msgid "Found loops in topology.\n"
 msgstr "Un ou plusieurs cycles ont été trouvés dans la topologie.\n"
 
 #: dlls/mferror/mferror.mc:676
-#, fuzzy
-#| msgid "Installation source is missing.\n"
 msgid "Presentation descriptor is missing.\n"
 msgstr "Source d'installation manquante.\n"
 
@@ -8272,14 +8199,10 @@ msgid "Clock has no time source set.\n"
 msgstr ""
 
 #: dlls/mferror/mferror.mc:718
-#, fuzzy
-#| msgid "Class already exists.\n"
 msgid "Clock state was already set.\n"
 msgstr "La classe existe déjà.\n"
 
 #: dlls/mferror/mferror.mc:725
-#, fuzzy
-#| msgid "Help not available."
 msgid "Clock is not simple\n"
 msgstr "Impossible d'afficher l'aide."
 
@@ -8471,8 +8394,6 @@ msgid "Binding executables"
 msgstr ""
 
 #: dlls/msi/msi.rc:94 dlls/msi/msi.rc:137
-#, fuzzy
-#| msgid "Searching for %s"
 msgid "Searching for qualifying products"
 msgstr "Recherche de %s"
 
@@ -9308,8 +9229,6 @@ msgid "self voicing"
 msgstr ""
 
 #: dlls/oleacc/oleacc.rc:118
-#, fuzzy
-#| msgid "Paused"
 msgctxt "object state"
 msgid "focusable"
 msgstr "En pause"
@@ -10745,16 +10664,12 @@ msgid "(UTC+07:00) Krasnoyarsk"
 msgstr ""
 
 #: dlls/tzres/tzres.rc:150
-#, fuzzy
 #| msgctxt "maximum 31 characters"
-#| msgid "Aleutian Standard Time"
 msgctxt "maximum 31 characters"
 msgid "Georgian Standard Time"
 msgstr "Heure des Îles Aléoutiennes"
 
 #: dlls/tzres/tzres.rc:151
-#, fuzzy
-#| msgid "Aleutian Daylight Time"
 msgctxt "maximum 31 characters"
 msgid "Georgian Daylight Time"
 msgstr "Heure d'été des Îles Aléoutiennes"
@@ -10950,15 +10865,11 @@ msgid "(UTC+13:00) Nuku'alofa"
 msgstr ""
 
 #: dlls/tzres/tzres.rc:222
-#, fuzzy
-#| msgid "Date and time"
 msgctxt "maximum 31 characters"
 msgid "Mountain Standard Time (Mexico)"
 msgstr "Date et heure"
 
 #: dlls/tzres/tzres.rc:223
-#, fuzzy
-#| msgid "Date and time"
 msgctxt "maximum 31 characters"
 msgid "Mountain Daylight Time (Mexico)"
 msgstr "Date et heure"
@@ -13088,32 +12999,24 @@ msgid "Install"
 msgstr "Installer"
 
 #: dlls/urlmon/urlmon.rc:58
-#, fuzzy
-#| msgid "Local Port"
 msgid "Local intranet"
 msgstr "Port local"
 
 #: dlls/urlmon/urlmon.rc:60
-#, fuzzy
-#| msgid "Trusted Publishers"
 msgid "Trusted sites"
 msgstr "Éditeurs de confiance"
 
 #: dlls/urlmon/urlmon.rc:62
-#, fuzzy
-#| msgid "Ethernet"
 msgid "Internet"
-msgstr "Ethernet"
+msgstr "Internet"
 
 #: dlls/urlmon/urlmon.rc:64
 msgid "Restricted sites"
 msgstr "Sites restreints"
 
 #: dlls/urlmon/urlmon.rc:57
-#, fuzzy
-#| msgid "My Computer"
 msgid "Your computer"
-msgstr "Poste de travail"
+msgstr "Votre ordinateur"
 
 #: dlls/urlmon/urlmon.rc:59
 msgid ""
@@ -13139,7 +13042,8 @@ msgid ""
 "data."
 msgstr ""
 "Cette zone contient des sites Web susceptibles d'endommager votre ordinateur "
-ou vos données."
+"ou vos données."
+
 #: dlls/user32/user32.rc:30 dlls/user32/user32.rc:43
 #: programs/taskmgr/taskmgr.rc:138
 msgctxt "window"
@@ -13250,8 +13154,6 @@ msgid "Path not found"
 msgstr "Chemin introuvable"
 
 #: dlls/vbscript/vbscript.rc:43
-#, fuzzy
-#| msgid "(value not set)"
 msgid "Object variable not set"
 msgstr "(valeur non définie)"
 
@@ -15346,26 +15248,18 @@ msgstr ""
 " hexadécimal (0x34) ou octal (056).\n"
 
 #: programs/cmd/cmd.rc:407
-#, fuzzy
-#| msgid "Syntax error\n"
 msgid "Syntax error: unexpected %1\n"
 msgstr "Erreur de syntaxe\n"
 
 #: programs/cmd/cmd.rc:408
-#, fuzzy
-#| msgid "End of file.\n"
 msgid "End of line"
 msgstr "Fin de fichier atteinte.\n"
 
 #: programs/cmd/cmd.rc:409
-#, fuzzy
-#| msgid "End of file.\n"
 msgid "End of file"
 msgstr "Fin de fichier atteinte.\n"
 
 #: programs/cmd/cmd.rc:410
-#, fuzzy
-#| msgid "%1!d! file(s) copied\n"
 msgid "%t%1!u! file(s) copied\n"
 msgstr "%1!d! fichier(s) copiés\n"
 
@@ -15544,44 +15438,32 @@ msgid "&Run..."
 msgstr "E&xécuter..."
 
 #: programs/explorer/explorer.rc:36
-#, fuzzy
-#| msgid "E&xit Windows"
 msgid "E&xit desktop"
 msgstr "&Quitter Windows"
 
 #: programs/explorer/explorer.rc:37
-#, fuzzy
-#| msgid "Are you sure you want to delete these values?"
-msgid ""
-"Are you sure you want to close all programs and exit the virtual desktop?"
-msgstr "Voulez-vous réellement supprimer ces valeurs ?"
+msgid "Are you sure you want to close all programs and exit the virtual desktop?"
+msgstr "Êtes-vous sûr de vouloir fermer tous les programmes et quitter le bureau virtuel ?"
 
 #: programs/explorer/explorer.rc:38
-#, fuzzy
-#| msgctxt "display name"
-#| msgid "Desktop"
 msgid "Wine Desktop"
 msgstr "Bureau"
 
 #: programs/findstr/findstr.rc:28
-#, fuzzy
-#| msgid "Use c&onnection string"
 msgid "Usage: findstr /options string\n"
 msgstr "Utiliser une chaîne de connexion"
 
 #: programs/findstr/findstr.rc:29
-#, fuzzy
-#| msgid "Invalid command line.\n"
 msgid "FINDSTR: Bad command line\n"
 msgstr "Ligne de commande invalide.\n"
 
 #: programs/findstr/findstr.rc:30
 msgid "FINDSTR: Cannot open %s\n"
-msgstr ""
+msgstr "FINDSTR : Impossible d'ouvrir %s\n"
 
 #: programs/findstr/findstr.rc:31
 msgid "FINDSTR: /%c ignored\n"
-msgstr ""
+msgstr "FINDSTR : /%c ignoré\n"
 
 #: programs/fsutil/fsutil.mc:28
 msgid ""
@@ -15706,53 +15588,39 @@ msgid "Usage: klist <tickets | tgt | purge | get [service principal name]>\n"
 msgstr ""
 
 #: programs/klist/klist.rc:29
-#, fuzzy
-#| msgid "Unknown error"
 msgid "Unknown error\n"
 msgstr "Erreur inconnue"
 
 #: programs/klist/klist.rc:30
-#, fuzzy
-#| msgid "Start Menu"
 msgid "Start Time"
-msgstr "Menu Démarrer"
+msgstr "Heure de début"
 
 #: programs/klist/klist.rc:31
-#, fuzzy
 #| msgctxt "maximum 31 characters"
-#| msgid "FLE Standard Time"
 msgid "End Time"
-msgstr "Heure FLE"
+msgstr "Heure de fin"
 
 #: programs/klist/klist.rc:32
-#, fuzzy
-#| msgid "Enter new time: "
 msgid "Renew Time"
 msgstr "Saisissez la nouvelle heure : "
 
 #: programs/klist/klist.rc:33
 msgid "Ticket Flags"
-msgstr ""
+msgstr "Drapeaux de ticket"
 
 #: programs/klist/klist.rc:34
 msgid "Cached Tickets"
-msgstr ""
+msgstr "Tickets caché"
 
 #: programs/klist/klist.rc:36
-#, fuzzy
-#| msgid "Encryption Type"
 msgid "KerbTicket Encryption Type"
 msgstr "Type d'encryption"
 
 #: programs/klist/klist.rc:37
-#, fuzzy
-#| msgid "Current Connections"
 msgid "Current LogonId is"
 msgstr "Connexions en cours"
 
 #: programs/klist/klist.rc:38
-#, fuzzy
-#| msgid "client"
 msgid "Client"
 msgstr "client"
 
@@ -15892,7 +15760,7 @@ msgstr "Les services suivants sont en cours d'exécution :\n"
 
 #: programs/net/net.rc:44
 msgid "A command was used with conflicting switches.\n"
-msgstr ""
+msgstr "Une commande a été utilisée avec des commutateurs conflictuels.\n"
 
 #: programs/netstat/netstat.rc:30
 msgid "Active Connections"
@@ -16019,8 +15887,6 @@ msgid "&Save\tCtrl+S"
 msgstr "&Enregistrer\tCtrl+S"
 
 #: programs/notepad/notepad.rc:33
-#, fuzzy
-#| msgid "Save As..."
 msgid "Save &As..."
 msgstr "Enregistrer sous..."
 
@@ -16054,8 +15920,6 @@ msgid "&Paste\tCtrl+V"
 msgstr "Co&ller\tCtrl+V"
 
 #: programs/notepad/notepad.rc:47
-#, fuzzy
-#| msgid "&Delete\tDel"
 msgid "De&lete\tDel"
 msgstr "&Effacer\tSuppr"
 
@@ -16065,8 +15929,6 @@ msgid "&Find...\tCtrl+F"
 msgstr "&Rechercher...\tCtrl+F"
 
 #: programs/notepad/notepad.rc:50
-#, fuzzy
-#| msgid "Find &next\tF3"
 msgid "Find &Next\tF3"
 msgstr "Rechercher le &suivant\tF3"
 
@@ -16075,20 +15937,14 @@ msgid "&Replace...\tCtrl+H"
 msgstr "Rem&placer...\tCtrl+H"
 
 #: programs/notepad/notepad.rc:52
-#, fuzzy
-#| msgid "&New...\tCtrl+N"
 msgid "&Go To...\tCtrl+G"
 msgstr "&Nouveau...\tCtrl+N"
 
 #: programs/notepad/notepad.rc:54
-#, fuzzy
-#| msgid "Select &all\tCtrl+A"
 msgid "Select &All\tCtrl+A"
 msgstr "&Tout sélectionner\tCtrl+A"
 
 #: programs/notepad/notepad.rc:55
-#, fuzzy
-#| msgid "&Time/Date\tF5"
 msgid "Time/&Date\tF5"
 msgstr "&Heure/Date\tF5"
 
@@ -16098,7 +15954,7 @@ msgstr "Forma&t"
 
 #: programs/notepad/notepad.rc:58
 msgid "&Word Wrap"
-msgstr ""
+msgstr "&Retour à la ligne"
 
 #: programs/notepad/notepad.rc:63 programs/oleview/oleview.rc:68
 #: programs/oleview/oleview.rc:90 programs/winefile/winefile.rc:67
@@ -16149,7 +16005,7 @@ msgstr "Numéro de &Ligne:"
 
 #: programs/notepad/notepad.rc:138
 msgid "Go To"
-msgstr ""
+msgstr "Aller à"
 
 #: programs/notepad/notepad.rc:146
 msgid "Encoding:"
@@ -16917,56 +16773,6 @@ msgstr ""
 "\n"
 
 #: programs/reg/reg.rc:67
-#, fuzzy
-#| msgid ""
-#| "REG ADD <key> [/v value_name | /ve] [/t type] [/s separator] [/d data] [/"
-#| "f]\n"
-#| "\n"
-#| "  Adds a key to the registry or adds a new value to a given registry "
-#| "key.\n"
-#| "\n"
-#| "  <key>\n"
-#| "     The registry key to add or, if either [/v] or [/ve] is specified,\n"
-#| "     the key in which to add the new registry data.\n"
-#| "\n"
-#| "     Format: ROOT\\Subkey\n"
-#| "\n"
-#| "     ROOT: A predefined registry key. This must be one of the following:\n"
-#| "\n"
-#| "         HKEY_LOCAL_MACHINE  | HKLM\n"
-#| "         HKEY_CURRENT_USER   | HKCU\n"
-#| "         HKEY_CLASSES_ROOT   | HKCR\n"
-#| "         HKEY_USERS          | HKU\n"
-#| "         HKEY_CURRENT_CONFIG | HKCC\n"
-#| "\n"
-#| "     Subkey: The full path to a registry key under a given ROOT key.\n"
-#| "\n"
-#| "  /v <value_name>\n"
-#| "     The name of the registry value to add.\n"
-#| "\n"
-#| "  /ve\n"
-#| "     Add an unnamed registry value. This option modifies the (Default)\n"
-#| "     registry value.\n"
-#| "\n"
-#| "  /t <type>\n"
-#| "     The type of data to add to the registry. If [/t] is specified,\n"
-#| "     <type> must be one of the following:\n"
-#| "\n"
-#| "         REG_SZ    | REG_MULTI_SZ | REG_EXPAND_SZ\n"
-#| "         REG_DWORD | REG_BINARY   | REG_NONE\n"
-#| "\n"
-#| "     If [/t] is not specified, the default data type is REG_SZ.\n"
-#| "\n"
-#| "  /s <separator>\n"
-#| "     The character used to separate strings in REG_MULTI_SZ data.\n"
-#| "     If [/s] is not specified, the default separator is \\0.\n"
-#| "\n"
-#| "  /d <data>\n"
-#| "     The data to add to the new registry value.\n"
-#| "\n"
-#| "  /f\n"
-#| "     Modify the registry without prompting for confirmation.\n"
-#| "\n"
 msgid ""
 "REG ADD <key> [/v value_name | /ve] [/t type] [/s separator] [/d data] [/f]\n"
 "\n"
@@ -18181,38 +17987,6 @@ msgid "regsvr32: Successfully uninstalled DLL '%1'\n"
 msgstr "regsvr32 : DLL « %1 » désinstallée avec succès\n"
 
 #: programs/start/start.rc:56
-#, fuzzy
-#| msgid ""
-#| "Start a program, or open a document in the program normally used for "
-#| "files\n"
-#| "with that suffix.\n"
-#| "Usage:\n"
-#| "start [options] program_filename [...]\n"
-#| "start [options] document_filename\n"
-#| "\n"
-#| "Options:\n"
-#| "\"title\"        Specifies the title of the child windows.\n"
-#| "/d directory   Start the program in the specified directory.\n"
-#| "/b             Don't create a new console for the program.\n"
-#| "/i             Start the program with fresh environment variables.\n"
-#| "/min           Start the program minimized.\n"
-#| "/max           Start the program maximized.\n"
-#| "/low           Start the program in the idle priority class.\n"
-#| "/normal        Start the program in the normal priority class.\n"
-#| "/high          Start the program in the high priority class.\n"
-#| "/realtime      Start the program in the realtime priority class.\n"
-#| "/abovenormal   Start the program in the abovenormal priority class.\n"
-#| "/belownormal   Start the program in the belownormal priority class.\n"
-#| "/node n        Start the program on the specified NUMA node.\n"
-#| "/affinity mask Start the program with the specified affinity mask.\n"
-#| "/wait          Wait for the started program to finish, then exit with "
-#| "its\n"
-#| "exit code.\n"
-#| "/unix          Use a Unix filename and start the file like Windows\n"
-#| "Explorer.\n"
-#| "/exec          Exec the specified file (for internal Wine usage).\n"
-#| "/ProgIDOpen    Open a document using the specified progID.\n"
-#| "/?             Display this help and exit.\n"
 msgid ""
 "Start a program, or open a document in the program normally used for files\n"
 "with that suffix.\n"
@@ -18354,8 +18128,6 @@ msgid "Error: Process self-termination is not permitted.\n"
 msgstr "Erreur : un processus ne peut pas se terminer lui-même.\n"
 
 #: programs/taskkill/taskkill.rc:44
-#, fuzzy
-#| msgid "Process with PID %1!u! was forcibly terminated.\n"
 msgid ""
 "The process with PID %1!u! (child process of PID %2!u!) has been "
 "terminated.\n"
@@ -18367,8 +18139,6 @@ msgid ""
 msgstr ""
 
 #: include/wine/wine_common_ver.rc:123
-#, fuzzy
-#| msgid "page tab list"
 msgid "Wine tasklist"
 msgstr "liste d'onglets de pages"
 
@@ -18385,14 +18155,10 @@ msgid "PID"
 msgstr "PID"
 
 #: programs/tasklist/tasklist.rc:32
-#, fuzzy
-#| msgid "Session ID"
 msgid "Session Name"
 msgstr "ID session"
 
 #: programs/tasklist/tasklist.rc:33
-#, fuzzy
-#| msgid "Session ID"
 msgid "Session#"
 msgstr "ID session"
 
@@ -18401,20 +18167,14 @@ msgid "Mem Usage"
 msgstr "Mémoire"
 
 #: programs/tasklist/tasklist.rc:35
-#, fuzzy
-#| msgid "OK"
 msgid "K"
 msgstr "OK"
 
 #: programs/tasklist/tasklist.rc:36
-#, fuzzy
-#| msgid "reg: Invalid syntax. "
 msgid "ERROR: Invalid syntax\n"
 msgstr "reg : syntaxe invalide. "
 
 #: programs/tasklist/tasklist.rc:37
-#, fuzzy
-#| msgid "The filename cannot be resolved.\n"
 msgid "ERROR: The search filter cannot be recognized.\n"
 msgstr "Impossible de résoudre le nom de fichier.\n"
 
@@ -19040,8 +18800,7 @@ msgstr "Attache le débogueur à ce processus"
 
 #: programs/taskmgr/taskmgr.rc:235
 msgid "Controls which processors the process will be allowed to run on"
-msgstr ""
-"Détermine sur quels processeurs le processus sera autorisé à s'exécuter"
+msgstr "Détermine sur quels processeurs le processus sera autorisé à s'exécuter"
 
 #: programs/taskmgr/taskmgr.rc:237
 msgid "Sets process to the REALTIME priority class"
@@ -19220,8 +18979,6 @@ msgid "Usage: timeout /T <timeout> [</NOBREAK>]\n"
 msgstr ""
 
 #: programs/timeout/timeout.rc:29
-#, fuzzy
-#| msgid "Invalid command line.\n"
 msgid "TIMEOUT: Bad command line\n"
 msgstr "Ligne de commande invalide.\n"
 
@@ -19231,11 +18988,9 @@ msgstr ""
 
 #: programs/timeout/timeout.rc:31
 msgid "press CTRL+C..."
-msgstr ""
+msgstr "Presser CTRL+C..."
 
 #: programs/timeout/timeout.rc:32
-#, fuzzy
-#| msgid "Press any key to continue... "
 msgid "press a key to continue..."
 msgstr "Appuyez sur une touche pour continuer... "
 
@@ -19720,14 +19475,12 @@ msgid "Mono"
 msgstr "Mono"
 
 #: programs/winecfg/winecfg.rc:98
-#, fuzzy
-#| msgid "Right"
 msgid "Light"
-msgstr "Droite"
+msgstr "Clair"
 
 #: programs/winecfg/winecfg.rc:99
 msgid "Dark"
-msgstr ""
+msgstr "Sombre"
 
 #: programs/winecfg/winecfg.rc:53
 msgid ""
@@ -20416,8 +20169,6 @@ msgid "Help topics: "
 msgstr "Rubriques d'aide : "
 
 #: programs/wmic/wmic.rc:28
-#, fuzzy
-#| msgid "Error: Command line not supported\n"
 msgid "Error: Command not supported\n"
 msgstr "Erreur : ligne de commande invalide\n"
 
