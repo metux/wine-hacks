@@ -21,6 +21,7 @@
 #include "config.h"
 
 #import <AppKit/AppKit.h>
+#import <IOKit/graphics/IOGraphicsLib.h>
 #ifdef HAVE_MTLDEVICE_REGISTRYID
 #import <Metal/Metal.h>
 #endif
@@ -730,6 +731,59 @@ static unsigned int get_edid_from_dcpav_service_proxy(const struct macdrv_displa
     return len;
 }
 
+static unsigned int get_edid_from_io_display_edid(const struct macdrv_display *display, unsigned char **prop)
+{
+    io_iterator_t iterator;
+    kern_return_t result;
+    io_service_t service;
+    int length = 0;
+
+    *prop = NULL;
+    result = IOServiceGetMatchingServices(0, IOServiceMatching("IODisplayConnect"), &iterator);
+    if (result != KERN_SUCCESS)
+        return length;
+
+    while((service = IOIteratorNext(iterator)))
+    {
+        uint32_t vendor_number, model_number, serial_number;
+        const unsigned char *edid_ptr;
+        CFDictionaryRef display_dict;
+        CFDataRef edid;
+
+        display_dict = IOCreateDisplayInfoDictionary(service, 0);
+        if (display_dict)
+        {
+            edid = CFDictionaryGetValue(display_dict, CFSTR(kIODisplayEDIDKey));
+            if (edid)
+            {
+                edid_ptr = CFDataGetBytePtr(edid);
+                vendor_number = (uint16_t)(edid_ptr[9] | (edid_ptr[8] << 8));
+                model_number = *((uint16_t *)&edid_ptr[10]);
+                serial_number = *((uint32_t *)&edid_ptr[12]);
+                if (display->vendor_number == vendor_number &&
+                        display->model_number == model_number &&
+                        /* CGDisplaySerialNumber() isn't reliable on Intel machines; it returns 0 sometimes. */
+                        (!display->serial_number || display->serial_number == serial_number))
+                {
+                    length = CFDataGetLength(edid);
+                    if (length && (*prop = malloc(length)))
+                        memcpy(*prop, edid_ptr, length);
+                    else
+                        length = 0;
+                }
+            }
+            CFRelease(display_dict);
+        }
+
+        IOObjectRelease(service);
+        if (length)
+            break;
+    }
+
+    IOObjectRelease(iterator);
+    return length;
+}
+
 /***********************************************************************
  *              macdrv_get_monitors
  *
@@ -793,6 +847,9 @@ int macdrv_get_monitors(uint32_t adapter_id, struct macdrv_monitor** new_monitor
                 monitors[monitor_count].rc_work = displays[j].work_frame;
                 monitors[monitor_count].edid_len = get_edid_from_dcpav_service_proxy(&displays[j],
                         &monitors[monitor_count].edid);
+                if (!monitors[monitor_count].edid_len)
+                    monitors[monitor_count].edid_len = get_edid_from_io_display_edid(&displays[j],
+                            &monitors[monitor_count].edid);
                 monitor_count++;
                 break;
             }
