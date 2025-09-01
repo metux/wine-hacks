@@ -3158,10 +3158,14 @@ static inline LARGE_INTEGER *get_nt_timeout( LARGE_INTEGER *time, DWORD timeout 
 static DWORD wait_message( DWORD count, const HANDLE *handles, DWORD timeout, DWORD mask, DWORD flags )
 {
     struct thunk_lock_params params = {.dispatch.callback = thunk_lock_callback};
-    LARGE_INTEGER time;
-    DWORD ret;
+    LARGE_INTEGER time, now, *abs;
+    DWORD ret = count - 1;
     void *ret_ptr;
     ULONG ret_len;
+
+    NtQuerySystemTime( &now );
+
+    if ((abs = get_nt_timeout( &time, timeout ))) abs->QuadPart = now.QuadPart - abs->QuadPart;
 
     if (!KeUserDispatchCallback( &params.dispatch, sizeof(params), &ret_ptr, &ret_len ) &&
         ret_len == sizeof(params.locks))
@@ -3173,8 +3177,7 @@ static DWORD wait_message( DWORD count, const HANDLE *handles, DWORD timeout, DW
     if (user_driver->pProcessEvents( mask )) ret = count - 1;
     else
     {
-        ret = NtWaitForMultipleObjects( count, handles, !(flags & MWMO_WAITALL),
-                                        !!(flags & MWMO_ALERTABLE), get_nt_timeout( &time, timeout ));
+        ret = NtWaitForMultipleObjects( count, handles, !(flags & MWMO_WAITALL), !!(flags & MWMO_ALERTABLE), abs );
         if (ret == count - 1) user_driver->pProcessEvents( mask );
         else if (HIWORD(ret)) /* is it an error code? */
         {
