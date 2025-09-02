@@ -1359,6 +1359,16 @@ static void msg_queue_satisfied( struct object *obj, struct wait_queue_entry *en
     reset_queue_sync( queue );
 }
 
+int thread_queue_select( struct thread *thread, int select )
+{
+    return msg_queue_select( thread->queue, select );
+}
+
+void thread_queue_satisfied( struct thread *thread )
+{
+    msg_queue_satisfied( &thread->queue->obj, NULL );
+}
+
 static void msg_queue_destroy( struct object *obj )
 {
     struct msg_queue *queue = (struct msg_queue *)obj;

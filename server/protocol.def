@@ -4139,3 +4139,10 @@ enum inproc_sync_type
     int           type;         /* inproc sync type */
     unsigned int access;        /* handle access rights */
 @END
+
+
+/* Begin/end a client-side wait on a message queue */
+@REQ(select_inproc_queue)
+    int          select;          /* 1: begin waiting, 0: end waiting */
+    int          signaled;        /* was the queue signaled? */
+@END
