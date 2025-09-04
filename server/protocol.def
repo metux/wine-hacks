@@ -1091,6 +1091,7 @@ struct obj_locator
 @REPLY
     thread_id_t  tid;          /* thread id */
     obj_handle_t handle;       /* thread handle (in the current process) */
+    obj_handle_t queue_handle; /* inproc queue fd in flight with this handle */
 @END
 
 
@@ -1127,6 +1128,7 @@ struct obj_locator
     timeout_t    server_start; /* server start time */
     unsigned int session_id;   /* process session id */
     obj_handle_t inproc_device;/* inproc device fd in flight with this handle */
+    obj_handle_t queue_handle; /* inproc queue fd in flight with this handle */
     data_size_t  info_size;    /* total size of startup info */
     VARARG(machines,ushorts);  /* array of supported machines */
 @END

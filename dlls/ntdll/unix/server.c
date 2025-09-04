@@ -1677,6 +1677,11 @@ size_t server_init_process(void)
                 inproc_device_fd = wine_server_receive_fd( &handle );
                 assert( handle == reply->inproc_device );
             }
+            if (reply->queue_handle)
+            {
+                data->queue_sync_fd = wine_server_receive_fd( &handle );
+                assert( handle == reply->queue_handle );
+            }
         }
     }
     SERVER_END_REQ;

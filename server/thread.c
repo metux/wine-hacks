@@ -397,6 +397,7 @@ static inline void init_thread_structure( struct thread *thread )
     int i;
 
     thread->sync            = NULL;
+    thread->queue_sync      = NULL;
     thread->unix_pid        = -1;  /* not known yet */
     thread->unix_tid        = -1;  /* not known yet */
     thread->context         = NULL;
@@ -560,6 +561,10 @@ struct thread *create_thread( int fd, struct process *process, const struct secu
     }
     if (!(thread->request_fd = create_anonymous_fd( &thread_fd_ops, fd, &thread->obj, 0 ))) goto error;
     if (!(thread->sync = create_event_sync( 1, 0 ))) goto error;
+    if (get_inproc_device_fd() >= 0)
+    {
+        if (!(thread->queue_sync = create_inproc_internal_sync( 1, 0 ))) goto error;
+    }
 
     if (process->desktop)
     {
@@ -654,6 +659,7 @@ static void destroy_thread( struct object *obj )
     release_object( thread->process );
     if (thread->id) free_ptid( thread->id );
     if (thread->token) release_object( thread->token );
+    if (thread->queue_sync) release_object( thread->queue_sync );
     if (thread->sync) release_object( thread->sync );
 }
 
@@ -1621,6 +1627,7 @@ DECL_HANDLER(new_thread)
     const struct security_descriptor *sd;
     const struct object_attributes *objattr = get_req_object_attributes( &sd, &name, NULL );
     int request_fd = thread_get_inflight_fd( current, req->request_fd );
+    int fd, type;
 
     if (!(process = get_process_from_handle( req->process, 0 )))
     {
@@ -1665,6 +1672,14 @@ DECL_HANDLER(new_thread)
         if ((reply->handle = alloc_handle_no_access_check( current->process, thread,
                                                            req->access, objattr->attributes )))
         {
+            if (request_fd != -1) /* first thread fds will be sent in init_first_thread */
+            {
+                if (thread->queue_sync && (fd = get_inproc_sync_fd( (struct object *)thread->queue_sync, &type )) >= 0)
+                {
+                    reply->queue_handle = get_thread_id( thread ) | 1;
+                    send_client_fd( thread->process, fd, reply->queue_handle );
+                }
+            }
             /* thread object will be released when the thread gets killed */
             goto done;
         }
@@ -1709,7 +1724,7 @@ static int init_thread( struct thread *thread, int reply_fd, int wait_fd )
 DECL_HANDLER(init_first_thread)
 {
     struct process *process = current->process;
-    int fd;
+    int fd, type;
 
     if (!init_thread( current, req->reply_fd, req->wait_fd )) return;
 
@@ -1737,6 +1752,11 @@ DECL_HANDLER(init_first_thread)
     {
         reply->inproc_device = get_process_id( process ) | 1;
         send_client_fd( process, fd, reply->inproc_device );
+    }
+    if (current->queue_sync && (fd = get_inproc_sync_fd( (struct object *)current->queue_sync, &type )) >= 0)
+    {
+        reply->queue_handle = get_thread_id( current ) | 1;
+        send_client_fd( process, fd, reply->queue_handle );
     }
 }
 

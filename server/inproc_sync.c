@@ -128,21 +128,18 @@ static void inproc_sync_destroy( struct object *obj )
     close( sync->fd );
 }
 
-static int get_inproc_sync_fd( struct object *obj, int *type )
+int get_inproc_sync_fd( struct object *obj, int *type )
 {
+    struct inproc_sync *inproc;
     struct object *sync;
     int fd = -1;
 
-    if (obj != (struct object *)current->queue) sync = get_obj_sync( obj );
-    else sync = thread_queue_inproc_sync( current );
-    if (!sync) return -1;
+    if (!(sync = get_obj_sync( obj ))) return -1;
+    assert( sync->ops == &inproc_sync_ops );
 
-    if (sync->ops == &inproc_sync_ops)
-    {
-        struct inproc_sync *inproc = (struct inproc_sync *)sync;
-        *type = inproc->type;
-        fd = inproc->fd;
-    }
+    inproc = (struct inproc_sync *)sync;
+    *type = inproc->type;
+    fd = inproc->fd;
 
     release_object( sync );
     return fd;
@@ -168,7 +165,7 @@ void reset_inproc_sync( struct inproc_sync *sync )
 {
 }
 
-static int get_inproc_sync_fd( struct object *obj, int *type )
+int get_inproc_sync_fd( struct object *obj, int *type )
 {
     return -1;
 }
