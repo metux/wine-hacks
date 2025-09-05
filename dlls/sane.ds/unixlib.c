@@ -160,9 +160,12 @@ static void map_descr( struct option_descriptor *descr, const SANE_Option_Descri
     descr->size = opt->size;
     descr->is_active = SANE_OPTION_IS_ACTIVE( opt->cap );
     descr->is_settable = SANE_OPTION_IS_SETTABLE( opt->cap );
+
     if (opt->title) len = ntdll_umbstowcs( opt->title, strlen(opt->title),
                                            descr->title, ARRAY_SIZE(descr->title) );
     descr->title[len] = 0;
+    if (opt->name) lstrcpynA(descr->name, opt->name, ARRAY_SIZE(descr->name));
+
     switch (descr->constraint_type)
     {
     case CONSTRAINT_RANGE:
