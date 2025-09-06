@@ -319,7 +319,7 @@ static char *get_nls_dir(void)
         strcpy( p - 8, "/nls" );
         return dir;
     }
-    ret = build_relative_path( dir, BINDIR, DATADIR "/wine/nls" );
+    ret = build_relative_path( dir, BINDIR, SHAREDIR "/wine/nls" );
     free( dir );
     return ret;
 }
@@ -327,7 +327,7 @@ static char *get_nls_dir(void)
 /* load the case mapping table */
 struct fd *load_intl_file(void)
 {
-    static const char *nls_dirs[] = { NULL, DATADIR "/wine/nls", "/usr/local/share/wine/nls", "/usr/share/wine/nls" };
+    static const char *nls_dirs[] = { NULL, SHAREDIR "/wine/nls", "/usr/local/share/wine/nls", "/usr/share/wine/nls" };
     static const WCHAR nt_pathW[] = {'C',':','\\','w','i','n','d','o','w','s','\\',
         's','y','s','t','e','m','3','2','\\','l','_','i','n','t','l','.','n','l','s',0};
     static const struct unicode_str nt_name = { nt_pathW, sizeof(nt_pathW) };

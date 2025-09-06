@@ -52,4 +52,4 @@ SOURCES = \
 UNIX_CFLAGS = $(INOTIFY_CFLAGS)
 UNIX_LIBS   = $(LDEXECFLAGS) $(RT_LIBS) $(INOTIFY_LIBS) $(PROCSTAT_LIBS)
 
-unicode_EXTRADEFS = -DBINDIR="\"${bindir}\"" -DDATADIR="\"${datadir}\""
+unicode_EXTRADEFS = -DBINDIR="\"${bindir}\"" -DSHAREDIR="\"${datadir}\""

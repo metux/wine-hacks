@@ -462,7 +462,7 @@ static void init_paths(void)
     {
         if (!(dll_dir = remove_tail( ntdll_dir, get_so_dir(current_machine) ))) dll_dir = ntdll_dir;
         bin_dir = build_relative_path( dll_dir, LIBDIR "/wine", BINDIR );
-        data_dir = build_relative_path( dll_dir, LIBDIR "/wine", DATADIR "/wine" );
+        data_dir = build_relative_path( dll_dir, LIBDIR "/wine", SHAREDIR "/wine" );
         wineloader = build_path( ntdll_dir, "wine" );
     }
 
