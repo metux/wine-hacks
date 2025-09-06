@@ -42,6 +42,10 @@
 #include "windef.h"
 #include "winbase.h"
 #include "ntgdi.h"
+#include "ntuser.h"
+#undef interface
+#undef small
+
 #include "wine/gdi_driver.h"
 #include "wine/list.h"
 #include "wine/rbtree.h"
