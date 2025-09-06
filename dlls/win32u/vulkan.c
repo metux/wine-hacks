@@ -478,6 +478,13 @@ static VkResult win32u_vkCreateBuffer( VkDevice client_device, const VkBufferCre
     return device->p_vkCreateBuffer( device->host.device, create_info, NULL, buffer );
 }
 
+static void win32u_vkDestroyBuffer( VkDevice client_device, VkBuffer buffer, const VkAllocationCallbacks *allocator )
+{
+    struct vulkan_device *device = vulkan_device_from_handle( client_device );
+
+    device->p_vkDestroyBuffer( device->host.device, buffer, NULL );
+}
+
 static void win32u_vkGetDeviceBufferMemoryRequirements( VkDevice client_device, const VkDeviceBufferMemoryRequirements *buffer_requirements,
                                                         VkMemoryRequirements2 *memory_requirements )
 {
@@ -569,6 +576,13 @@ static VkResult win32u_vkCreateImage( VkDevice client_device, const VkImageCreat
     }
 
     return device->p_vkCreateImage( device->host.device, create_info, NULL, image );
+}
+
+static void win32u_vkDestroyImage( VkDevice client_device, VkImage image, const VkAllocationCallbacks *allocator )
+{
+    struct vulkan_device *device = vulkan_device_from_handle( client_device );
+
+    device->p_vkDestroyImage( device->host.device, image, NULL );
 }
 
 static void win32u_vkGetDeviceImageMemoryRequirements( VkDevice client_device, const VkDeviceImageMemoryRequirements *image_requirements,
@@ -1393,6 +1407,8 @@ static struct vulkan_funcs vulkan_funcs =
     .p_vkCreateSemaphore = win32u_vkCreateSemaphore,
     .p_vkCreateSwapchainKHR = win32u_vkCreateSwapchainKHR,
     .p_vkCreateWin32SurfaceKHR = win32u_vkCreateWin32SurfaceKHR,
+    .p_vkDestroyBuffer = win32u_vkDestroyBuffer,
+    .p_vkDestroyImage = win32u_vkDestroyImage,
     .p_vkDestroyFence = win32u_vkDestroyFence,
     .p_vkDestroySemaphore = win32u_vkDestroySemaphore,
     .p_vkDestroySurfaceKHR = win32u_vkDestroySurfaceKHR,

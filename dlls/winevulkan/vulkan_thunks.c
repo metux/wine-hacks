@@ -51185,7 +51185,7 @@ static NTSTATUS thunk64_vkDestroyBuffer(void *args)
 
     TRACE("%p, 0x%s, %p\n", params->device, wine_dbgstr_longlong(params->buffer), params->pAllocator);
 
-    vulkan_device_from_handle(params->device)->p_vkDestroyBuffer(vulkan_device_from_handle(params->device)->host.device, params->buffer, NULL);
+    vk_funcs->p_vkDestroyBuffer(params->device, params->buffer, params->pAllocator);
     return STATUS_SUCCESS;
 }
 #endif /* _WIN64 */
@@ -51201,7 +51201,7 @@ static NTSTATUS thunk32_vkDestroyBuffer(void *args)
 
     TRACE("%#x, 0x%s, %#x\n", params->device, wine_dbgstr_longlong(params->buffer), params->pAllocator);
 
-    vulkan_device_from_handle((VkDevice)UlongToPtr(params->device))->p_vkDestroyBuffer(vulkan_device_from_handle((VkDevice)UlongToPtr(params->device))->host.device, params->buffer, NULL);
+    vk_funcs->p_vkDestroyBuffer((VkDevice)UlongToPtr(params->device), params->buffer, (const VkAllocationCallbacks *)UlongToPtr(params->pAllocator));
     return STATUS_SUCCESS;
 }
 
@@ -51649,7 +51649,7 @@ static NTSTATUS thunk64_vkDestroyImage(void *args)
 
     TRACE("%p, 0x%s, %p\n", params->device, wine_dbgstr_longlong(params->image), params->pAllocator);
 
-    vulkan_device_from_handle(params->device)->p_vkDestroyImage(vulkan_device_from_handle(params->device)->host.device, params->image, NULL);
+    vk_funcs->p_vkDestroyImage(params->device, params->image, params->pAllocator);
     return STATUS_SUCCESS;
 }
 #endif /* _WIN64 */
@@ -51665,7 +51665,7 @@ static NTSTATUS thunk32_vkDestroyImage(void *args)
 
     TRACE("%#x, 0x%s, %#x\n", params->device, wine_dbgstr_longlong(params->image), params->pAllocator);
 
-    vulkan_device_from_handle((VkDevice)UlongToPtr(params->device))->p_vkDestroyImage(vulkan_device_from_handle((VkDevice)UlongToPtr(params->device))->host.device, params->image, NULL);
+    vk_funcs->p_vkDestroyImage((VkDevice)UlongToPtr(params->device), params->image, (const VkAllocationCallbacks *)UlongToPtr(params->pAllocator));
     return STATUS_SUCCESS;
 }
 

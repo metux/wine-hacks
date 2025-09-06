@@ -217,6 +217,8 @@ struct vulkan_funcs
     PFN_vkCreateSemaphore p_vkCreateSemaphore;
     PFN_vkCreateSwapchainKHR p_vkCreateSwapchainKHR;
     PFN_vkCreateWin32SurfaceKHR p_vkCreateWin32SurfaceKHR;
+    PFN_vkDestroyBuffer p_vkDestroyBuffer;
+    PFN_vkDestroyImage p_vkDestroyImage;
     PFN_vkDestroyFence p_vkDestroyFence;
     PFN_vkDestroySemaphore p_vkDestroySemaphore;
     PFN_vkDestroySurfaceKHR p_vkDestroySurfaceKHR;

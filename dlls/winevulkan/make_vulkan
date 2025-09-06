@@ -204,6 +204,8 @@ USER_DRIVER_FUNCS = {
     "vkCreateSemaphore",
     "vkCreateSwapchainKHR",
     "vkCreateWin32SurfaceKHR",
+    "vkDestroyBuffer",
+    "vkDestroyImage",
     "vkDestroyFence",
     "vkDestroySemaphore",
     "vkDestroySurfaceKHR",
