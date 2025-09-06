@@ -46,12 +46,265 @@ WINE_DECLARE_DEBUG_CHANNEL(fps);
 
 static const struct vulkan_driver_funcs *driver_funcs;
 
-static const UINT EXTERNAL_MEMORY_WIN32_BITS = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT |
-                                               VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT |
+static const UINT EXTERNAL_SHARED_WIN32_BITS = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT |
                                                VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT |
-                                               VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_KMT_BIT |
                                                VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP_BIT |
                                                VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE_BIT;
+static const UINT EXTERNAL_MEMORY_WIN32_BITS = EXTERNAL_SHARED_WIN32_BITS |
+                                               VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_BIT |
+                                               VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_KMT_BIT;
+
+struct desc_entry
+{
+    UINT64              handle;     /* VkImage or VkBuffer handle */
+    union d3dkmt_desc   desc;       /* D3D runtime desc of the resource */
+    struct rb_entry     entry;
+};
+
+static int desc_entry_compare( const void *ptr, const struct rb_entry *entry )
+{
+    const struct desc_entry *info = RB_ENTRY_VALUE( entry, struct desc_entry, entry );
+    UINT64 handle = *(UINT64 *)ptr;
+
+    if (handle < info->handle) return -1;
+    if (handle > info->handle) return 1;
+    return 0;
+}
+
+static pthread_mutex_t desc_entries_lock = PTHREAD_MUTEX_INITIALIZER;
+static struct rb_tree buffer_descs = {.compare = desc_entry_compare};
+static struct rb_tree image_descs = {.compare = desc_entry_compare};
+
+static void desc_entries_put( struct rb_tree *descs, UINT64 handle, const union d3dkmt_desc *desc )
+{
+    struct desc_entry *entry, *previous = NULL;
+    struct rb_entry *ptr;
+
+    if (!(entry = malloc( sizeof(*entry) ))) return;
+    entry->handle = handle;
+    entry->desc = *desc;
+
+    pthread_mutex_lock( &desc_entries_lock );
+
+    if (!(ptr = rb_get( descs, &entry->handle )))
+        rb_put( descs, &entry->handle, &entry->entry );
+    else
+    {
+        previous = RB_ENTRY_VALUE( ptr, struct desc_entry, entry );
+        rb_replace( descs, &previous->entry, &entry->entry );
+    }
+
+    pthread_mutex_unlock( &desc_entries_lock );
+    free( previous );
+}
+
+static void desc_entries_remove( struct rb_tree *descs, UINT64 handle )
+{
+    struct desc_entry *entry;
+    struct rb_entry *ptr;
+
+    pthread_mutex_lock( &desc_entries_lock );
+    if (!(ptr = rb_get( descs, &handle ))) entry = NULL;
+    else
+    {
+        entry = RB_ENTRY_VALUE( ptr, struct desc_entry, entry );
+        rb_remove( descs, ptr );
+    }
+    pthread_mutex_unlock( &desc_entries_lock );
+
+    free( entry );
+}
+
+static void init_buffer_d3dkmt_desc( union d3dkmt_desc *desc, const VkMemoryRequirements *requirements, const VkBufferCreateInfo *create_info,
+                                     const VkExternalMemoryBufferCreateInfo *external_info )
+{
+    BOOL shared = !!(external_info->handleTypes & EXTERNAL_SHARED_WIN32_BITS);
+
+    desc->d3d12.d3d11.dxgi.size = sizeof(desc->d3d12.d3d11);
+    desc->d3d12.d3d11.dxgi.version = 4;
+    desc->d3d12.d3d11.dxgi.width = create_info->size;
+    desc->d3d12.d3d11.dxgi.height = 1;
+    desc->d3d12.d3d11.dxgi.format = DXGI_FORMAT_UNKNOWN;
+    desc->d3d12.d3d11.dxgi.keyed_mutex = 0;
+    desc->d3d12.d3d11.dxgi.mutex_handle = 0;
+    desc->d3d12.d3d11.dxgi.sync_handle = 0;
+    desc->d3d12.d3d11.dxgi.nt_shared = shared;
+    desc->d3d12.d3d11.dimension = D3D11_RESOURCE_DIMENSION_BUFFER;
+    desc->d3d12.d3d11.d3d11_buf.ByteWidth = create_info->size;
+    desc->d3d12.d3d11.d3d11_buf.Usage = D3D11_USAGE_DEFAULT;
+    desc->d3d12.d3d11.d3d11_buf.BindFlags = 0;
+    desc->d3d12.d3d11.d3d11_buf.CPUAccessFlags = 0;
+    desc->d3d12.d3d11.d3d11_buf.MiscFlags = D3D11_RESOURCE_MISC_SHARED | (shared ? D3D11_RESOURCE_MISC_SHARED_NTHANDLE : 0);
+    desc->d3d12.d3d11.d3d11_buf.StructureByteStride = 0;
+    desc->d3d12.resource_size = requirements->size;
+    desc->d3d12.resource_align = requirements->alignment;
+    desc->d3d12.desc1.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    desc->d3d12.desc1.Alignment = requirements->alignment;
+    desc->d3d12.desc1.Width = create_info->size;
+    desc->d3d12.desc1.Height = 1;
+    desc->d3d12.desc1.DepthOrArraySize = 1;
+    desc->d3d12.desc1.MipLevels = 1;
+    desc->d3d12.desc1.Format = DXGI_FORMAT_UNKNOWN;
+    desc->d3d12.desc1.SampleDesc.Count = 1;
+    desc->d3d12.desc1.SampleDesc.Quality = 0;
+    desc->d3d12.desc1.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    desc->d3d12.desc1.Flags = D3D12_RESOURCE_FLAG_NONE;
+    desc->d3d12.desc1.SamplerFeedbackMipRegion.Width = 0;
+    desc->d3d12.desc1.SamplerFeedbackMipRegion.Height = 0;
+    desc->d3d12.desc1.SamplerFeedbackMipRegion.Depth = 0;
+}
+
+static DXGI_FORMAT dxgi_format_from_vk_format( VkFormat format )
+{
+    switch (format)
+    {
+    case VK_FORMAT_UNDEFINED: return DXGI_FORMAT_UNKNOWN;
+    case VK_FORMAT_R32G32B32A32_SFLOAT: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+    case VK_FORMAT_R32G32B32A32_UINT: return DXGI_FORMAT_R32G32B32A32_UINT;
+    case VK_FORMAT_R32G32B32A32_SINT: return DXGI_FORMAT_R32G32B32A32_SINT;
+    case VK_FORMAT_R32G32B32_SFLOAT: return DXGI_FORMAT_R32G32B32_FLOAT;
+    case VK_FORMAT_R32G32B32_UINT: return DXGI_FORMAT_R32G32B32_UINT;
+    case VK_FORMAT_R32G32B32_SINT: return DXGI_FORMAT_R32G32B32_SINT;
+    case VK_FORMAT_R16G16B16A16_SFLOAT: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+    case VK_FORMAT_R16G16B16A16_UNORM: return DXGI_FORMAT_R16G16B16A16_UNORM;
+    case VK_FORMAT_R16G16B16A16_UINT: return DXGI_FORMAT_R16G16B16A16_UINT;
+    case VK_FORMAT_R16G16B16A16_SNORM: return DXGI_FORMAT_R16G16B16A16_SNORM;
+    case VK_FORMAT_R16G16B16A16_SINT: return DXGI_FORMAT_R16G16B16A16_SINT;
+    case VK_FORMAT_R32G32_SFLOAT: return DXGI_FORMAT_R32G32_FLOAT;
+    case VK_FORMAT_R32G32_UINT: return DXGI_FORMAT_R32G32_UINT;
+    case VK_FORMAT_R32G32_SINT: return DXGI_FORMAT_R32G32_SINT;
+    case VK_FORMAT_A2B10G10R10_UNORM_PACK32: return DXGI_FORMAT_R10G10B10A2_UNORM;
+    case VK_FORMAT_A2B10G10R10_UINT_PACK32: return DXGI_FORMAT_R10G10B10A2_UINT;
+    case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return DXGI_FORMAT_R11G11B10_FLOAT;
+    case VK_FORMAT_R8G8_UNORM: return DXGI_FORMAT_R8G8_UNORM;
+    case VK_FORMAT_R8G8_UINT: return DXGI_FORMAT_R8G8_UINT;
+    case VK_FORMAT_R8G8_SNORM: return DXGI_FORMAT_R8G8_SNORM;
+    case VK_FORMAT_R8G8_SINT: return DXGI_FORMAT_R8G8_SINT;
+    case VK_FORMAT_R8G8B8A8_UNORM: return DXGI_FORMAT_R8G8B8A8_UNORM;
+    case VK_FORMAT_R8G8B8A8_SRGB: return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    case VK_FORMAT_R8G8B8A8_UINT: return DXGI_FORMAT_R8G8B8A8_UINT;
+    case VK_FORMAT_R8G8B8A8_SNORM: return DXGI_FORMAT_R8G8B8A8_SNORM;
+    case VK_FORMAT_R8G8B8A8_SINT: return DXGI_FORMAT_R8G8B8A8_SINT;
+    case VK_FORMAT_R16G16_SFLOAT: return DXGI_FORMAT_R16G16_FLOAT;
+    case VK_FORMAT_R16G16_UNORM: return DXGI_FORMAT_R16G16_UNORM;
+    case VK_FORMAT_R16G16_UINT: return DXGI_FORMAT_R16G16_UINT;
+    case VK_FORMAT_R16G16_SNORM: return DXGI_FORMAT_R16G16_SNORM;
+    case VK_FORMAT_R16G16_SINT: return DXGI_FORMAT_R16G16_SINT;
+    case VK_FORMAT_D32_SFLOAT: return DXGI_FORMAT_D32_FLOAT;
+    case VK_FORMAT_R32_SFLOAT: return DXGI_FORMAT_R32_FLOAT;
+    case VK_FORMAT_R32_UINT: return DXGI_FORMAT_R32_UINT;
+    case VK_FORMAT_R32_SINT: return DXGI_FORMAT_R32_SINT;
+    case VK_FORMAT_R16_SFLOAT: return DXGI_FORMAT_R16_FLOAT;
+    case VK_FORMAT_D16_UNORM: return DXGI_FORMAT_D16_UNORM;
+    case VK_FORMAT_R16_UNORM: return DXGI_FORMAT_R16_UNORM;
+    case VK_FORMAT_R16_UINT: return DXGI_FORMAT_R16_UINT;
+    case VK_FORMAT_R16_SNORM: return DXGI_FORMAT_R16_SNORM;
+    case VK_FORMAT_R16_SINT: return DXGI_FORMAT_R16_SINT;
+    case VK_FORMAT_R8_UNORM: return DXGI_FORMAT_R8_UNORM;
+    case VK_FORMAT_R8_UINT: return DXGI_FORMAT_R8_UINT;
+    case VK_FORMAT_R8_SNORM: return DXGI_FORMAT_R8_SNORM;
+    case VK_FORMAT_R8_SINT: return DXGI_FORMAT_R8_SINT;
+    case VK_FORMAT_R5G6B5_UNORM_PACK16: return DXGI_FORMAT_B5G6R5_UNORM;
+    case VK_FORMAT_A1R5G5B5_UNORM_PACK16: return DXGI_FORMAT_B5G5R5A1_UNORM;
+    case VK_FORMAT_B8G8R8A8_UNORM: return DXGI_FORMAT_B8G8R8A8_UNORM;
+    case VK_FORMAT_B8G8R8A8_SRGB: return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+    case VK_FORMAT_BC1_RGBA_UNORM_BLOCK: return DXGI_FORMAT_BC1_UNORM;
+    case VK_FORMAT_BC1_RGBA_SRGB_BLOCK: return DXGI_FORMAT_BC1_UNORM_SRGB;
+    case VK_FORMAT_BC2_UNORM_BLOCK: return DXGI_FORMAT_BC2_UNORM;
+    case VK_FORMAT_BC2_SRGB_BLOCK: return DXGI_FORMAT_BC2_UNORM_SRGB;
+    case VK_FORMAT_BC3_UNORM_BLOCK: return DXGI_FORMAT_BC3_UNORM;
+    case VK_FORMAT_BC3_SRGB_BLOCK: return DXGI_FORMAT_BC3_UNORM_SRGB;
+    case VK_FORMAT_BC4_UNORM_BLOCK: return DXGI_FORMAT_BC4_UNORM;
+    case VK_FORMAT_BC4_SNORM_BLOCK: return DXGI_FORMAT_BC4_SNORM;
+    case VK_FORMAT_BC5_UNORM_BLOCK: return DXGI_FORMAT_BC5_UNORM;
+    case VK_FORMAT_BC5_SNORM_BLOCK: return DXGI_FORMAT_BC5_SNORM;
+    case VK_FORMAT_BC6H_UFLOAT_BLOCK: return DXGI_FORMAT_BC6H_UF16;
+    case VK_FORMAT_BC6H_SFLOAT_BLOCK: return DXGI_FORMAT_BC6H_SF16;
+    case VK_FORMAT_BC7_UNORM_BLOCK: return DXGI_FORMAT_BC7_UNORM;
+    case VK_FORMAT_BC7_SRGB_BLOCK: return DXGI_FORMAT_BC7_UNORM_SRGB;
+    default: FIXME( "Unsupported format %#x\n", format ); return DXGI_FORMAT_UNKNOWN;
+    }
+}
+
+static void init_image_d3dkmt_desc( union d3dkmt_desc *desc, const VkMemoryRequirements *requirements, const VkImageCreateInfo *create_info,
+                                    const VkExternalMemoryImageCreateInfo *external_info )
+{
+    BOOL shared = !!(external_info->handleTypes & EXTERNAL_SHARED_WIN32_BITS);
+    DXGI_FORMAT format = dxgi_format_from_vk_format( create_info->format );
+
+    desc->d3d12.d3d11.dxgi.size = sizeof(desc->d3d12.d3d11);
+    desc->d3d12.d3d11.dxgi.version = 4;
+    desc->d3d12.d3d11.dxgi.width = create_info->extent.width;
+    desc->d3d12.d3d11.dxgi.height = create_info->extent.height;
+    desc->d3d12.d3d11.dxgi.format = format;
+    desc->d3d12.d3d11.dxgi.keyed_mutex = 0;
+    desc->d3d12.d3d11.dxgi.mutex_handle = 0;
+    desc->d3d12.d3d11.dxgi.sync_handle = 0;
+    desc->d3d12.d3d11.dxgi.nt_shared = shared;
+
+    switch (create_info->imageType)
+    {
+    case VK_IMAGE_TYPE_1D:
+        desc->d3d12.d3d11.dimension = D3D11_RESOURCE_DIMENSION_TEXTURE1D;
+        desc->d3d12.d3d11.d3d11_1d.Width = create_info->extent.width;
+        desc->d3d12.d3d11.d3d11_1d.MipLevels = create_info->mipLevels;
+        desc->d3d12.d3d11.d3d11_1d.ArraySize = create_info->arrayLayers;
+        desc->d3d12.d3d11.d3d11_1d.Format = format;
+        desc->d3d12.d3d11.d3d11_1d.Usage = D3D11_USAGE_DEFAULT;
+        desc->d3d12.d3d11.d3d11_1d.BindFlags = 0;
+        desc->d3d12.d3d11.d3d11_1d.CPUAccessFlags = 0;
+        desc->d3d12.d3d11.d3d11_1d.MiscFlags = D3D11_RESOURCE_MISC_SHARED | (shared ? D3D11_RESOURCE_MISC_SHARED_NTHANDLE : 0);
+        desc->d3d12.desc1.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+        desc->d3d12.desc1.DepthOrArraySize = create_info->arrayLayers;
+        break;
+    case VK_IMAGE_TYPE_2D:
+        desc->d3d12.d3d11.dimension = D3D11_RESOURCE_DIMENSION_TEXTURE2D;
+        desc->d3d12.d3d11.d3d11_2d.Width = create_info->extent.width;
+        desc->d3d12.d3d11.d3d11_2d.Height = create_info->extent.height;
+        desc->d3d12.d3d11.d3d11_2d.MipLevels = create_info->mipLevels;
+        desc->d3d12.d3d11.d3d11_2d.ArraySize = create_info->arrayLayers;
+        desc->d3d12.d3d11.d3d11_2d.Format = format;
+        desc->d3d12.d3d11.d3d11_2d.SampleDesc.Count = 1;
+        desc->d3d12.d3d11.d3d11_2d.SampleDesc.Quality = 0;
+        desc->d3d12.d3d11.d3d11_2d.Usage = D3D11_USAGE_DEFAULT;
+        desc->d3d12.d3d11.d3d11_2d.BindFlags = 0;
+        desc->d3d12.d3d11.d3d11_2d.CPUAccessFlags = 0;
+        desc->d3d12.d3d11.d3d11_2d.MiscFlags = D3D11_RESOURCE_MISC_SHARED | (shared ? D3D11_RESOURCE_MISC_SHARED_NTHANDLE : 0);
+        desc->d3d12.desc1.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        desc->d3d12.desc1.DepthOrArraySize = create_info->arrayLayers;
+        break;
+    case VK_IMAGE_TYPE_3D:
+        desc->d3d12.d3d11.dimension = D3D11_RESOURCE_DIMENSION_TEXTURE3D;
+        desc->d3d12.d3d11.d3d11_3d.Width = create_info->extent.width;
+        desc->d3d12.d3d11.d3d11_3d.Height = create_info->extent.height;
+        desc->d3d12.d3d11.d3d11_3d.Depth = create_info->extent.depth;
+        desc->d3d12.d3d11.d3d11_3d.MipLevels = create_info->mipLevels;
+        desc->d3d12.d3d11.d3d11_3d.Format = format;
+        desc->d3d12.d3d11.d3d11_3d.Usage = D3D11_USAGE_DEFAULT;
+        desc->d3d12.d3d11.d3d11_3d.BindFlags = 0;
+        desc->d3d12.d3d11.d3d11_3d.CPUAccessFlags = 0;
+        desc->d3d12.d3d11.d3d11_3d.MiscFlags = D3D11_RESOURCE_MISC_SHARED | (shared ? D3D11_RESOURCE_MISC_SHARED_NTHANDLE : 0);
+        desc->d3d12.desc1.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+        desc->d3d12.desc1.DepthOrArraySize = create_info->extent.depth;
+        break;
+    default: FIXME( "Unsupported image type %#x\n", create_info->imageType ); break;
+    }
+
+    desc->d3d12.resource_size = requirements->size;
+    desc->d3d12.resource_align = requirements->alignment;
+    desc->d3d12.desc1.Alignment = requirements->alignment;
+    desc->d3d12.desc1.Width = create_info->extent.width;
+    desc->d3d12.desc1.Height = create_info->extent.height;
+    desc->d3d12.desc1.MipLevels = create_info->mipLevels;
+    desc->d3d12.desc1.Format = format;
+    desc->d3d12.desc1.SampleDesc.Count = 1;
+    desc->d3d12.desc1.SampleDesc.Quality = 0;
+    desc->d3d12.desc1.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    desc->d3d12.desc1.Flags = D3D12_RESOURCE_FLAG_NONE;
+    desc->d3d12.desc1.SamplerFeedbackMipRegion.Width = 0;
+    desc->d3d12.desc1.SamplerFeedbackMipRegion.Height = 0;
+    desc->d3d12.desc1.SamplerFeedbackMipRegion.Depth = 0;
+}
 
 struct device_memory
 {
@@ -445,6 +698,8 @@ static VkResult win32u_vkCreateBuffer( VkDevice client_device, const VkBufferCre
     struct vulkan_device *device = vulkan_device_from_handle( client_device );
     struct vulkan_physical_device *physical_device = device->physical_device;
     VkExternalMemoryBufferCreateInfo host_external_info, *external_info = NULL;
+    union d3dkmt_desc desc;
+    VkResult result;
 
     for (next = &prev->pNext; *next; prev = *next, next = &(*next)->pNext)
     {
@@ -475,7 +730,16 @@ static VkResult win32u_vkCreateBuffer( VkDevice client_device, const VkBufferCre
         ((VkBufferCreateInfo *)create_info)->pNext = &host_external_info; /* cast away const, it has been copied in the thunks */
     }
 
-    return device->p_vkCreateBuffer( device->host.device, create_info, NULL, buffer );
+    result = device->p_vkCreateBuffer( device->host.device, create_info, NULL, buffer );
+    if (!result && external_info)
+    {
+        VkMemoryRequirements requirements;
+        device->p_vkGetBufferMemoryRequirements( device->host.device, *buffer, &requirements );
+        init_buffer_d3dkmt_desc( &desc, &requirements, create_info, external_info );
+        desc_entries_put( &buffer_descs, *buffer, &desc );
+    }
+
+    return result;
 }
 
 static void win32u_vkDestroyBuffer( VkDevice client_device, VkBuffer buffer, const VkAllocationCallbacks *allocator )
@@ -483,6 +747,7 @@ static void win32u_vkDestroyBuffer( VkDevice client_device, VkBuffer buffer, con
     struct vulkan_device *device = vulkan_device_from_handle( client_device );
 
     device->p_vkDestroyBuffer( device->host.device, buffer, NULL );
+    desc_entries_remove( &buffer_descs, buffer );
 }
 
 static void win32u_vkGetDeviceBufferMemoryRequirements( VkDevice client_device, const VkDeviceBufferMemoryRequirements *buffer_requirements,
@@ -542,6 +807,8 @@ static VkResult win32u_vkCreateImage( VkDevice client_device, const VkImageCreat
     struct vulkan_device *device = vulkan_device_from_handle( client_device );
     struct vulkan_physical_device *physical_device = device->physical_device;
     VkExternalMemoryImageCreateInfo host_external_info, *external_info = NULL;
+    union d3dkmt_desc desc;
+    VkResult result;
 
     for (next = &prev->pNext; *next; prev = *next, next = &(*next)->pNext)
     {
@@ -575,7 +842,16 @@ static VkResult win32u_vkCreateImage( VkDevice client_device, const VkImageCreat
         ((VkImageCreateInfo *)create_info)->pNext = &host_external_info; /* cast away const, it has been copied in the thunks */
     }
 
-    return device->p_vkCreateImage( device->host.device, create_info, NULL, image );
+    result = device->p_vkCreateImage( device->host.device, create_info, NULL, image );
+    if (!result && external_info)
+    {
+        VkMemoryRequirements requirements;
+        device->p_vkGetImageMemoryRequirements( device->host.device, *image, &requirements );
+        init_image_d3dkmt_desc( &desc, &requirements, create_info, external_info );
+        desc_entries_put( &image_descs, *image, &desc );
+    }
+
+    return result;
 }
 
 static void win32u_vkDestroyImage( VkDevice client_device, VkImage image, const VkAllocationCallbacks *allocator )
@@ -583,6 +859,7 @@ static void win32u_vkDestroyImage( VkDevice client_device, VkImage image, const 
     struct vulkan_device *device = vulkan_device_from_handle( client_device );
 
     device->p_vkDestroyImage( device->host.device, image, NULL );
+    desc_entries_remove( &image_descs, image );
 }
 
 static void win32u_vkGetDeviceImageMemoryRequirements( VkDevice client_device, const VkDeviceImageMemoryRequirements *image_requirements,
