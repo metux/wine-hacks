@@ -1133,7 +1133,7 @@ static BOOL X11DRV_ConfigureNotify( HWND hwnd, XEvent *xev )
 
     release_win_data( data );
 
-    return NtUserPostMessage( hwnd, WM_WINE_WINDOW_STATE_CHANGED, 0, 0 );
+    return send_message( hwnd, WM_WINE_WINDOW_STATE_CHANGED, 0, 0 );
 }
 
 /***********************************************************************
