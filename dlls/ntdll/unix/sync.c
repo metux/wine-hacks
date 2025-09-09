@@ -309,6 +309,7 @@ static unsigned int validate_open_object_attributes( const OBJECT_ATTRIBUTES *at
 
 struct inproc_sync
 {
+    LONG           refcount;  /* reference count of the sync object */
     int            fd;        /* unix file descriptor */
     unsigned int   access;    /* handle access rights */
     unsigned int   type;      /* enum inproc_sync_type as short to save space */
@@ -316,7 +317,9 @@ struct inproc_sync
 
 static void release_inproc_sync( struct inproc_sync *sync )
 {
-    close( sync->fd );
+    LONG ref = InterlockedDecrement( &sync->refcount );
+    assert( ref >= 0 );
+    if (!ref) close( sync->fd );
 }
 
 static NTSTATUS get_inproc_sync( HANDLE handle, ACCESS_MASK desired_access, struct inproc_sync *sync )
@@ -335,6 +338,7 @@ static NTSTATUS get_inproc_sync( HANDLE handle, ACCESS_MASK desired_access, stru
         if (!(ret = wine_server_call( req )))
         {
             obj_handle_t fd_handle;
+            sync->refcount = 1;
             sync->fd = wine_server_receive_fd( &fd_handle );
             assert( wine_server_ptr_handle(fd_handle) == handle );
             sync->access = reply->access;
