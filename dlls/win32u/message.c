@@ -3236,8 +3236,6 @@ static DWORD wait_objects( DWORD count, const HANDLE *handles, DWORD timeout,
 {
     assert( count );  /* we must have at least the server queue */
 
-    flush_window_surfaces( TRUE );
-
     if (!check_queue_masks( wake_mask, changed_mask ))
     {
         SERVER_START_REQ( set_queue_mask )
