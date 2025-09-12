@@ -103,6 +103,7 @@ struct user_thread_info
     HANDLE                        server_queue;           /* Handle to server-side queue */
     DWORD                         last_getmsg_time;       /* Get/PeekMessage last request time */
     LONGLONG                      last_driver_time;       /* Get/PeekMessage driver event time */
+    struct list                   window_surfaces;        /* window surfaces for this thread */
     WORD                          hook_call_depth;        /* Number of recursively called hook procs */
     WORD                          hook_unicode;           /* Is current hook unicode? */
     HHOOK                         hook;                   /* Current hook */

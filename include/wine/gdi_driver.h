@@ -295,7 +295,7 @@ struct window_surface_funcs
 struct window_surface
 {
     const struct window_surface_funcs *funcs; /* driver-specific implementations  */
-    struct list                        entry; /* entry in global list managed by user32 */
+    struct list                        entry; /* entry in win32u thread window surfaces */
     LONG                               ref;   /* reference count */
     HWND                               hwnd;  /* window the surface was created for */
     RECT                               rect;  /* constant, no locking needed */

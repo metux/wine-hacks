@@ -2197,7 +2197,6 @@ static BOOL apply_window_pos( HWND hwnd, HWND insert_after, UINT swp_flags, stru
     if (ret)
     {
         TRACE( "win %p surface %p -> %p\n", hwnd, old_surface, new_surface );
-        register_window_surface( old_surface, new_surface );
         if (old_surface)
         {
             if (valid_rects)
@@ -5201,11 +5200,7 @@ LRESULT destroy_window( HWND hwnd )
 
     NtUserDestroyMenu( menu );
     NtUserDestroyMenu( sys_menu );
-    if (surface)
-    {
-        register_window_surface( surface, NULL );
-        window_surface_release( surface );
-    }
+    if (surface) window_surface_release( surface );
 
     detach_client_surfaces( hwnd );
     if (win->opengl_drawable) opengl_drawable_release( win->opengl_drawable );
@@ -5368,11 +5363,7 @@ void destroy_thread_windows(void)
 
         NtUserDestroyMenu( entry->menu );
         NtUserDestroyMenu( entry->sys_menu );
-        if (entry->surface)
-        {
-            register_window_surface( entry->surface, NULL );
-            window_surface_release( entry->surface );
-        }
+        if (entry->surface) window_surface_release( entry->surface );
         free( entry );
     }
 }

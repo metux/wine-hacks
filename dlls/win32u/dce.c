@@ -50,8 +50,12 @@ static struct list dce_list = LIST_INIT(dce_list);
 
 #define DCE_CACHE_SIZE 64
 
-static struct list window_surfaces = LIST_INIT( window_surfaces );
-static pthread_mutex_t surfaces_lock = PTHREAD_MUTEX_INITIALIZER;
+struct list *thread_window_surfaces(void)
+{
+    struct list *window_surfaces = &get_user_thread_info()->window_surfaces;
+    if (!window_surfaces->next) list_init( window_surfaces );
+    return window_surfaces;
+}
 
 /*******************************************************************
  * Dummy window surface for windows that shouldn't get painted.
@@ -547,6 +551,7 @@ struct window_surface *window_surface_create( UINT size, const struct window_sur
     }
 
     pthread_mutex_init( &surface->mutex, NULL );
+    list_add_tail( thread_window_surfaces(), &surface->entry );
 
     TRACE( "created surface %p for hwnd %p rect %s\n", surface, hwnd, wine_dbgstr_rect( &surface->rect ) );
     return surface;
@@ -562,6 +567,7 @@ void window_surface_release( struct window_surface *surface )
     ULONG ret = InterlockedDecrement( &surface->ref );
     if (!ret)
     {
+        list_remove( &surface->entry );
         if (surface != &dummy_surface) pthread_mutex_destroy( &surface->mutex );
         if (surface->clip_region) NtGdiDeleteObjectApp( surface->clip_region );
         if (surface->color_bitmap) NtGdiDeleteObjectApp( surface->color_bitmap );
@@ -726,22 +732,6 @@ void window_surface_set_shape( struct window_surface *surface, HRGN shape_region
 }
 
 /*******************************************************************
- *           register_window_surface
- *
- * Register a window surface in the global list, possibly replacing another one.
- */
-void register_window_surface( struct window_surface *old, struct window_surface *new )
-{
-    if (old == &dummy_surface) old = NULL;
-    if (new == &dummy_surface) new = NULL;
-    if (old == new) return;
-    pthread_mutex_lock( &surfaces_lock );
-    if (old) list_remove( &old->entry );
-    if (new) list_add_tail( &window_surfaces, &new->entry );
-    pthread_mutex_unlock( &surfaces_lock );
-}
-
-/*******************************************************************
  *           flush_window_surfaces
  *
  * Flush pending output from all window surfaces.
@@ -749,19 +739,16 @@ void register_window_surface( struct window_surface *old, struct window_surface 
 void flush_window_surfaces( BOOL idle )
 {
     static DWORD last_idle;
-    DWORD now;
+    DWORD now = NtGetTickCount();
     struct window_surface *surface;
+    struct list *window_surfaces = thread_window_surfaces();
 
-    pthread_mutex_lock( &surfaces_lock );
-    now = NtGetTickCount();
     if (idle) last_idle = now;
     /* if not idle, we only flush if there's evidence that the app never goes idle */
-    else if ((int)(now - last_idle) < 50) goto done;
+    else if ((int)(now - last_idle) < 50) return;
 
-    LIST_FOR_EACH_ENTRY( surface, &window_surfaces, struct window_surface, entry )
+    LIST_FOR_EACH_ENTRY( surface, window_surfaces, struct window_surface, entry )
         window_surface_flush( surface );
-done:
-    pthread_mutex_unlock( &surfaces_lock );
 }
 
 /***********************************************************************

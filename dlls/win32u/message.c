@@ -3156,6 +3156,7 @@ static inline LARGE_INTEGER *get_nt_timeout( LARGE_INTEGER *time, DWORD timeout 
 
 static DWORD wait_multiple_objects_flush( DWORD count, const HANDLE *handles, DWORD timeout, DWORD mask, DWORD flags )
 {
+    BOOL flush = !list_empty( thread_window_surfaces() );
     LARGE_INTEGER time, now, *abs;
     DWORD ret;
 
@@ -3166,10 +3167,10 @@ static DWORD wait_multiple_objects_flush( DWORD count, const HANDLE *handles, DW
 
     do
     {
-        flush_window_surfaces( TRUE );
+        if (flush) flush_window_surfaces( TRUE );
         now.QuadPart = min( time.QuadPart, now.QuadPart + 333333 /* 30 fps */ );
-        ret = NtWaitForMultipleObjects( count, handles, !(flags & MWMO_WAITALL), !!(flags & MWMO_ALERTABLE), &now );
-    } while (ret == WAIT_TIMEOUT && now.QuadPart < time.QuadPart);
+        ret = NtWaitForMultipleObjects( count, handles, !(flags & MWMO_WAITALL), !!(flags & MWMO_ALERTABLE), flush ? &now : abs );
+    } while (flush && ret == WAIT_TIMEOUT && now.QuadPart < time.QuadPart);
 
     return ret;
 }
