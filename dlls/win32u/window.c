@@ -2446,12 +2446,10 @@ BOOL WINAPI NtUserSetLayeredWindowAttributes( HWND hwnd, COLORREF key, BYTE alph
     return ret;
 }
 
-/*****************************************************************************
- *           UpdateLayeredWindow (win32u.@)
- */
-BOOL WINAPI NtUserUpdateLayeredWindow( HWND hwnd, HDC hdc_dst, const POINT *pts_dst, const SIZE *size,
-                                       HDC hdc_src, const POINT *pts_src, COLORREF key,
-                                       const BLENDFUNCTION *blend, DWORD flags, const RECT *dirty )
+/* NtUserUpdateLayeredWindow implementation */
+BOOL update_layered_window( HWND hwnd, HDC hdc_dst, const POINT *pts_dst, const SIZE *size,
+                            HDC hdc_src, const POINT *pts_src, COLORREF key,
+                            const BLENDFUNCTION *blend, DWORD flags, const RECT *dirty )
 {
     DWORD swp_flags = SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW;
     struct window_rects new_rects;
@@ -2459,14 +2457,6 @@ BOOL WINAPI NtUserUpdateLayeredWindow( HWND hwnd, HDC hdc_dst, const POINT *pts_
     RECT surface_rect;
     SIZE offset;
     BOOL ret = FALSE;
-
-    if (flags & ~(ULW_COLORKEY | ULW_ALPHA | ULW_OPAQUE | ULW_EX_NORESIZE) ||
-        !(get_window_long( hwnd, GWL_EXSTYLE ) & WS_EX_LAYERED) ||
-        NtUserGetLayeredWindowAttributes( hwnd, NULL, NULL, NULL ))
-    {
-        RtlSetLastWin32Error( ERROR_INVALID_PARAMETER );
-        return FALSE;
-    }
 
     get_window_rects( hwnd, COORDS_PARENT, &new_rects, get_thread_dpi() );
 
@@ -2551,6 +2541,39 @@ BOOL WINAPI NtUserUpdateLayeredWindow( HWND hwnd, HDC hdc_dst, const POINT *pts_
 done:
     window_surface_release( surface );
     return ret;
+}
+
+/*****************************************************************************
+ *           UpdateLayeredWindow (win32u.@)
+ */
+BOOL WINAPI NtUserUpdateLayeredWindow( HWND hwnd, HDC hdc_dst, const POINT *pts_dst, const SIZE *size,
+                                       HDC hdc_src, const POINT *pts_src, COLORREF key,
+                                       const BLENDFUNCTION *blend, DWORD flags, const RECT *dirty )
+{
+    struct update_layered_window_params params = { hdc_dst, pts_dst, size, hdc_src, pts_src, key, blend, flags, dirty };
+
+    if (flags & ~(ULW_COLORKEY | ULW_ALPHA | ULW_OPAQUE | ULW_EX_NORESIZE) ||
+        !(get_window_long( hwnd, GWL_EXSTYLE ) & WS_EX_LAYERED) ||
+        NtUserGetLayeredWindowAttributes( hwnd, NULL, NULL, NULL ))
+    {
+        RtlSetLastWin32Error( ERROR_INVALID_PARAMETER );
+        return FALSE;
+    }
+
+    if (!is_current_process_window( hwnd ))
+    {
+        FIXME( "Not supported on other process windows\n" );
+        RtlSetLastWin32Error( ERROR_INVALID_PARAMETER );
+        return FALSE;
+    }
+
+    if (!is_current_thread_window( hwnd ))
+    {
+        WARN( "Called for other thread window %p\n", hwnd );
+        return send_message( hwnd, WM_WINE_UPDATELAYEREDWINDOW, 0, (LPARAM)&params );
+    }
+
+    return update_layered_window( hwnd, hdc_dst, pts_dst, size, hdc_src, pts_src, key, blend, flags, dirty );
 }
 
 /***********************************************************************

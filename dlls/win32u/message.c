@@ -2151,6 +2151,13 @@ static LRESULT handle_internal_message( HWND hwnd, UINT msg, WPARAM wparam, LPAR
         if (!set_active_window( (HWND)wparam, &prev, FALSE, TRUE, lparam )) return 0;
         return (LRESULT)prev;
     }
+    case WM_WINE_UPDATELAYEREDWINDOW:
+    {
+        const struct update_layered_window_params *params = (const struct update_layered_window_params *)lparam;
+        return update_layered_window( hwnd, params->hdc_dst, params->pts_dst, params->size,
+                                      params->hdc_src, params->pts_src, params->key, params->blend,
+                                      params->flags, params->dirty );
+    }
     case WM_WINE_KEYBOARD_LL_HOOK:
     case WM_WINE_MOUSE_LL_HOOK:
     {

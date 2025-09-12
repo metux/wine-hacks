@@ -292,6 +292,23 @@ extern HWND get_shell_window(void);
 extern HWND get_progman_window(void);
 extern HWND get_taskman_window(void);
 
+struct update_layered_window_params
+{
+    HDC                  hdc_dst;
+    const POINT         *pts_dst;
+    const SIZE          *size;
+    HDC                  hdc_src;
+    const POINT         *pts_src;
+    COLORREF             key;
+    const BLENDFUNCTION *blend;
+    DWORD                flags;
+    const RECT          *dirty;
+};
+
+extern BOOL update_layered_window( HWND hwnd, HDC hdc_dst, const POINT *pts_dst, const SIZE *size,
+                                   HDC hdc_src, const POINT *pts_src, COLORREF key,
+                                   const BLENDFUNCTION *blend, DWORD flags, const RECT *dirty );
+
 /* to release pointers retrieved by win_get_ptr */
 static inline void release_win_ptr( struct tagWND *ptr )
 {
