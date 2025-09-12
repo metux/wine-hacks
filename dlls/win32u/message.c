@@ -3154,18 +3154,33 @@ static inline LARGE_INTEGER *get_nt_timeout( LARGE_INTEGER *time, DWORD timeout 
     return time;
 }
 
-/* wait for message or signaled handle */
-static DWORD wait_message( DWORD count, const HANDLE *handles, DWORD timeout, DWORD mask, DWORD flags )
+static DWORD wait_multiple_objects_flush( DWORD count, const HANDLE *handles, DWORD timeout, DWORD mask, DWORD flags )
 {
-    struct thunk_lock_params params = {.dispatch.callback = thunk_lock_callback};
     LARGE_INTEGER time, now, *abs;
-    DWORD ret = count - 1;
-    void *ret_ptr;
-    ULONG ret_len;
+    DWORD ret;
 
     NtQuerySystemTime( &now );
 
     if ((abs = get_nt_timeout( &time, timeout ))) abs->QuadPart = now.QuadPart - abs->QuadPart;
+    else time.QuadPart = INT64_MAX;
+
+    do
+    {
+        flush_window_surfaces( TRUE );
+        now.QuadPart = min( time.QuadPart, now.QuadPart + 333333 /* 30 fps */ );
+        ret = NtWaitForMultipleObjects( count, handles, !(flags & MWMO_WAITALL), !!(flags & MWMO_ALERTABLE), &now );
+    } while (ret == WAIT_TIMEOUT && now.QuadPart < time.QuadPart);
+
+    return ret;
+}
+
+/* wait for message or signaled handle */
+static DWORD wait_message( DWORD count, const HANDLE *handles, DWORD timeout, DWORD mask, DWORD flags )
+{
+    struct thunk_lock_params params = {.dispatch.callback = thunk_lock_callback};
+    DWORD ret = count - 1;
+    void *ret_ptr;
+    ULONG ret_len;
 
     if (!KeUserDispatchCallback( &params.dispatch, sizeof(params), &ret_ptr, &ret_len ) &&
         ret_len == sizeof(params.locks))
@@ -3177,7 +3192,7 @@ static DWORD wait_message( DWORD count, const HANDLE *handles, DWORD timeout, DW
     if (user_driver->pProcessEvents( mask )) ret = count - 1;
     else
     {
-        ret = NtWaitForMultipleObjects( count, handles, !(flags & MWMO_WAITALL), !!(flags & MWMO_ALERTABLE), abs );
+        ret = wait_multiple_objects_flush( count, handles, timeout, mask, flags );
         if (ret == count - 1) user_driver->pProcessEvents( mask );
         else if (HIWORD(ret)) /* is it an error code? */
         {
