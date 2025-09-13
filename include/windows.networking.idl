@@ -17,6 +17,8 @@
  */
 
 #ifdef __WIDL__
+#pragma makedep header
+#pragma makedep winmd
 #pragma winrt ns_prefix
 #endif
 
