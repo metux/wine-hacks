@@ -189,11 +189,6 @@ extern void user_lock(void);
 extern void user_unlock(void);
 extern void user_check_not_lock(void);
 
-/* opengl.c */
-
-struct opengl_drawable;
-extern void set_dc_opengl_drawable( HDC hdc, struct opengl_drawable *new_drawable );
-
 /* d3dkmtc. */
 
 struct vulkan_gpu
@@ -291,6 +286,7 @@ extern HWND window_from_point( HWND hwnd, POINT pt, INT *hittest );
 extern HWND get_shell_window(void);
 extern HWND get_progman_window(void);
 extern HWND get_taskman_window(void);
+extern BOOL is_client_surface_window( struct client_surface *surface, HWND hwnd );
 
 /* to release pointers retrieved by win_get_ptr */
 static inline void release_win_ptr( struct tagWND *ptr )

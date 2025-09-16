@@ -92,7 +92,29 @@ static struct swapchain *swapchain_from_handle( VkSwapchainKHR handle )
     return CONTAINING_RECORD( obj, struct swapchain, obj );
 }
 
-static VkResult allocate_external_host_memory( struct vulkan_device *device, VkMemoryAllocateInfo *alloc_info,
+struct semaphore
+{
+    struct vulkan_semaphore obj;
+};
+
+static struct semaphore *semaphore_from_handle( VkSemaphore handle )
+{
+    struct vulkan_semaphore *obj = vulkan_semaphore_from_handle( handle );
+    return CONTAINING_RECORD( obj, struct semaphore, obj );
+}
+
+struct fence
+{
+    struct vulkan_fence obj;
+};
+
+static struct fence *fence_from_handle( VkFence handle )
+{
+    struct vulkan_fence *obj = vulkan_fence_from_handle( handle );
+    return CONTAINING_RECORD( obj, struct fence, obj );
+}
+
+static VkResult allocate_external_host_memory( struct vulkan_device *device, VkMemoryAllocateInfo *alloc_info, uint32_t mem_flags,
                                                VkImportMemoryHostPointerInfoEXT *import_info )
 {
     struct vulkan_physical_device *physical_device = device->physical_device;
@@ -100,15 +122,13 @@ static VkResult allocate_external_host_memory( struct vulkan_device *device, VkM
     {
         .sType = VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT,
     };
-    uint32_t i, mem_flags, align = physical_device->external_memory_align - 1;
+    uint32_t i, align = physical_device->external_memory_align - 1;
     SIZE_T alloc_size = alloc_info->allocationSize;
     static int once;
-    void *mapping;
+    void *mapping = NULL;
     VkResult res;
 
     if (!once++) FIXME( "Using VK_EXT_external_memory_host\n" );
-
-    mem_flags = physical_device->memory_properties.memoryTypes[alloc_info->memoryTypeIndex].propertyFlags;
 
     if (NtAllocateVirtualMemory( GetCurrentProcess(), &mapping, zero_bits, &alloc_size, MEM_COMMIT, PAGE_READWRITE ))
     {
@@ -157,10 +177,11 @@ static VkResult allocate_external_host_memory( struct vulkan_device *device, VkM
     return VK_SUCCESS;
 }
 
-static VkResult win32u_vkAllocateMemory( VkDevice client_device, const VkMemoryAllocateInfo *alloc_info,
+static VkResult win32u_vkAllocateMemory( VkDevice client_device, const VkMemoryAllocateInfo *client_alloc_info,
                                          const VkAllocationCallbacks *allocator, VkDeviceMemory *ret )
 {
-    VkBaseOutStructure **next, *prev = (VkBaseOutStructure *)alloc_info; /* cast away const, chain has been copied in the thunks */
+    VkMemoryAllocateInfo *alloc_info = (VkMemoryAllocateInfo *)client_alloc_info; /* cast away const, chain has been copied in the thunks */
+    VkBaseOutStructure **next, *prev = (VkBaseOutStructure *)alloc_info;
     struct vulkan_device *device = vulkan_device_from_handle( client_device );
     struct vulkan_physical_device *physical_device = device->physical_device;
     struct vulkan_instance *instance = device->physical_device->instance;
@@ -207,7 +228,7 @@ static VkResult win32u_vkAllocateMemory( VkDevice client_device, const VkMemoryA
     /* For host visible memory, we try to use VK_EXT_external_memory_host on wow64 to ensure that mapped pointer is 32-bit. */
     mem_flags = physical_device->memory_properties.memoryTypes[alloc_info->memoryTypeIndex].propertyFlags;
     if (physical_device->external_memory_align && (mem_flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) && !pointer_info &&
-        (res = allocate_external_host_memory( device, (VkMemoryAllocateInfo *)alloc_info, &host_pointer_info )))
+        (res = allocate_external_host_memory( device, alloc_info, mem_flags, &host_pointer_info )))
         return res;
 
     if (!(memory = malloc( sizeof(*memory) ))) return VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -482,20 +503,24 @@ static void win32u_vkGetDeviceBufferMemoryRequirements( VkDevice client_device, 
     device->p_vkGetDeviceBufferMemoryRequirements( device->host.device, buffer_requirements, memory_requirements );
 }
 
-static void win32u_vkGetPhysicalDeviceExternalBufferProperties( VkPhysicalDevice client_physical_device, const VkPhysicalDeviceExternalBufferInfo *buffer_info,
-                                                                VkExternalBufferProperties *buffer_properies )
+static void win32u_vkGetPhysicalDeviceExternalBufferProperties( VkPhysicalDevice client_physical_device, const VkPhysicalDeviceExternalBufferInfo *client_buffer_info,
+                                                                VkExternalBufferProperties *buffer_properties )
 {
+    VkPhysicalDeviceExternalBufferInfo *buffer_info = (VkPhysicalDeviceExternalBufferInfo *)client_buffer_info; /* cast away const, it has been copied in the thunks */
     struct vulkan_physical_device *physical_device = vulkan_physical_device_from_handle( client_physical_device );
     struct vulkan_instance *instance = physical_device->instance;
 
-    TRACE( "physical_device %p, buffer_info %p, buffer_properies %p\n", physical_device, buffer_info, buffer_properies );
+    TRACE( "physical_device %p, buffer_info %p, buffer_properties %p\n", physical_device, buffer_info, buffer_properties );
 
     if (!(buffer_info->handleType & EXTERNAL_MEMORY_WIN32_BITS))
         FIXME( "Unsupported handle type %#x\n", buffer_info->handleType );
     FIXME( "VkPhysicalDeviceExternalBufferInfo Win32 handleType not implemented!\n" );
-    ((VkPhysicalDeviceExternalBufferInfo *)buffer_info)->handleType = 0; /* cast away const, it has been copied in the thunks */
+    buffer_info->handleType = 0;
 
-    return instance->p_vkGetPhysicalDeviceExternalBufferProperties( physical_device->host.physical_device, buffer_info, buffer_properies );
+    instance->p_vkGetPhysicalDeviceExternalBufferProperties( physical_device->host.physical_device, buffer_info, buffer_properties );
+    buffer_properties->externalMemoryProperties.externalMemoryFeatures = 0;
+    buffer_properties->externalMemoryProperties.exportFromImportedHandleTypes = 0;
+    buffer_properties->externalMemoryProperties.compatibleHandleTypes = 0;
 }
 
 static VkResult win32u_vkCreateImage( VkDevice client_device, const VkImageCreateInfo *create_info,
@@ -578,14 +603,15 @@ static void win32u_vkGetDeviceImageMemoryRequirements( VkDevice client_device, c
 }
 
 static VkResult win32u_vkGetPhysicalDeviceImageFormatProperties2( VkPhysicalDevice client_physical_device, const VkPhysicalDeviceImageFormatInfo2 *format_info,
-                                                                  VkImageFormatProperties2 *format_properies )
+                                                                  VkImageFormatProperties2 *format_properties )
 {
     VkBaseOutStructure **next, *prev = (VkBaseOutStructure *)format_info; /* cast away const, chain has been copied in the thunks */
     struct vulkan_physical_device *physical_device = vulkan_physical_device_from_handle( client_physical_device );
     struct vulkan_instance *instance = physical_device->instance;
     VkPhysicalDeviceExternalImageFormatInfo *external_info;
+    VkResult res;
 
-    TRACE( "physical_device %p, format_info %p, format_properies %p\n", physical_device, format_info, format_properies );
+    TRACE( "physical_device %p, format_info %p, format_properties %p\n", physical_device, format_info, format_properties );
 
     for (next = &prev->pNext; *next; prev = *next, next = &(*next)->pNext)
     {
@@ -608,7 +634,29 @@ static VkResult win32u_vkGetPhysicalDeviceImageFormatProperties2( VkPhysicalDevi
         }
     }
 
-    return instance->p_vkGetPhysicalDeviceImageFormatProperties2( physical_device->host.physical_device, format_info, format_properies );
+    res = instance->p_vkGetPhysicalDeviceImageFormatProperties2( physical_device->host.physical_device, format_info, format_properties );
+    if (!res) for (prev = (VkBaseOutStructure *)format_properties, next = &prev->pNext; *next; prev = *next, next = &(*next)->pNext)
+    {
+        switch ((*next)->sType)
+        {
+        case VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES:
+        {
+            VkExternalImageFormatProperties *props = (VkExternalImageFormatProperties *)*next;
+            props->externalMemoryProperties.externalMemoryFeatures = 0;
+            props->externalMemoryProperties.exportFromImportedHandleTypes = 0;
+            props->externalMemoryProperties.compatibleHandleTypes = 0;
+            break;
+        }
+        case VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT: break;
+        case VK_STRUCTURE_TYPE_HOST_IMAGE_COPY_DEVICE_PERFORMANCE_QUERY: break;
+        case VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_PROPERTIES_EXT: break;
+        case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES: break;
+        case VK_STRUCTURE_TYPE_TEXTURE_LOD_GATHER_FORMAT_PROPERTIES_AMD: break;
+        default: FIXME( "Unhandled sType %u.\n", (*next)->sType ); break;
+        }
+    }
+
+    return res;
 }
 
 static VkResult win32u_vkCreateWin32SurfaceKHR( VkInstance client_instance, const VkWin32SurfaceCreateInfoKHR *create_info,
@@ -850,7 +898,7 @@ static VkResult win32u_vkCreateSwapchainKHR( VkDevice client_device, const VkSwa
      */
     if (NtUserGetClientRect( surface->hwnd, &client_rect, NtUserGetWinMonitorDpi( surface->hwnd, MDT_RAW_DPI ) ) &&
         !extents_equals( &create_info_host.imageExtent, &client_rect ) &&
-        physical_device->has_swapchain_maintenance1)
+        physical_device->has_surface_maintenance1 && physical_device->has_swapchain_maintenance1)
     {
         scaling.scalingBehavior = VK_PRESENT_SCALING_STRETCH_BIT_EXT;
         create_info_host.pNext = &scaling;
@@ -892,6 +940,8 @@ void win32u_vkDestroySwapchainKHR( VkDevice client_device, VkSwapchainKHR client
 static VkResult win32u_vkAcquireNextImage2KHR( VkDevice client_device, const VkAcquireNextImageInfoKHR *acquire_info,
                                                uint32_t *image_index )
 {
+    struct vulkan_semaphore *semaphore = acquire_info->semaphore ? vulkan_semaphore_from_handle( acquire_info->semaphore ) : NULL;
+    struct vulkan_fence *fence = acquire_info->fence ? vulkan_fence_from_handle( acquire_info->fence ) : NULL;
     struct swapchain *swapchain = swapchain_from_handle( acquire_info->swapchain );
     struct vulkan_device *device = vulkan_device_from_handle( client_device );
     VkAcquireNextImageInfoKHR acquire_info_host = *acquire_info;
@@ -900,7 +950,8 @@ static VkResult win32u_vkAcquireNextImage2KHR( VkDevice client_device, const VkA
     VkResult res;
 
     acquire_info_host.swapchain = swapchain->obj.host.swapchain;
-
+    acquire_info_host.semaphore = semaphore ? semaphore->host.semaphore : 0;
+    acquire_info_host.fence = fence ? fence->host.fence : 0;
     res = device->p_vkAcquireNextImage2KHR( device->host.device, &acquire_info_host, image_index );
 
     if (!res && NtUserGetClientRect( surface->hwnd, &client_rect, NtUserGetDpiForWindow( surface->hwnd ) ) &&
@@ -915,8 +966,10 @@ static VkResult win32u_vkAcquireNextImage2KHR( VkDevice client_device, const VkA
 }
 
 static VkResult win32u_vkAcquireNextImageKHR( VkDevice client_device, VkSwapchainKHR client_swapchain, uint64_t timeout,
-                                              VkSemaphore semaphore, VkFence fence, uint32_t *image_index )
+                                              VkSemaphore client_semaphore, VkFence client_fence, uint32_t *image_index )
 {
+    struct vulkan_semaphore *semaphore = client_semaphore ? vulkan_semaphore_from_handle( client_semaphore ) : NULL;
+    struct vulkan_fence *fence = client_fence ? vulkan_fence_from_handle( client_fence ) : NULL;
     struct swapchain *swapchain = swapchain_from_handle( client_swapchain );
     struct vulkan_device *device = vulkan_device_from_handle( client_device );
     struct surface *surface = swapchain->surface;
@@ -924,7 +977,8 @@ static VkResult win32u_vkAcquireNextImageKHR( VkDevice client_device, VkSwapchai
     VkResult res;
 
     res = device->p_vkAcquireNextImageKHR( device->host.device, swapchain->obj.host.swapchain, timeout,
-                                              semaphore, fence, image_index );
+                                              semaphore ? semaphore->host.semaphore : 0, fence ? fence->host.fence : 0,
+                                              image_index );
 
     if (!res && NtUserGetClientRect( surface->hwnd, &client_rect, NtUserGetDpiForWindow( surface->hwnd ) ) &&
         !extents_equals( &swapchain->extents, &client_rect ))
@@ -937,14 +991,14 @@ static VkResult win32u_vkAcquireNextImageKHR( VkDevice client_device, VkSwapchai
     return res;
 }
 
-static VkResult win32u_vkQueuePresentKHR( VkQueue client_queue, const VkPresentInfoKHR *present_info )
+static VkResult win32u_vkQueuePresentKHR( VkQueue client_queue, const VkPresentInfoKHR *client_present_info )
 {
+    VkPresentInfoKHR *present_info = (VkPresentInfoKHR *)client_present_info; /* cast away const, it has been copied in the thunks */
     struct vulkan_queue *queue = vulkan_queue_from_handle( client_queue );
     VkSwapchainKHR swapchains_buffer[16], *swapchains = swapchains_buffer;
-    VkPresentInfoKHR present_info_host = *present_info;
     struct vulkan_device *device = queue->device;
+    const VkSwapchainKHR *client_swapchains;
     VkResult res;
-    UINT i;
 
     TRACE( "queue %p, present_info %p\n", queue, present_info );
 
@@ -952,19 +1006,27 @@ static VkResult win32u_vkQueuePresentKHR( VkQueue client_queue, const VkPresentI
         !(swapchains = malloc( present_info->swapchainCount * sizeof(*swapchains) )))
         return VK_ERROR_OUT_OF_HOST_MEMORY;
 
-    for (i = 0; i < present_info->swapchainCount; i++)
+    for (uint32_t i = 0; i < present_info->waitSemaphoreCount; i++)
+    {
+        VkSemaphore *semaphores = (VkSemaphore *)present_info->pWaitSemaphores; /* cast away const, it has been copied in the thunks */
+        struct vulkan_semaphore *semaphore = vulkan_semaphore_from_handle( semaphores[i] );
+        semaphores[i] = semaphore->host.semaphore;
+    }
+
+    for (uint32_t i = 0; i < present_info->swapchainCount; i++)
     {
         struct swapchain *swapchain = swapchain_from_handle( present_info->pSwapchains[i] );
         swapchains[i] = swapchain->obj.host.swapchain;
     }
 
-    present_info_host.pSwapchains = swapchains;
+    client_swapchains = present_info->pSwapchains;
+    present_info->pSwapchains = swapchains;
 
-    res = device->p_vkQueuePresentKHR( queue->host.queue, &present_info_host );
+    res = device->p_vkQueuePresentKHR( queue->host.queue, present_info );
 
-    for (i = 0; i < present_info->swapchainCount; i++)
+    for (uint32_t i = 0; i < present_info->swapchainCount; i++)
     {
-        struct swapchain *swapchain = swapchain_from_handle( present_info->pSwapchains[i] );
+        struct swapchain *swapchain = swapchain_from_handle( client_swapchains[i] );
         VkResult swapchain_res = present_info->pResults ? present_info->pResults[i] : res;
         struct surface *surface = swapchain->surface;
         RECT client_rect;
@@ -1015,6 +1077,303 @@ static VkResult win32u_vkQueuePresentKHR( VkQueue client_queue, const VkPresentI
     return res;
 }
 
+static VkResult win32u_vkQueueSubmit( VkQueue client_queue, uint32_t count, const VkSubmitInfo *submits, VkFence client_fence )
+{
+    struct vulkan_fence *fence = client_fence ? vulkan_fence_from_handle( client_fence ) : NULL;
+    struct vulkan_queue *queue = vulkan_queue_from_handle( client_queue );
+    struct vulkan_device *device = queue->device;
+
+    TRACE( "queue %p, count %u, submits %p, fence %p\n", queue, count, submits, fence );
+
+    for (uint32_t i = 0; i < count; i++)
+    {
+        VkSubmitInfo *submit = (VkSubmitInfo *)submits + i; /* cast away const, chain has been copied in the thunks */
+        VkBaseOutStructure **next, *prev = (VkBaseOutStructure *)submit;
+
+        for (uint32_t j = 0; j < submit->commandBufferCount; j++)
+        {
+            VkCommandBuffer *command_buffers = (VkCommandBuffer *)submit->pCommandBuffers; /* cast away const, chain has been copied in the thunks */
+            struct vulkan_command_buffer *command_buffer = vulkan_command_buffer_from_handle( command_buffers[j] );
+            command_buffers[j] = command_buffer->host.command_buffer;
+        }
+
+        for (uint32_t j = 0; j < submit->waitSemaphoreCount; j++)
+        {
+            VkSemaphore *semaphores = (VkSemaphore *)submit->pWaitSemaphores; /* cast away const, it has been copied in the thunks */
+            struct vulkan_semaphore *semaphore = vulkan_semaphore_from_handle( semaphores[j] );
+            semaphores[j] = semaphore->host.semaphore;
+        }
+
+        for (uint32_t j = 0; j < submit->signalSemaphoreCount; j++)
+        {
+            VkSemaphore *semaphores = (VkSemaphore *)submit->pSignalSemaphores; /* cast away const, it has been copied in the thunks */
+            struct vulkan_semaphore *semaphore = vulkan_semaphore_from_handle( semaphores[j] );
+            semaphores[j] = semaphore->host.semaphore;
+        }
+
+        for (next = &prev->pNext; *next; prev = *next, next = &(*next)->pNext)
+        {
+            switch ((*next)->sType)
+            {
+            case VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHR:
+                FIXME( "VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHR not implemented!\n" );
+                *next = (*next)->pNext; next = &prev;
+                break;
+            case VK_STRUCTURE_TYPE_DEVICE_GROUP_SUBMIT_INFO: break;
+            case VK_STRUCTURE_TYPE_FRAME_BOUNDARY_EXT: break;
+            case VK_STRUCTURE_TYPE_FRAME_BOUNDARY_TENSORS_ARM: break;
+            case VK_STRUCTURE_TYPE_LATENCY_SUBMISSION_PRESENT_ID_NV: break;
+            case VK_STRUCTURE_TYPE_PERFORMANCE_QUERY_SUBMIT_INFO_KHR: break;
+            case VK_STRUCTURE_TYPE_PROTECTED_SUBMIT_INFO: break;
+            case VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO: break;
+            case VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_KHR:
+                FIXME( "VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_KHR not implemented!\n" );
+                *next = (*next)->pNext; next = &prev;
+                break;
+            default: FIXME( "Unhandled sType %u.\n", (*next)->sType ); break;
+            }
+        }
+    }
+
+    return device->p_vkQueueSubmit( queue->host.queue, count, submits, fence ? fence->host.fence : 0 );
+}
+
+static VkResult win32u_vkQueueSubmit2( VkQueue client_queue, uint32_t count, const VkSubmitInfo2 *submits, VkFence client_fence )
+{
+    struct vulkan_fence *fence = client_fence ? vulkan_fence_from_handle( client_fence ) : NULL;
+    struct vulkan_queue *queue = vulkan_queue_from_handle( client_queue );
+    struct vulkan_device *device = queue->device;
+
+    TRACE( "queue %p, count %u, submits %p, fence %p\n", queue, count, submits, fence );
+
+    for (uint32_t i = 0; i < count; i++)
+    {
+        VkSubmitInfo2 *submit = (VkSubmitInfo2 *)submits + i; /* cast away const, chain has been copied in the thunks */
+        VkBaseOutStructure **next, *prev = (VkBaseOutStructure *)submit;
+
+        for (uint32_t j = 0; j < submit->commandBufferInfoCount; j++)
+        {
+            VkCommandBufferSubmitInfoKHR *command_buffer_infos = (VkCommandBufferSubmitInfoKHR *)submit->pCommandBufferInfos; /* cast away const, chain has been copied in the thunks */
+            struct vulkan_command_buffer *command_buffer = vulkan_command_buffer_from_handle( command_buffer_infos[j].commandBuffer );
+            command_buffer_infos[j].commandBuffer = command_buffer->host.command_buffer;
+            if (command_buffer_infos->pNext) FIXME( "Unhandled struct chain\n" );
+        }
+
+        for (uint32_t j = 0; j < submit->waitSemaphoreInfoCount; j++)
+        {
+            VkSemaphoreSubmitInfo *semaphore_infos = (VkSemaphoreSubmitInfo *)submit->pWaitSemaphoreInfos; /* cast away const, it has been copied in the thunks */
+            struct vulkan_semaphore *semaphore = vulkan_semaphore_from_handle( semaphore_infos[j].semaphore );
+            semaphore_infos[j].semaphore = semaphore->host.semaphore;
+            if (semaphore_infos->pNext) FIXME( "Unhandled struct chain\n" );
+        }
+
+        for (uint32_t j = 0; j < submit->signalSemaphoreInfoCount; j++)
+        {
+            VkSemaphoreSubmitInfo *semaphore_infos = (VkSemaphoreSubmitInfo *)submit->pSignalSemaphoreInfos; /* cast away const, it has been copied in the thunks */
+            struct vulkan_semaphore *semaphore = vulkan_semaphore_from_handle( semaphore_infos[j].semaphore );
+            semaphore_infos[j].semaphore = semaphore->host.semaphore;
+            if (semaphore_infos->pNext) FIXME( "Unhandled struct chain\n" );
+        }
+
+        for (next = &prev->pNext; *next; prev = *next, next = &(*next)->pNext)
+        {
+            switch ((*next)->sType)
+            {
+            case VK_STRUCTURE_TYPE_FRAME_BOUNDARY_EXT: break;
+            case VK_STRUCTURE_TYPE_FRAME_BOUNDARY_TENSORS_ARM: break;
+            case VK_STRUCTURE_TYPE_LATENCY_SUBMISSION_PRESENT_ID_NV: break;
+            case VK_STRUCTURE_TYPE_PERFORMANCE_QUERY_SUBMIT_INFO_KHR: break;
+            case VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_KHR:
+                FIXME( "VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_KHR not implemented!\n" );
+                *next = (*next)->pNext; next = &prev;
+                break;
+            default: FIXME( "Unhandled sType %u.\n", (*next)->sType ); break;
+            }
+        }
+    }
+
+    return device->p_vkQueueSubmit2( queue->host.queue, count, submits, fence ? fence->host.fence : 0 );
+}
+
+static VkResult win32u_vkCreateSemaphore( VkDevice client_device, const VkSemaphoreCreateInfo *client_create_info,
+                                          const VkAllocationCallbacks *allocator, VkSemaphore *ret )
+{
+    VkSemaphoreCreateInfo *create_info = (VkSemaphoreCreateInfo *)client_create_info; /* cast away const, chain has been copied in the thunks */
+    struct vulkan_device *device = vulkan_device_from_handle( client_device );
+    VkBaseOutStructure **next, *prev = (VkBaseOutStructure *)create_info;
+    struct vulkan_instance *instance = device->physical_device->instance;
+    struct semaphore *semaphore;
+    VkSemaphore host_semaphore;
+    VkResult res;
+
+    TRACE( "device %p, create_info %p, allocator %p, ret %p\n", device, create_info, allocator, ret );
+
+    for (next = &prev->pNext; *next; prev = *next, next = &(*next)->pNext)
+    {
+        switch ((*next)->sType)
+        {
+        case VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO:
+            FIXME( "VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO not implemented!\n" );
+            *next = (*next)->pNext; next = &prev;
+            break;
+        case VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR:
+            FIXME( "VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR not implemented!\n" );
+            *next = (*next)->pNext; next = &prev;
+            break;
+        case VK_STRUCTURE_TYPE_QUERY_LOW_LATENCY_SUPPORT_NV: break;
+        case VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO: break;
+        default: FIXME( "Unhandled sType %u.\n", (*next)->sType ); break;
+        }
+    }
+
+    if (!(semaphore = calloc( 1, sizeof(*semaphore) ))) return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+    if ((res = device->p_vkCreateSemaphore( device->host.device, create_info, NULL /* allocator */, &host_semaphore )))
+    {
+        free( semaphore );
+        return res;
+    }
+
+    vulkan_object_init( &semaphore->obj.obj, host_semaphore );
+    instance->p_insert_object( instance, &semaphore->obj.obj );
+
+    *ret = semaphore->obj.client.semaphore;
+    return res;
+}
+
+static void win32u_vkDestroySemaphore( VkDevice client_device, VkSemaphore client_semaphore, const VkAllocationCallbacks *allocator )
+{
+    struct vulkan_device *device = vulkan_device_from_handle( client_device );
+    struct semaphore *semaphore = semaphore_from_handle( client_semaphore );
+    struct vulkan_instance *instance = device->physical_device->instance;
+
+    TRACE( "device %p, semaphore %p, allocator %p\n", device, semaphore, allocator );
+
+    if (!client_semaphore) return;
+
+    device->p_vkDestroySemaphore( device->host.device, semaphore->obj.host.semaphore, NULL /* allocator */ );
+    instance->p_remove_object( instance, &semaphore->obj.obj );
+
+    free( semaphore );
+}
+
+static VkResult win32u_vkGetSemaphoreWin32HandleKHR( VkDevice client_device, const VkSemaphoreGetWin32HandleInfoKHR *handle_info, HANDLE *handle )
+{
+    struct vulkan_device *device = vulkan_device_from_handle( client_device );
+
+    FIXME( "device %p, handle_info %p, handle %p stub!\n", device, handle_info, handle );
+
+    return VK_ERROR_INCOMPATIBLE_DRIVER;
+}
+
+static VkResult win32u_vkImportSemaphoreWin32HandleKHR( VkDevice client_device, const VkImportSemaphoreWin32HandleInfoKHR *handle_info )
+{
+    struct vulkan_device *device = vulkan_device_from_handle( client_device );
+
+    FIXME( "device %p, handle_info %p stub!\n", device, handle_info );
+
+    return VK_ERROR_INCOMPATIBLE_DRIVER;
+}
+
+static void win32u_vkGetPhysicalDeviceExternalSemaphoreProperties( VkPhysicalDevice client_physical_device, const VkPhysicalDeviceExternalSemaphoreInfo *semaphore_info,
+                                                                   VkExternalSemaphoreProperties *semaphore_properties )
+{
+    struct vulkan_physical_device *physical_device = vulkan_physical_device_from_handle( client_physical_device );
+    struct vulkan_instance *instance = physical_device->instance;
+
+    TRACE( "physical_device %p, semaphore_info %p, semaphore_properties %p\n", physical_device, semaphore_info, semaphore_properties );
+
+    instance->p_vkGetPhysicalDeviceExternalSemaphoreProperties( physical_device->host.physical_device, semaphore_info, semaphore_properties );
+}
+
+static VkResult win32u_vkCreateFence( VkDevice client_device, const VkFenceCreateInfo *client_create_info, const VkAllocationCallbacks *allocator, VkFence *ret )
+{
+    VkFenceCreateInfo *create_info = (VkFenceCreateInfo *)client_create_info; /* cast away const, chain has been copied in the thunks */
+    struct vulkan_device *device = vulkan_device_from_handle( client_device );
+    VkBaseOutStructure **next, *prev = (VkBaseOutStructure *)create_info;
+    struct vulkan_instance *instance = device->physical_device->instance;
+    struct fence *fence;
+    VkFence host_fence;
+    VkResult res;
+
+    TRACE( "device %p, create_info %p, allocator %p, ret %p\n", device, create_info, allocator, ret );
+
+    for (next = &prev->pNext; *next; prev = *next, next = &(*next)->pNext)
+    {
+        switch ((*next)->sType)
+        {
+        case VK_STRUCTURE_TYPE_EXPORT_FENCE_CREATE_INFO:
+            FIXME( "VK_STRUCTURE_TYPE_EXPORT_FENCE_CREATE_INFO not implemented.\n" );
+            *next = (*next)->pNext; next = &prev;
+            break;
+        case VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR:
+            FIXME( "VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR not implemented.\n" );
+            *next = (*next)->pNext; next = &prev;
+            break;
+        default: FIXME( "Unhandled sType %u.\n", (*next)->sType ); break;
+        }
+    }
+
+    if (!(fence = calloc( 1, sizeof(*fence) ))) return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+    if ((res = device->p_vkCreateFence( device->host.device, create_info, NULL /* allocator */, &host_fence )))
+    {
+        free( fence );
+        return res;
+    }
+
+    vulkan_object_init( &fence->obj.obj, host_fence );
+    instance->p_insert_object( instance, &fence->obj.obj );
+
+    *ret = fence->obj.client.fence;
+    return res;
+}
+
+static void win32u_vkDestroyFence( VkDevice client_device, VkFence client_fence, const VkAllocationCallbacks *allocator )
+{
+    struct vulkan_device *device = vulkan_device_from_handle( client_device );
+    struct fence *fence = fence_from_handle( client_fence );
+    struct vulkan_instance *instance = device->physical_device->instance;
+
+    TRACE( "device %p, fence %p, allocator %p\n", device, fence, allocator );
+
+    if (!client_fence) return;
+
+    device->p_vkDestroyFence( device->host.device, fence->obj.host.fence, NULL /* allocator */ );
+    instance->p_remove_object( instance, &fence->obj.obj );
+
+    free( fence );
+}
+
+static VkResult win32u_vkGetFenceWin32HandleKHR( VkDevice client_device, const VkFenceGetWin32HandleInfoKHR *handle_info, HANDLE *handle )
+{
+    struct vulkan_device *device = vulkan_device_from_handle( client_device );
+
+    FIXME( "device %p, handle_info %p, handle %p stub!\n", device, handle_info, handle );
+
+    return VK_ERROR_INCOMPATIBLE_DRIVER;
+}
+
+static VkResult win32u_vkImportFenceWin32HandleKHR( VkDevice client_device, const VkImportFenceWin32HandleInfoKHR *handle_info )
+{
+    struct vulkan_device *device = vulkan_device_from_handle( client_device );
+
+    FIXME( "device %p, handle_info %p stub!\n", device, handle_info );
+
+    return VK_ERROR_INCOMPATIBLE_DRIVER;
+}
+
+static void win32u_vkGetPhysicalDeviceExternalFenceProperties( VkPhysicalDevice client_physical_device, const VkPhysicalDeviceExternalFenceInfo *fence_info,
+                                                               VkExternalFenceProperties *fence_properties )
+{
+    struct vulkan_physical_device *physical_device = vulkan_physical_device_from_handle( client_physical_device );
+    struct vulkan_instance *instance = physical_device->instance;
+
+    TRACE( "physical_device %p, fence_info %p, fence_properties %p\n", physical_device, fence_info, fence_properties );
+
+    instance->p_vkGetPhysicalDeviceExternalFenceProperties( physical_device->host.physical_device, fence_info, fence_properties );
+}
+
 static const char *win32u_get_host_surface_extension(void)
 {
     return driver_funcs->p_get_host_surface_extension();
@@ -1026,19 +1385,28 @@ static struct vulkan_funcs vulkan_funcs =
     .p_vkAcquireNextImageKHR = win32u_vkAcquireNextImageKHR,
     .p_vkAllocateMemory = win32u_vkAllocateMemory,
     .p_vkCreateBuffer = win32u_vkCreateBuffer,
+    .p_vkCreateFence = win32u_vkCreateFence,
     .p_vkCreateImage = win32u_vkCreateImage,
+    .p_vkCreateSemaphore = win32u_vkCreateSemaphore,
     .p_vkCreateSwapchainKHR = win32u_vkCreateSwapchainKHR,
     .p_vkCreateWin32SurfaceKHR = win32u_vkCreateWin32SurfaceKHR,
+    .p_vkDestroyFence = win32u_vkDestroyFence,
+    .p_vkDestroySemaphore = win32u_vkDestroySemaphore,
     .p_vkDestroySurfaceKHR = win32u_vkDestroySurfaceKHR,
     .p_vkDestroySwapchainKHR = win32u_vkDestroySwapchainKHR,
     .p_vkFreeMemory = win32u_vkFreeMemory,
     .p_vkGetDeviceBufferMemoryRequirements = win32u_vkGetDeviceBufferMemoryRequirements,
     .p_vkGetDeviceBufferMemoryRequirementsKHR = win32u_vkGetDeviceBufferMemoryRequirements,
     .p_vkGetDeviceImageMemoryRequirements = win32u_vkGetDeviceImageMemoryRequirements,
+    .p_vkGetFenceWin32HandleKHR = win32u_vkGetFenceWin32HandleKHR,
     .p_vkGetMemoryWin32HandleKHR = win32u_vkGetMemoryWin32HandleKHR,
     .p_vkGetMemoryWin32HandlePropertiesKHR = win32u_vkGetMemoryWin32HandlePropertiesKHR,
     .p_vkGetPhysicalDeviceExternalBufferProperties = win32u_vkGetPhysicalDeviceExternalBufferProperties,
     .p_vkGetPhysicalDeviceExternalBufferPropertiesKHR = win32u_vkGetPhysicalDeviceExternalBufferProperties,
+    .p_vkGetPhysicalDeviceExternalFenceProperties = win32u_vkGetPhysicalDeviceExternalFenceProperties,
+    .p_vkGetPhysicalDeviceExternalFencePropertiesKHR = win32u_vkGetPhysicalDeviceExternalFenceProperties,
+    .p_vkGetPhysicalDeviceExternalSemaphoreProperties = win32u_vkGetPhysicalDeviceExternalSemaphoreProperties,
+    .p_vkGetPhysicalDeviceExternalSemaphorePropertiesKHR = win32u_vkGetPhysicalDeviceExternalSemaphoreProperties,
     .p_vkGetPhysicalDeviceImageFormatProperties2 = win32u_vkGetPhysicalDeviceImageFormatProperties2,
     .p_vkGetPhysicalDeviceImageFormatProperties2KHR = win32u_vkGetPhysicalDeviceImageFormatProperties2,
     .p_vkGetPhysicalDevicePresentRectanglesKHR = win32u_vkGetPhysicalDevicePresentRectanglesKHR,
@@ -1047,9 +1415,15 @@ static struct vulkan_funcs vulkan_funcs =
     .p_vkGetPhysicalDeviceSurfaceFormats2KHR = win32u_vkGetPhysicalDeviceSurfaceFormats2KHR,
     .p_vkGetPhysicalDeviceSurfaceFormatsKHR = win32u_vkGetPhysicalDeviceSurfaceFormatsKHR,
     .p_vkGetPhysicalDeviceWin32PresentationSupportKHR = win32u_vkGetPhysicalDeviceWin32PresentationSupportKHR,
+    .p_vkGetSemaphoreWin32HandleKHR = win32u_vkGetSemaphoreWin32HandleKHR,
+    .p_vkImportFenceWin32HandleKHR = win32u_vkImportFenceWin32HandleKHR,
+    .p_vkImportSemaphoreWin32HandleKHR = win32u_vkImportSemaphoreWin32HandleKHR,
     .p_vkMapMemory = win32u_vkMapMemory,
     .p_vkMapMemory2KHR = win32u_vkMapMemory2KHR,
     .p_vkQueuePresentKHR = win32u_vkQueuePresentKHR,
+    .p_vkQueueSubmit = win32u_vkQueueSubmit,
+    .p_vkQueueSubmit2 = win32u_vkQueueSubmit2,
+    .p_vkQueueSubmit2KHR = win32u_vkQueueSubmit2,
     .p_vkUnmapMemory = win32u_vkUnmapMemory,
     .p_vkUnmapMemory2KHR = win32u_vkUnmapMemory2KHR,
     .p_get_host_surface_extension = win32u_get_host_surface_extension,

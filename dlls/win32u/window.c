@@ -149,6 +149,20 @@ static NTSTATUS get_shared_window( HANDLE handle, struct object_lock *lock, cons
     return STATUS_SUCCESS;
 }
 
+struct obj_locator get_window_class_locator( HWND hwnd )
+{
+    struct object_lock lock = OBJECT_LOCK_INIT;
+    const window_shm_t *window_shm = NULL;
+    struct obj_locator locator = {0};
+    NTSTATUS status;
+
+    while ((status = get_shared_window( hwnd, &lock, &window_shm )) == STATUS_PENDING)
+        locator = window_shm->class;
+    if (status) memset( &locator, 0, sizeof(locator) );
+
+    return locator;
+}
+
 /***********************************************************************
  *           get_user_handle_ptr
  */
@@ -237,7 +251,7 @@ void *free_user_handle( HANDLE handle, unsigned short type )
 static pthread_mutex_t surfaces_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct list client_surfaces = LIST_INIT( client_surfaces );
 
-static void detach_client_surfaces( HWND hwnd )
+void detach_client_surfaces( HWND hwnd )
 {
     struct list detached = LIST_INIT( detached );
     struct client_surface *surface, *next;
@@ -337,6 +351,18 @@ void client_surface_present( struct client_surface *surface )
         if (hdc) NtUserReleaseDC( hwnd, hdc );
     }
     pthread_mutex_unlock( &surfaces_lock );
+}
+
+BOOL is_client_surface_window( struct client_surface *surface, HWND hwnd )
+{
+    BOOL ret;
+
+    if (!surface) return FALSE;
+    pthread_mutex_lock( &surfaces_lock );
+    ret = surface->hwnd == hwnd;
+    pthread_mutex_unlock( &surfaces_lock );
+
+    return ret;
 }
 
 /*******************************************************************
@@ -5186,7 +5212,8 @@ LRESULT destroy_window( HWND hwnd )
     }
 
     detach_client_surfaces( hwnd );
-    if (win->opengl_drawable) opengl_drawable_release( win->opengl_drawable );
+    if (win->current_drawable) opengl_drawable_release( win->current_drawable );
+    if (win->unused_drawable) opengl_drawable_release( win->unused_drawable );
     user_driver->pDestroyWindow( hwnd );
 
     free_window_handle( hwnd );
@@ -5291,7 +5318,8 @@ void destroy_thread_windows(void)
         HWND handle;
         HMENU menu;
         HMENU sys_menu;
-        struct opengl_drawable *opengl_drawable;
+        struct opengl_drawable *current_drawable;
+        struct opengl_drawable *unused_drawable;
         struct window_surface *surface;
         struct destroy_entry *next;
     } *entry, *free_list = NULL;
@@ -5317,7 +5345,8 @@ void destroy_thread_windows(void)
         tmp.handle = win->handle;
         if (!is_child) tmp.menu = (HMENU)win->wIDmenu;
         tmp.sys_menu = win->hSysMenu;
-        tmp.opengl_drawable = win->opengl_drawable;
+        tmp.current_drawable = win->current_drawable;
+        tmp.unused_drawable = win->unused_drawable;
         tmp.surface = win->surface;
         *entry = tmp;
 
@@ -5342,7 +5371,8 @@ void destroy_thread_windows(void)
 
         detach_client_surfaces( entry->handle );
         user_driver->pDestroyWindow( entry->handle );
-        if (entry->opengl_drawable) opengl_drawable_release( entry->opengl_drawable );
+        if (entry->current_drawable) opengl_drawable_release( entry->current_drawable );
+        if (entry->unused_drawable) opengl_drawable_release( entry->unused_drawable );
 
         NtUserDestroyMenu( entry->menu );
         NtUserDestroyMenu( entry->sys_menu );
