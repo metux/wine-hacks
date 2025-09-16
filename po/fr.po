@@ -3860,7 +3860,7 @@ msgstr "Activer SDL"
 
 #: dlls/joy.cpl/joy.rc:53
 msgid "Disable hidraw"
-msgstr "Désactivé hidraw"
+msgstr "Désactiver hidraw"
 
 #: dlls/joy.cpl/joy.rc:58
 msgid "DInput"
@@ -3916,7 +3916,7 @@ msgid ""
 "overridden for DInput in the Joysticks tab."
 msgstr ""
 "Aucun utilisateur détecté sur le slot #0, assurez-vous que votre manette de jeu est branchée, et non "
-"remplacé par DInput dans l'onglet Joysticks."
+"remplacée par DInput dans l'onglet Joysticks."
 
 #: dlls/joy.cpl/joy.rc:85
 msgid ""
@@ -3924,7 +3924,7 @@ msgid ""
 "overridden for DInput in the Joysticks tab."
 msgstr ""
 "Aucun utilisateur détecté sur le slot #1, assurez-vous que votre manette de jeu est branchée, et non "
-"remplacé par DInput dans l'onglet Joysticks."
+"remplacée par DInput dans l'onglet Joysticks."
 
 #: dlls/joy.cpl/joy.rc:89
 msgid ""
@@ -3932,7 +3932,7 @@ msgid ""
 "overridden for DInput in the Joysticks tab."
 msgstr ""
 "Aucun utilisateur détecté sur le slot #2, assurez-vous que votre manette de jeu est branchée, et non "
-"remplacé par DInput dans l'onglet Joysticks."
+"remplacée par DInput dans l'onglet Joysticks."
 
 #: dlls/joy.cpl/joy.rc:93
 msgid ""
@@ -3940,7 +3940,7 @@ msgid ""
 "overridden for DInput in the Joysticks tab."
 msgstr ""
 "Aucun utilisateur détecté sur le slot #3, assurez-vous que votre manette de jeu est branchée, et non "
-"remplacé par DInput dans l'onglet Joysticks."
+"remplacée par DInput dans l'onglet Joysticks."
 
 #: dlls/joy.cpl/joy.rc:98 dlls/joy.cpl/joy.rc:99 dlls/joy.cpl/joy.rc:100
 #: dlls/joy.cpl/joy.rc:101 dlls/joy.cpl/joy.rc:115
