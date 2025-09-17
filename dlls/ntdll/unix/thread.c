@@ -1104,6 +1104,7 @@ static void contexts_from_server( CONTEXT *context, struct context_data server_c
  */
 static DECLSPEC_NORETURN void pthread_exit_wrapper( int status )
 {
+    close( ntdll_get_thread_data()->queue_sync_fd );
     close( ntdll_get_thread_data()->wait_fd[0] );
     close( ntdll_get_thread_data()->wait_fd[1] );
     close( ntdll_get_thread_data()->reply_fd );
@@ -1324,7 +1325,7 @@ NTSTATUS WINAPI NtCreateThreadEx( HANDLE *handle, ACCESS_MASK access, OBJECT_ATT
     struct object_attributes *objattr;
     struct ntdll_thread_data *thread_data;
     DWORD tid = 0;
-    int request_pipe[2];
+    int request_pipe[2], queue_sync_fd = -1;
     TEB *teb;
     WOW_TEB *wow_teb;
     unsigned int status;
@@ -1377,6 +1378,11 @@ NTSTATUS WINAPI NtCreateThreadEx( HANDLE *handle, ACCESS_MASK access, OBJECT_ATT
 
     if (!access) access = THREAD_ALL_ACCESS;
 
+    /* We need to use fd_cache_mutex here to protect against races with
+     * other threads trying to receive fds for the fd cache,
+     * and we need to use an uninterrupted section to prevent reentrancy. */
+    server_enter_uninterrupted_section( &fd_cache_mutex, &sigset );
+
     SERVER_START_REQ( new_thread )
     {
         req->process    = wine_server_obj_handle( process );
@@ -1386,12 +1392,20 @@ NTSTATUS WINAPI NtCreateThreadEx( HANDLE *handle, ACCESS_MASK access, OBJECT_ATT
         wine_server_add_data( req, objattr, len );
         if (!(status = wine_server_call( req )))
         {
+            obj_handle_t token;
+            if (reply->queue_handle)
+            {
+                queue_sync_fd = wine_server_receive_fd( &token );
+                assert( token == reply->queue_handle );
+            }
             *handle = wine_server_ptr_handle( reply->handle );
             tid = reply->tid;
         }
         close( request_pipe[0] );
     }
     SERVER_END_REQ;
+
+    server_leave_uninterrupted_section( &fd_cache_mutex, &sigset );
 
     free( objattr );
     if (status)
@@ -1417,7 +1431,8 @@ NTSTATUS WINAPI NtCreateThreadEx( HANDLE *handle, ACCESS_MASK access, OBJECT_ATT
     if (wow_teb) wow_teb->SkipThreadAttach = teb->SkipThreadAttach;
 
     thread_data = (struct ntdll_thread_data *)&teb->GdiTebBatch;
-    thread_data->request_fd  = request_pipe[1];
+    thread_data->request_fd     = request_pipe[1];
+    thread_data->queue_sync_fd  = queue_sync_fd;
     thread_data->start = start;
     thread_data->param = param;
 
@@ -1439,6 +1454,7 @@ done:
     if (status)
     {
         NtClose( *handle );
+        if (queue_sync_fd != -1) close( queue_sync_fd );
         close( request_pipe[1] );
         return status;
     }

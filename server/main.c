@@ -28,6 +28,12 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
+#ifdef HAVE_SYS_RESOURCE_H
+# include <sys/resource.h>
+#endif
+#ifdef HAVE_SYS_SYSCTL_H
+# include <sys/sysctl.h>
+#endif
 
 #include "object.h"
 #include "file.h"
@@ -212,6 +218,42 @@ static void sigterm_handler( int signum )
     exit(1);  /* make sure atexit functions get called */
 }
 
+#ifdef RLIMIT_NOFILE
+static void set_max_limit( int limit )
+{
+    struct rlimit rlimit;
+
+    if (!getrlimit( limit, &rlimit ))
+    {
+        rlimit.rlim_cur = rlimit.rlim_max;
+        if (!setrlimit( limit, &rlimit )) return;
+
+#if defined(__APPLE__) && defined(RLIMIT_NOFILE) && defined(OPEN_MAX)
+        if (limit == RLIMIT_NOFILE)
+        {
+            unsigned int nlimit = 0;
+            size_t size;
+
+            /* On Leopard, setrlimit(RLIMIT_NOFILE, ...) fails on attempts to set
+             * rlim_cur above OPEN_MAX (even if rlim_max > OPEN_MAX).
+             *
+             * In later versions it can be set to kern.maxfilesperproc (from
+             * sysctl). In Big Sur and later it can be set to rlim_max. */
+            size = sizeof(nlimit);
+            if (sysctlbyname("kern.maxfilesperproc", &nlimit, &size, NULL, 0) != 0 || nlimit < OPEN_MAX)
+                rlimit.rlim_cur = OPEN_MAX;
+            else
+                rlimit.rlim_cur = nlimit;
+
+            if (!setrlimit( limit, &rlimit )) return;
+            rlimit.rlim_cur = OPEN_MAX;
+            if (!setrlimit( limit, &rlimit )) return;
+        }
+#endif
+    }
+}
+#endif /* RLIMIT_NOFILE */
+
 int main( int argc, char *argv[] )
 {
     setvbuf( stderr, NULL, _IOLBF, 0 );
@@ -225,6 +267,9 @@ int main( int argc, char *argv[] )
     signal( SIGQUIT, sigterm_handler );
     signal( SIGTERM, sigterm_handler );
     signal( SIGABRT, sigterm_handler );
+#ifdef RLIMIT_NOFILE
+    set_max_limit( RLIMIT_NOFILE );
+#endif
 
     sock_init();
     open_master_socket();

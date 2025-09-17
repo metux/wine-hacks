@@ -4022,10 +4022,11 @@ static TEB *init_teb( void *ptr, BOOL is_wow )
     teb->StaticUnicodeString.Buffer = teb->StaticUnicodeBuffer;
     teb->StaticUnicodeString.MaximumLength = sizeof(teb->StaticUnicodeBuffer);
     thread_data = (struct ntdll_thread_data *)&teb->GdiTebBatch;
-    thread_data->request_fd = -1;
-    thread_data->reply_fd   = -1;
-    thread_data->wait_fd[0] = -1;
-    thread_data->wait_fd[1] = -1;
+    thread_data->request_fd     = -1;
+    thread_data->reply_fd       = -1;
+    thread_data->wait_fd[0]     = -1;
+    thread_data->wait_fd[1]     = -1;
+    thread_data->queue_sync_fd  = -1;
     list_add_head( &teb_list, &thread_data->entry );
     return teb;
 }

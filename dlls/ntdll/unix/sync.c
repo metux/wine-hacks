@@ -309,14 +309,17 @@ static unsigned int validate_open_object_attributes( const OBJECT_ATTRIBUTES *at
 
 struct inproc_sync
 {
-    int fd;
-    unsigned int access;
-    unsigned int type : 2;
+    LONG           refcount;  /* reference count of the sync object */
+    int            fd;        /* unix file descriptor */
+    unsigned int   access;    /* handle access rights */
+    unsigned int   type;      /* enum inproc_sync_type as short to save space */
 };
 
 static void release_inproc_sync( struct inproc_sync *sync )
 {
-    close( sync->fd );
+    LONG ref = InterlockedDecrement( &sync->refcount );
+    assert( ref >= 0 );
+    if (!ref) close( sync->fd );
 }
 
 static NTSTATUS get_inproc_sync( HANDLE handle, ACCESS_MASK desired_access, struct inproc_sync *sync )
@@ -335,6 +338,7 @@ static NTSTATUS get_inproc_sync( HANDLE handle, ACCESS_MASK desired_access, stru
         if (!(ret = wine_server_call( req )))
         {
             obj_handle_t fd_handle;
+            sync->refcount = 1;
             sync->fd = wine_server_receive_fd( &fd_handle );
             assert( wine_server_ptr_handle(fd_handle) == handle );
             sync->access = reply->access;
@@ -353,6 +357,45 @@ static NTSTATUS get_inproc_sync( HANDLE handle, ACCESS_MASK desired_access, stru
     }
 
     return STATUS_SUCCESS;
+}
+
+static NTSTATUS get_inproc_queue_sync( struct inproc_sync *sync )
+{
+    sync->refcount = 2; /* prevent closing */
+    sync->fd = ntdll_get_thread_data()->queue_sync_fd;
+    return STATUS_SUCCESS;
+}
+
+extern unsigned int check_signal_access( struct inproc_sync *sync )
+{
+    switch (sync->type)
+    {
+    case INPROC_SYNC_INTERNAL:
+        return STATUS_OBJECT_TYPE_MISMATCH;
+    }
+
+    assert( 0 );
+    return STATUS_OBJECT_TYPE_MISMATCH;
+}
+
+static void select_queue(void)
+{
+    SERVER_START_REQ( select_inproc_queue )
+    {
+        req->select = 1;
+        wine_server_call( req );
+    }
+    SERVER_END_REQ;
+}
+
+static void unselect_queue( BOOL signaled )
+{
+    SERVER_START_REQ( select_inproc_queue )
+    {
+        req->signaled = signaled;
+        wine_server_call( req );
+    }
+    SERVER_END_REQ;
 }
 
 static NTSTATUS inproc_release_semaphore( HANDLE handle, ULONG count, ULONG *prev_count )
@@ -406,7 +449,9 @@ static NTSTATUS inproc_query_mutex( HANDLE handle, MUTANT_BASIC_INFORMATION *inf
 static NTSTATUS inproc_wait( DWORD count, const HANDLE *handles, BOOLEAN wait_any,
                              BOOLEAN alertable, const LARGE_INTEGER *timeout )
 {
+    HANDLE server_queue = UlongToHandle( NtUserGetThreadInfo()->server_queue );
     struct inproc_sync *syncs[64], stack[ARRAY_SIZE(syncs)];
+    UINT queue = -1;
     NTSTATUS ret;
 
     if (inproc_device_fd < 0) return STATUS_NOT_IMPLEMENTED;
@@ -414,7 +459,8 @@ static NTSTATUS inproc_wait( DWORD count, const HANDLE *handles, BOOLEAN wait_an
     assert( count <= ARRAY_SIZE(syncs) );
     for (int i = 0; i < count; ++i)
     {
-        if ((ret = get_inproc_sync( handles[i], SYNCHRONIZE, stack + i )))
+        if (server_queue && handles[i] == server_queue && !get_inproc_queue_sync( stack + i )) queue = i;
+        else if ((ret = get_inproc_sync( handles[i], SYNCHRONIZE, stack + i )))
         {
             while (i--) release_inproc_sync( syncs[i] );
             return ret;
@@ -422,15 +468,44 @@ static NTSTATUS inproc_wait( DWORD count, const HANDLE *handles, BOOLEAN wait_an
         syncs[i] = stack + i;
     }
 
+    if (queue != -1) select_queue();
+    ret = STATUS_NOT_IMPLEMENTED;
+    if (queue != -1) unselect_queue( ret == queue );
+
     while (count--) release_inproc_sync( syncs[count] );
-    return STATUS_NOT_IMPLEMENTED;
+    return ret;
 }
 
 static NTSTATUS inproc_signal_and_wait( HANDLE signal, HANDLE wait,
                                         BOOLEAN alertable, const LARGE_INTEGER *timeout )
 {
+    HANDLE server_queue = UlongToHandle( NtUserGetThreadInfo()->server_queue );
+    struct inproc_sync stack_signal, stack_wait, *signal_sync = &stack_signal, *wait_sync = &stack_wait;
+    NTSTATUS ret;
+
     if (inproc_device_fd < 0) return STATUS_NOT_IMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+
+    if ((ret = get_inproc_sync( signal, 0, signal_sync ))) return ret;
+    if ((ret = check_signal_access( signal_sync )))
+    {
+        release_inproc_sync( signal_sync );
+        return ret;
+    }
+
+    if (server_queue && wait == server_queue) get_inproc_queue_sync( wait_sync );
+    else if ((ret = get_inproc_sync( wait, SYNCHRONIZE, wait_sync )))
+    {
+        release_inproc_sync( signal_sync );
+        return ret;
+    }
+
+    if (server_queue && wait == server_queue) select_queue();
+    ret = STATUS_NOT_IMPLEMENTED;
+    if (server_queue && wait == server_queue) unselect_queue( !ret );
+
+    release_inproc_sync( signal_sync );
+    release_inproc_sync( wait_sync );
+    return ret;
 }
 
 
@@ -2288,7 +2363,7 @@ NTSTATUS WINAPI NtRemoveIoCompletion( HANDLE handle, ULONG_PTR *key, ULONG_PTR *
     }
     SERVER_END_REQ;
     if (status != STATUS_PENDING) return status;
-    if (!timeout || timeout->QuadPart) status = NtWaitForSingleObject( wait_handle, FALSE, timeout );
+    if (!timeout || timeout->QuadPart) status = server_wait_for_object( wait_handle, FALSE, timeout );
     else                               status = STATUS_TIMEOUT;
     if (status != WAIT_OBJECT_0) return status;
 
@@ -2352,7 +2427,7 @@ NTSTATUS WINAPI NtRemoveIoCompletionEx( HANDLE handle, FILE_IO_COMPLETION_INFORM
         assert( status == STATUS_USER_APC );
         goto done;
     }
-    if (!timeout || timeout->QuadPart) status = NtWaitForSingleObject( wait_handle, alertable, timeout );
+    if (!timeout || timeout->QuadPart) status = server_wait_for_object( wait_handle, alertable, timeout );
     else                               status = STATUS_TIMEOUT;
     if (status != WAIT_OBJECT_0) goto done;
 

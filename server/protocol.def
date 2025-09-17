@@ -1102,6 +1102,7 @@ typedef volatile struct
 @REPLY
     thread_id_t  tid;          /* thread id */
     obj_handle_t handle;       /* thread handle (in the current process) */
+    obj_handle_t queue_handle; /* inproc queue fd in flight with this handle */
 @END
 
 
@@ -1137,6 +1138,7 @@ typedef volatile struct
     timeout_t    server_start; /* server start time */
     unsigned int session_id;   /* process session id */
     obj_handle_t inproc_device;/* inproc device fd in flight with this handle */
+    obj_handle_t queue_handle; /* inproc queue fd in flight with this handle */
     data_size_t  info_size;    /* total size of startup info */
     VARARG(machines,ushorts);  /* array of supported machines */
 @END
@@ -4126,8 +4128,8 @@ struct handle_info
 
 enum inproc_sync_type
 {
-    INPROC_SYNC_UNKNOWN = 0,
-    INPROC_SYNC_EVENT = 1,
+    INPROC_SYNC_UNKNOWN   = 0,
+    INPROC_SYNC_INTERNAL  = 1,
 };
 
 /* Get the in-process synchronization fd associated with the waitable handle */
@@ -4136,4 +4138,11 @@ enum inproc_sync_type
 @REPLY
     int           type;         /* inproc sync type */
     unsigned int access;        /* handle access rights */
+@END
+
+
+/* Begin/end a client-side wait on a message queue */
+@REQ(select_inproc_queue)
+    int          select;          /* 1: begin waiting, 0: end waiting */
+    int          signaled;        /* was the queue signaled? */
 @END

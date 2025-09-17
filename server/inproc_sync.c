@@ -87,14 +87,15 @@ static const struct object_ops inproc_sync_ops =
     inproc_sync_destroy,        /* destroy */
 };
 
-struct inproc_sync *create_inproc_event_sync( int manual, int signaled )
+struct inproc_sync *create_inproc_internal_sync( int manual, int signaled )
 {
     struct ntsync_event_args args = {.signaled = signaled, .manual = manual};
     struct inproc_sync *event;
 
     if (!(event = alloc_object( &inproc_sync_ops ))) return NULL;
-    event->type = INPROC_SYNC_EVENT;
+    event->type = INPROC_SYNC_INTERNAL;
     event->fd = ioctl( get_inproc_device_fd(), NTSYNC_IOC_CREATE_EVENT, &args );
+    assert( event->fd != -1 );
 
     return event;
 }
@@ -127,23 +128,20 @@ static void inproc_sync_destroy( struct object *obj )
     close( sync->fd );
 }
 
-static int get_inproc_sync_fd( struct object *obj, int *type )
+int get_inproc_sync_fd( struct object *obj, int *type )
 {
     struct object *sync;
     int fd = -1;
 
-    if (obj != (struct object *)current->queue) sync = get_obj_sync( obj );
-    else sync = thread_queue_inproc_sync( current );
-    if (!sync) return -1;
-
+    if (!(sync = get_obj_sync( obj ))) return -1;
     if (sync->ops == &inproc_sync_ops)
     {
         struct inproc_sync *inproc = (struct inproc_sync *)sync;
         *type = inproc->type;
         fd = inproc->fd;
     }
-
     release_object( sync );
+
     return fd;
 }
 
@@ -154,7 +152,7 @@ int get_inproc_device_fd(void)
     return -1;
 }
 
-struct inproc_sync *create_inproc_event_sync( int manual, int signaled )
+struct inproc_sync *create_inproc_internal_sync( int manual, int signaled )
 {
     return NULL;
 }
@@ -167,7 +165,7 @@ void reset_inproc_sync( struct inproc_sync *sync )
 {
 }
 
-static int get_inproc_sync_fd( struct object *obj, int *type )
+int get_inproc_sync_fd( struct object *obj, int *type )
 {
     return -1;
 }
@@ -187,4 +185,11 @@ DECL_HANDLER(get_inproc_sync_fd)
     else send_client_fd( current->process, fd, req->handle );
 
     release_object( obj );
+}
+
+DECL_HANDLER(select_inproc_queue)
+{
+    if (!thread_queue_select( current, req->select )) return;
+    if (req->select) check_thread_queue_idle( current );
+    if (req->signaled) thread_queue_satisfied( current );
 }
