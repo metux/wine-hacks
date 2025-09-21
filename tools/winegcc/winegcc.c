@@ -195,7 +195,7 @@ static int force_pointer_size;
 static const char *image_base;
 static const char *section_align;
 static const char *file_align;
-static const char *subsystem = "console";
+static const char *subsystem = "console:5.2";
 static const char *entry_point;
 static struct strarray file_args;
 static struct strarray linker_args;
@@ -501,6 +501,7 @@ static struct strarray get_link_args( const char *output_name )
     struct strarray link_args = get_translator();
     struct strarray flags = empty_strarray;
     unsigned int i;
+    char *tmp;
 
     strarray_addall( &link_args, linker_args );
 
@@ -603,6 +604,7 @@ static struct strarray get_link_args( const char *output_name )
         if (image_base) strarray_add( &flags, strmake("-Wl,-base:%s", image_base ));
         if (entry_point) strarray_add( &flags, strmake( "-Wl,-entry:%s", entry_point ));
 
+        if ((tmp = strchr( subsystem, ':' ))) subsystem = strmake( "%.*s,%s", (int)(tmp - subsystem), subsystem, tmp + 1 );
         strarray_add( &flags, "-Xlinker" );
         strarray_add( &flags, strmake("-subsystem:%s", subsystem) );
 
@@ -1791,12 +1793,12 @@ int main(int argc, char **argv)
                     }
 		    else if (strcmp("-mwindows", args.str[i]) == 0)
                     {
-                        subsystem = "windows";
+                        subsystem = "windows:5.2";
                         raw_compiler_arg = 0;
                     }
 		    else if (strcmp("-mconsole", args.str[i]) == 0)
                     {
-                        subsystem = "console";
+                        subsystem = "console:5.2";
                         raw_compiler_arg = 0;
                     }
 		    else if (strcmp("-municode", args.str[i]) == 0)
