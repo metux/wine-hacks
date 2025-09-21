@@ -170,7 +170,6 @@ enum file_type { file_na, file_other, file_obj, file_res, file_rc, file_arh, fil
 static bool is_pe;
 static bool is_static;
 static bool is_shared;
-static bool is_gui_app;
 static bool is_unicode_app;
 static bool is_win16_app;
 static bool is_arm64x;
@@ -196,7 +195,7 @@ static int force_pointer_size;
 static const char *image_base;
 static const char *section_align;
 static const char *file_align;
-static const char *subsystem;
+static const char *subsystem = "console";
 static const char *entry_point;
 static struct strarray file_args;
 static struct strarray linker_args;
@@ -547,10 +546,9 @@ static struct strarray get_link_args( const char *output_name )
             strarray_add( &flags, "-shared" );
             strarray_add( &flags, "-Wl,--kill-at" );
         }
-        else strarray_add( &flags, is_gui_app ? "-mwindows" : "-mconsole" );
 
         if (is_unicode_app) strarray_add( &flags, "-municode" );
-        if (subsystem) strarray_add( &flags, strmake("-Wl,--subsystem,%s", subsystem ));
+        strarray_add( &flags, strmake("-Wl,--subsystem,%s", subsystem ));
 
         strarray_add( &flags, "-Wl,--exclude-all-symbols" );
         strarray_add( &flags, "-Wl,--nxcompat" );
@@ -605,10 +603,8 @@ static struct strarray get_link_args( const char *output_name )
         if (image_base) strarray_add( &flags, strmake("-Wl,-base:%s", image_base ));
         if (entry_point) strarray_add( &flags, strmake( "-Wl,-entry:%s", entry_point ));
 
-        if (subsystem)
-            strarray_add( &flags, strmake("-Wl,-subsystem:%s", subsystem ));
-        else
-            strarray_add( &flags, strmake("-Wl,-subsystem:%s", is_gui_app ? "windows" : "console" ));
+        strarray_add( &flags, "-Xlinker" );
+        strarray_add( &flags, strmake("-subsystem:%s", subsystem) );
 
         for (i = 0; i < output_debug_files.count; i++)
         {
@@ -1147,8 +1143,9 @@ static void build_spec_obj( const char *spec_file, const char *output_file,
 
     if (!is_shared)
     {
+        if (!subsystem) subsystem = "console";
         strarray_add(&spec_args, "--subsystem");
-        strarray_add(&spec_args, is_gui_app ? "windows" : "console");
+        strarray_add(&spec_args, subsystem);
         if (large_address_aware) strarray_add( &spec_args, "--large-address-aware" );
     }
 
@@ -1334,7 +1331,7 @@ static void build(struct strarray input_files, const char *output)
 
     if (!wine_objdir && !nodefaultlibs)
     {
-        if (is_gui_app)
+        if (subsystem && !strncmp( subsystem, "windows", 7 ))
 	{
 	    add_library(lib_dirs, &files, "shell32");
 	    add_library(lib_dirs, &files, "comdlg32");
@@ -1794,12 +1791,12 @@ int main(int argc, char **argv)
                     }
 		    else if (strcmp("-mwindows", args.str[i]) == 0)
                     {
-			is_gui_app = true;
+                        subsystem = "windows";
                         raw_compiler_arg = 0;
                     }
 		    else if (strcmp("-mconsole", args.str[i]) == 0)
                     {
-			is_gui_app = false;
+                        subsystem = "console";
                         raw_compiler_arg = 0;
                     }
 		    else if (strcmp("-municode", args.str[i]) == 0)
