@@ -685,7 +685,8 @@ static void test_CreateWatcherAqsFilter_( IDeviceInformationStatics *statics, co
         if (FAILED( hr ) || FAILED( test_case->start_hr )) goto next;
 
         ret = WaitForSingleObject( enumerated_data.event, 500 );
-        todo_wine_if( todo_wait ) ok( !ret, "WaitForSingleObject returned %lu\n", ret );
+        /* Enumeration may take a long time on native if there are many device interfaces. */
+        todo_wine_if( todo_wait ) ok( !ret || broken( ret == WAIT_TIMEOUT ), "WaitForSingleObject returned %lu\n", ret );
 
         hr = IDeviceWatcher_Stop( watcher );
         ret = WaitForSingleObject( stopped_data.event, 500 );
