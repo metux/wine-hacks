@@ -31659,8 +31659,7 @@ static NTSTATUS wow64_gl_glGetError( void *args )
         GLenum ret;
     } *params = args;
     TEB *teb = get_teb64( params->teb );
-    const struct opengl_funcs *funcs = teb->glTable;
-    params->ret = funcs->p_glGetError();
+    params->ret = wow64_glGetError( teb );
     return STATUS_SUCCESS;
 }
 
@@ -37433,10 +37432,9 @@ static NTSTATUS wow64_ext_glBufferStorage( void *args )
         GLbitfield flags;
     } *params = args;
     TEB *teb = get_teb64( params->teb );
-    const struct opengl_funcs *funcs = teb->glTable;
     pthread_mutex_lock( &wgl_lock );
     invalidate_buffer_target( teb, params->target );
-    funcs->p_glBufferStorage( params->target, (GLsizeiptr)ULongToPtr(params->size), ULongToPtr(params->data), params->flags );
+    wow64_glBufferStorage( teb, params->target, (GLsizeiptr)ULongToPtr(params->size), ULongToPtr(params->data), params->flags );
     pthread_mutex_unlock( &wgl_lock );
     set_context_attribute( teb, -1 /* unsupported */, NULL, 0 );
     return STATUS_SUCCESS;
@@ -43614,8 +43612,7 @@ static NTSTATUS wow64_ext_glFlushMappedBufferRange( void *args )
         PTR32 length;
     } *params = args;
     TEB *teb = get_teb64( params->teb );
-    const struct opengl_funcs *funcs = teb->glTable;
-    funcs->p_glFlushMappedBufferRange( params->target, (GLintptr)ULongToPtr(params->offset), (GLsizeiptr)ULongToPtr(params->length) );
+    wow64_glFlushMappedBufferRange( teb, params->target, (GLintptr)ULongToPtr(params->offset), (GLsizeiptr)ULongToPtr(params->length) );
     set_context_attribute( teb, -1 /* unsupported */, NULL, 0 );
     return STATUS_SUCCESS;
 }
@@ -43646,8 +43643,7 @@ static NTSTATUS wow64_ext_glFlushMappedNamedBufferRange( void *args )
         PTR32 length;
     } *params = args;
     TEB *teb = get_teb64( params->teb );
-    const struct opengl_funcs *funcs = teb->glTable;
-    funcs->p_glFlushMappedNamedBufferRange( params->buffer, (GLintptr)ULongToPtr(params->offset), (GLsizeiptr)ULongToPtr(params->length) );
+    wow64_glFlushMappedNamedBufferRange( teb, params->buffer, (GLintptr)ULongToPtr(params->offset), (GLsizeiptr)ULongToPtr(params->length) );
     set_context_attribute( teb, -1 /* unsupported */, NULL, 0 );
     return STATUS_SUCCESS;
 }
@@ -43662,8 +43658,7 @@ static NTSTATUS wow64_ext_glFlushMappedNamedBufferRangeEXT( void *args )
         PTR32 length;
     } *params = args;
     TEB *teb = get_teb64( params->teb );
-    const struct opengl_funcs *funcs = teb->glTable;
-    funcs->p_glFlushMappedNamedBufferRangeEXT( params->buffer, (GLintptr)ULongToPtr(params->offset), (GLsizeiptr)ULongToPtr(params->length) );
+    wow64_glFlushMappedNamedBufferRangeEXT( teb, params->buffer, (GLintptr)ULongToPtr(params->offset), (GLsizeiptr)ULongToPtr(params->length) );
     set_context_attribute( teb, -1 /* unsupported */, NULL, 0 );
     return STATUS_SUCCESS;
 }
@@ -58209,10 +58204,9 @@ static NTSTATUS wow64_ext_glNamedBufferStorage( void *args )
         GLbitfield flags;
     } *params = args;
     TEB *teb = get_teb64( params->teb );
-    const struct opengl_funcs *funcs = teb->glTable;
     pthread_mutex_lock( &wgl_lock );
     invalidate_buffer_name( teb, params->buffer );
-    funcs->p_glNamedBufferStorage( params->buffer, (GLsizeiptr)ULongToPtr(params->size), ULongToPtr(params->data), params->flags );
+    wow64_glNamedBufferStorage( teb, params->buffer, (GLsizeiptr)ULongToPtr(params->size), ULongToPtr(params->data), params->flags );
     pthread_mutex_unlock( &wgl_lock );
     set_context_attribute( teb, -1 /* unsupported */, NULL, 0 );
     return STATUS_SUCCESS;
@@ -58229,10 +58223,9 @@ static NTSTATUS wow64_ext_glNamedBufferStorageEXT( void *args )
         GLbitfield flags;
     } *params = args;
     TEB *teb = get_teb64( params->teb );
-    const struct opengl_funcs *funcs = teb->glTable;
     pthread_mutex_lock( &wgl_lock );
     invalidate_buffer_name( teb, params->buffer );
-    funcs->p_glNamedBufferStorageEXT( params->buffer, (GLsizeiptr)ULongToPtr(params->size), ULongToPtr(params->data), params->flags );
+    wow64_glNamedBufferStorageEXT( teb, params->buffer, (GLsizeiptr)ULongToPtr(params->size), ULongToPtr(params->data), params->flags );
     pthread_mutex_unlock( &wgl_lock );
     set_context_attribute( teb, -1 /* unsupported */, NULL, 0 );
     return STATUS_SUCCESS;
