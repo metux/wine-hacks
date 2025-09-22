@@ -51,6 +51,11 @@ static BOOL is_wow64(void)
     return !!NtCurrentTeb()->WowTebOffset;
 }
 
+static BOOL hide_buffer_storage(void)
+{
+    return is_win64 && is_wow64();
+}
+
 static UINT64 call_gl_debug_message_callback;
 pthread_mutex_t wgl_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -505,7 +510,7 @@ static GLubyte *filter_extensions_list( const char *extensions, const char *disa
 
         /* We do not support GL_MAP_PERSISTENT_BIT, and hence
          * ARB_buffer_storage, on wow64. */
-        if (is_win64 && is_wow64() && (!strcmp( p, "GL_ARB_buffer_storage" ) || !strcmp( p, "GL_EXT_buffer_storage" )))
+        if (hide_buffer_storage() && (!strcmp( p, "GL_ARB_buffer_storage" ) || !strcmp( p, "GL_EXT_buffer_storage" )))
         {
             TRACE( "-- %s (disabled due to wow64)\n", p );
         }
@@ -587,7 +592,7 @@ static GLuint *filter_extensions_index( TEB *teb, const char *disabled, const ch
 
         /* We do not support GL_MAP_PERSISTENT_BIT, and hence
          * ARB_buffer_storage, on wow64. */
-        if (is_win64 && is_wow64() && (!strcmp( ext, "GL_ARB_buffer_storage" ) || !strcmp( ext, "GL_EXT_buffer_storage" )))
+        if (hide_buffer_storage() && (!strcmp( ext, "GL_ARB_buffer_storage" ) || !strcmp( ext, "GL_EXT_buffer_storage" )))
         {
             TRACE( "-- %s (disabled due to wow64)\n", ext );
             disabled_index[i++] = j;
@@ -888,7 +893,7 @@ static BOOL get_integer( TEB *teb, GLenum pname, GLint *data )
         return TRUE;
     }
 
-    if (is_win64 && is_wow64())
+    if (hide_buffer_storage())
     {
         /* 4.4 depends on ARB_buffer_storage, which we don't support on wow64. */
         if (pname == GL_MAJOR_VERSION)
@@ -939,7 +944,7 @@ const GLubyte *wrap_glGetString( TEB *teb, GLenum name )
             GLuint **disabled = &ctx->disabled_exts;
             if (*extensions || filter_extensions( teb, (const char *)ret, extensions, disabled )) return *extensions;
         }
-        else if (name == GL_VERSION && is_win64 && is_wow64())
+        else if (name == GL_VERSION && hide_buffer_storage())
         {
             struct context *ctx = get_current_context( teb, NULL, NULL );
             GLubyte **str = &ctx->wow64_version;
