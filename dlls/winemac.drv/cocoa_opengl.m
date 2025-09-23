@@ -94,6 +94,7 @@
         }
     }
 
+    /* The size must not have a zero dimension. */
     - (void) wine_updateBackingSize:(const CGSize*)size
     {
         GLint enabled;
@@ -234,7 +235,8 @@ void macdrv_make_context_current(macdrv_opengl_context c, macdrv_view v, CGRect 
     {
         if (view == [context view] || view == [context latentView])
         {
-            [context wine_updateBackingSize:&r.size];
+            if (!CGRectIsEmpty(r))
+                [context wine_updateBackingSize:&r.size];
             macdrv_update_opengl_context(c);
         }
         else
@@ -248,7 +250,8 @@ void macdrv_make_context_current(macdrv_opengl_context c, macdrv_view v, CGRect 
                 context.needsReattach = FALSE;
                 if (context.view)
                     [context setView:[[context class] dummyView]];
-                [context wine_updateBackingSize:&r.size];
+                if (!CGRectIsEmpty(r))
+                    [context wine_updateBackingSize:&r.size];
                 [context setView:view];
                 [context setLatentView:nil];
                 [context resetSurfaceIfBackingSizeChanged];
@@ -257,7 +260,8 @@ void macdrv_make_context_current(macdrv_opengl_context c, macdrv_view v, CGRect 
             {
                 if ([context view])
                     [context clearDrawableLeavingSurfaceOnScreen];
-                [context wine_updateBackingSize:&r.size];
+                if (!CGRectIsEmpty(r))
+                    [context wine_updateBackingSize:&r.size];
                 [context setLatentView:view];
             }
         }
