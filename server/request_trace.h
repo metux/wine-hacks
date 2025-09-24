@@ -1382,7 +1382,6 @@ static void dump_set_queue_mask_request( const struct set_queue_mask_request *re
 {
     fprintf( stderr, " wake_mask=%08x", req->wake_mask );
     fprintf( stderr, ", changed_mask=%08x", req->changed_mask );
-    fprintf( stderr, ", skip_wait=%d", req->skip_wait );
 }
 
 static void dump_set_queue_mask_reply( const struct set_queue_mask_reply *req )
@@ -3382,6 +3381,17 @@ static void dump_get_inproc_sync_fd_reply( const struct get_inproc_sync_fd_reply
     fprintf( stderr, ", access=%08x", req->access );
 }
 
+static void dump_d3dkmt_object_create_request( const struct d3dkmt_object_create_request *req )
+{
+    fprintf( stderr, " type=%08x", req->type );
+}
+
+static void dump_d3dkmt_object_create_reply( const struct d3dkmt_object_create_reply *req )
+{
+    fprintf( stderr, " global=%08x", req->global );
+    fprintf( stderr, ", handle=%04x", req->handle );
+}
+
 typedef void (*dump_func)( const void *req );
 
 static const dump_func req_dumpers[REQ_NB_REQUESTS] =
@@ -3683,6 +3693,7 @@ static const dump_func req_dumpers[REQ_NB_REQUESTS] =
     (dump_func)dump_get_next_thread_request,
     (dump_func)dump_set_keyboard_repeat_request,
     (dump_func)dump_get_inproc_sync_fd_request,
+    (dump_func)dump_d3dkmt_object_create_request,
 };
 
 static const dump_func reply_dumpers[REQ_NB_REQUESTS] =
@@ -3984,6 +3995,7 @@ static const dump_func reply_dumpers[REQ_NB_REQUESTS] =
     (dump_func)dump_get_next_thread_reply,
     (dump_func)dump_set_keyboard_repeat_reply,
     (dump_func)dump_get_inproc_sync_fd_reply,
+    (dump_func)dump_d3dkmt_object_create_reply,
 };
 
 static const char * const req_names[REQ_NB_REQUESTS] =
@@ -4285,6 +4297,7 @@ static const char * const req_names[REQ_NB_REQUESTS] =
     "get_next_thread",
     "set_keyboard_repeat",
     "get_inproc_sync_fd",
+    "d3dkmt_object_create",
 };
 
 static const struct

@@ -34,6 +34,7 @@
 
 typedef unsigned int obj_handle_t;
 typedef unsigned int user_handle_t;
+typedef unsigned int d3dkmt_handle_t;
 typedef unsigned int atom_t;
 typedef unsigned int process_id_t;
 typedef unsigned int thread_id_t;
@@ -968,6 +969,14 @@ union udp_endpoint
     } ipv6;
 };
 
+enum d3dkmt_type
+{
+    D3DKMT_ADAPTER      = 1,
+    D3DKMT_DEVICE       = 2,
+    D3DKMT_SOURCE       = 3,
+    D3DKMT_MUTEX        = 4,
+};
+
 /****************************************************************/
 /* shared session mapping structures */
 
@@ -978,6 +987,8 @@ struct obj_locator
 };
 
 #define MAX_ATOM_LEN     255
+#define WH_WINEVENT      (WH_MAXHOOK + 1)
+#define NB_HOOKS         (WH_WINEVENT - WH_MINHOOK + 1)
 
 struct shared_cursor
 {
@@ -998,11 +1009,12 @@ typedef volatile struct
 
 typedef volatile struct
 {
-    int                  hooks_count[WH_MAX - WH_MIN + 2]; /* active hooks count */
+    timeout_t            access_time;      /* last time the queue was accessed */
     unsigned int         wake_mask;        /* wakeup mask */
     unsigned int         wake_bits;        /* wakeup bits */
     unsigned int         changed_mask;     /* changed wakeup mask */
     unsigned int         changed_bits;     /* changed wakeup bits */
+    int                  hooks_count[NB_HOOKS];  /* active hooks count */
 } queue_shm_t;
 
 typedef volatile struct
@@ -2286,7 +2298,6 @@ struct process_info
 @REQ(set_queue_mask)
     unsigned int wake_mask;    /* wakeup bits mask */
     unsigned int changed_mask; /* changed bits mask */
-    int          skip_wait;    /* will we skip waiting if signaled? */
 @REPLY
     unsigned int wake_bits;    /* current wake bits */
     unsigned int changed_bits; /* current changed bits */
@@ -4126,8 +4137,8 @@ struct handle_info
 
 enum inproc_sync_type
 {
-    INPROC_SYNC_UNKNOWN = 0,
-    INPROC_SYNC_EVENT = 1,
+    INPROC_SYNC_UNKNOWN   = 0,
+    INPROC_SYNC_INTERNAL  = 1,
 };
 
 /* Get the in-process synchronization fd associated with the waitable handle */
@@ -4136,4 +4147,13 @@ enum inproc_sync_type
 @REPLY
     int           type;         /* inproc sync type */
     unsigned int access;        /* handle access rights */
+@END
+
+
+/* Create a global d3dkmt object */
+@REQ(d3dkmt_object_create)
+    unsigned int        type;           /* d3dkmt object type */
+@REPLY
+    d3dkmt_handle_t     global;         /* global d3dkmt handle */
+    obj_handle_t        handle;         /* internal handle of the server object */
 @END
