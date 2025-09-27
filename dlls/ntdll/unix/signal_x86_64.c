@@ -1723,6 +1723,10 @@ __ASM_GLOBAL_FUNC( call_user_mode_callback,
                    "leaq 0x10(%rbp),%rax\n\t"
                    "movq %rax,0xa8(%rsp)\n\t"  /* frame->syscall_cfa */
                    "movq 0x378(%r13),%r14\n\t" /* thread_data->syscall_frame */
+                   "movq 0x78(%r14),%rax\n\t"  /* prev_frame->cs */
+                   "movq %rax,0x78(%rsp)\n\t"  /* frame->cs */
+                   "movq 0x90(%r14),%rax\n\t"  /* prev_frame->ss */
+                   "movq %rax,0x90(%rsp)\n\t"  /* frame->ss */
                    "movq %r14,0xa0(%rsp)\n\t"  /* frame->prev_frame */
                    "movq %rsp,0x378(%r13)\n\t" /* thread_data->syscall_frame */
                    "testl $1,0x380(%r13)\n\t"  /* thread_data->syscall_trace */
