@@ -730,8 +730,8 @@ static void test_Extract(void)
     ok(getFileSize("dest\\a.txt") == 6, "Expected dest\\a.txt to be 6 bytes\n");
     ok(DeleteFileA("dest\\a.txt"), "Expected dest\\a.txt to exist\n");
     ok(DeleteFileA("dest\\b.txt"), "Expected dest\\b.txt to exist\n");
-    ok(DeleteFileA("dest\\c.txt"), "Expected dest\\a.txt to exist\n");
-    ok(DeleteFileA("dest\\d.txt"), "Expected dest\\b.txt to exist\n");
+    ok(DeleteFileA("dest\\c.txt"), "Expected dest\\c.txt to exist\n");
+    ok(DeleteFileA("dest\\d.txt"), "Expected dest\\d.txt to exist\n");
     ok(!DeleteFileA("dest\\testdir\\e.txt"), "Expected dest\\testdir\\e.txt to be read-only\n");
     ok(!DeleteFileA("dest\\testdir\\f.txt"), "Expected dest\\testdir\\f.txt to not exist\n");
     ok(!check_list(&node, "testdir\\f.txt", FALSE), "list entry should not exist\n");
