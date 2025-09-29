@@ -244,7 +244,7 @@
 @ stub SHGetKnownFolderIDList
 @ stub SHGetKnownFolderIDList_Internal
 @ stub SHGetKnownFolderItem
-@ stub SHGetKnownFolderPath
+@ stdcall -import SHGetKnownFolderPath(ptr long ptr ptr)
 @ stub SHGetNameFromIDList
 @ stub SHGetPathFromIDListEx
 @ stub SHGetPathFromIDListW
