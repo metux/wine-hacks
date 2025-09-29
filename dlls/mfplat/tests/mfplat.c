@@ -1383,7 +1383,8 @@ static void test_source_resolver(void)
     ok(mediasource != NULL, "got %p\n", mediasource);
     ok(obj_type == MF_OBJECT_MEDIASOURCE, "got %d\n", obj_type);
 
-    IMFMediaSource_Shutdown(mediasource);
+    /* Release without calling Shutdown(). In this case, Shutdown() should be called internally when
+     * releasing the last ref, which will release any references held by contained media streams. */
     refcount = IMFMediaSource_Release(mediasource);
     ok(!refcount, "Unexpected refcount %ld\n", refcount);
     IMFByteStream_Release(stream);
@@ -1682,7 +1683,6 @@ static void test_source_resolver(void)
 
     get_event((IMFMediaEventGenerator *)mediasource, MEEndOfPresentation, NULL);
 
-    IMFMediaStream_Release(video_stream);
     IMFMediaTypeHandler_Release(handler);
     IMFPresentationDescriptor_Release(descriptor);
 
@@ -1698,7 +1698,11 @@ static void test_source_resolver(void)
 
     IMFRateSupport_Release(rate_support);
     IMFGetService_Release(get_service);
-    IMFMediaSource_Release(mediasource);
+
+    /* Holding a reference to the video stream does not prevent release of the media source. */
+    refcount = IMFMediaSource_Release(mediasource);
+    ok(!refcount, "Unexpected refcount %ld\n", refcount);
+
     IMFByteStream_Release(stream);
 
     /* Create directly through scheme handler. */
@@ -1730,6 +1734,12 @@ static void test_source_resolver(void)
         CoUninitialize();
 
     IMFSourceResolver_Release(resolver);
+
+    hr = IMFMediaStream_GetMediaSource(video_stream, &mediasource);
+    ok(hr == MF_E_SHUTDOWN, "Unexpected hr %#lx.\n", hr);
+
+    refcount = IMFMediaStream_Release(video_stream);
+    ok(!refcount, "Unexpected refcount %ld\n", refcount);
 
     hr = MFShutdown();
     ok(hr == S_OK, "Failed to shut down, hr %#lx.\n", hr);
