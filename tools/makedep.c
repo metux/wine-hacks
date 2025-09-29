@@ -102,6 +102,7 @@ struct incl_file
 #define FLAG_C_UNIX         0x080000  /* file is part of a Unix library */
 #define FLAG_SFD_FONTS      0x100000  /* sfd file generated bitmap fonts */
 #define FLAG_ARM64EC_X64    0x200000  /* use x86_64 object on ARM64EC */
+#define FLAG_IDL_WINMD      0x400000  /* generates a metadata (.winmd) file */
 
 static const struct
 {
@@ -1014,6 +1015,7 @@ static void parse_pragma_directive( struct file *source, char *str )
             else if (!strcmp( flag, "typelib" )) source->flags |= FLAG_IDL_TYPELIB;
             else if (!strcmp( flag, "register" )) source->flags |= FLAG_IDL_REGISTER;
             else if (!strcmp( flag, "regtypelib" )) source->flags |= FLAG_IDL_REGTYPELIB;
+            else if (!strcmp( flag, "winmd" )) source->flags |= FLAG_IDL_WINMD;
         }
         else if (strendswith( source->name, ".rc" ))
         {
@@ -2992,6 +2994,33 @@ static void output_source_idl( struct makefile *make, struct incl_file *source, 
             }
             output( "\n" );
         }
+    }
+
+    if (source->file->flags & FLAG_IDL_WINMD)
+    {
+        struct strarray targets = empty_strarray;
+        char *name = strmake( "%s.winmd", obj );
+
+        strarray_add( &targets, name );
+        strarray_add( &make->clean_files, name );
+        strarray_add( &make->all_targets[0], name );
+
+        output_filenames_obj_dir( make, targets );
+        output( ":" );
+        output_filename( widl );
+        output_filename( source->filename );
+        output_filenames( source->dependencies );
+        output( "\n" );
+
+        output_filenames_obj_dir( make, targets );
+        output( ":\n" );
+        output( "\t%s%s --winmd -o $@", cmd_prefix( "WIDL" ), widl );
+        output_filename( "--nostdinc" );
+        output_filenames( defines );
+        output_filenames( get_expanded_make_var_array( make, "EXTRAIDLFLAGS" ));
+        output_filenames( get_expanded_file_local_var( make, obj, "EXTRAIDLFLAGS" ));
+        output_filename( source->filename );
+        output( "\n" );
     }
 }
 
