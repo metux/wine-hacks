@@ -3983,9 +3983,9 @@ DWORD WINAPI GetUIVersion(void)
 }
 
 /***********************************************************************
- *              ShellMessageBoxW [SHLWAPI.388]
+ *              ShellMessageBoxWrapW [SHLWAPI.388]
  */
-INT WINAPIV ShellMessageBoxW(HINSTANCE hInstance, HWND hWnd, LPCWSTR lpText,
+INT WINAPIV ShellMessageBoxWrapW(HINSTANCE hInstance, HWND hWnd, LPCWSTR lpText,
                                  LPCWSTR lpCaption, UINT uType, ...)
 {
     WCHAR *szText = NULL, szTitle[100];
