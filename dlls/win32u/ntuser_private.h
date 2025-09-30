@@ -103,6 +103,7 @@ struct user_thread_info
     struct ntuser_thread_info     client_info;            /* Data shared with client */
     HANDLE                        server_queue;           /* Handle to server-side queue */
     LONGLONG                      last_driver_time;       /* Get/PeekMessage driver event time */
+    struct list                   window_surfaces;        /* window surfaces for this thread */
     WORD                          hook_call_depth;        /* Number of recursively called hook procs */
     WORD                          hook_unicode;           /* Is current hook unicode? */
     HHOOK                         hook;                   /* Current hook */

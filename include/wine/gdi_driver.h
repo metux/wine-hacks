@@ -296,7 +296,7 @@ struct window_surface_funcs
 struct window_surface
 {
     const struct window_surface_funcs *funcs; /* driver-specific implementations  */
-    struct list                        entry; /* entry in global list managed by user32 */
+    struct list                        entry; /* entry in win32u thread window surfaces */
     LONG                               ref;   /* reference count */
     HWND                               hwnd;  /* window the surface was created for */
     RECT                               rect;  /* constant, no locking needed */
@@ -304,7 +304,6 @@ struct window_surface
     pthread_mutex_t                    mutex;        /* mutex needed for any field below */
     RECT                               bounds;       /* dirty area rectangle */
     HRGN                               clip_region;  /* visible region of the surface, fully visible if 0 */
-    DWORD                              draw_start_ticks; /* start ticks of fresh draw */
     COLORREF                           color_key;    /* layered window surface color key, invalid if CLR_INVALID */
     UINT                               alpha_bits;   /* layered window global alpha bits, invalid if -1 */
     UINT                               alpha_mask;   /* layered window per-pixel alpha mask, invalid if 0 */
@@ -318,13 +317,7 @@ W32KAPI struct window_surface *window_surface_create( UINT size, const struct wi
                                                       const RECT *rect, BITMAPINFO *info, HBITMAP bitmap );
 W32KAPI void window_surface_add_ref( struct window_surface *surface );
 W32KAPI void window_surface_release( struct window_surface *surface );
-W32KAPI void window_surface_lock( struct window_surface *surface );
-W32KAPI void window_surface_unlock( struct window_surface *surface );
-W32KAPI void window_surface_set_layered( struct window_surface *surface, COLORREF color_key, UINT alpha_bits, UINT alpha_mask );
-W32KAPI void window_surface_flush( struct window_surface *surface );
-W32KAPI void window_surface_set_clip( struct window_surface *surface, HRGN clip_region );
 W32KAPI void window_surface_set_shape( struct window_surface *surface, HRGN shape_region );
-W32KAPI void window_surface_set_layered( struct window_surface *surface, COLORREF color_key, UINT alpha_bits, UINT alpha_mask );
 
 /* display manager interface, used to initialize display device registry data */
 

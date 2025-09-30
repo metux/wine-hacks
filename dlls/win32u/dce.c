@@ -50,8 +50,12 @@ static struct list dce_list = LIST_INIT(dce_list);
 
 #define DCE_CACHE_SIZE 64
 
-static struct list window_surfaces = LIST_INIT( window_surfaces );
-static pthread_mutex_t surfaces_lock = PTHREAD_MUTEX_INITIALIZER;
+struct list *thread_window_surfaces(void)
+{
+    struct list *window_surfaces = &get_user_thread_info()->window_surfaces;
+    if (!window_surfaces->next) list_init( window_surfaces );
+    return window_surfaces;
+}
 
 /*******************************************************************
  * Dummy window surface for windows that shouldn't get painted.
@@ -524,8 +528,8 @@ static BOOL update_surface_shape( struct window_surface *surface, const RECT *re
         return clear_surface_shape( surface );
 }
 
-W32KAPI struct window_surface *window_surface_create( UINT size, const struct window_surface_funcs *funcs, HWND hwnd,
-                                                      const RECT *rect, BITMAPINFO *info, HBITMAP bitmap )
+struct window_surface *window_surface_create( UINT size, const struct window_surface_funcs *funcs, HWND hwnd,
+                                              const RECT *rect, BITMAPINFO *info, HBITMAP bitmap )
 {
     struct window_surface *surface;
 
@@ -547,21 +551,23 @@ W32KAPI struct window_surface *window_surface_create( UINT size, const struct wi
     }
 
     pthread_mutex_init( &surface->mutex, NULL );
+    list_add_tail( thread_window_surfaces(), &surface->entry );
 
     TRACE( "created surface %p for hwnd %p rect %s\n", surface, hwnd, wine_dbgstr_rect( &surface->rect ) );
     return surface;
 }
 
-W32KAPI void window_surface_add_ref( struct window_surface *surface )
+void window_surface_add_ref( struct window_surface *surface )
 {
     InterlockedIncrement( &surface->ref );
 }
 
-W32KAPI void window_surface_release( struct window_surface *surface )
+void window_surface_release( struct window_surface *surface )
 {
     ULONG ret = InterlockedDecrement( &surface->ref );
     if (!ret)
     {
+        list_remove( &surface->entry );
         if (surface != &dummy_surface) pthread_mutex_destroy( &surface->mutex );
         if (surface->clip_region) NtGdiDeleteObjectApp( surface->clip_region );
         if (surface->color_bitmap) NtGdiDeleteObjectApp( surface->color_bitmap );
@@ -571,19 +577,19 @@ W32KAPI void window_surface_release( struct window_surface *surface )
     }
 }
 
-W32KAPI void window_surface_lock( struct window_surface *surface )
+void window_surface_lock( struct window_surface *surface )
 {
     if (surface == &dummy_surface) return;
     pthread_mutex_lock( &surface->mutex );
 }
 
-W32KAPI void window_surface_unlock( struct window_surface *surface )
+void window_surface_unlock( struct window_surface *surface )
 {
     if (surface == &dummy_surface) return;
     pthread_mutex_unlock( &surface->mutex );
 }
 
-void *window_surface_get_color( struct window_surface *surface, BITMAPINFO *info )
+static void *window_surface_get_color( struct window_surface *surface, BITMAPINFO *info )
 {
     struct bitblt_coords coords = {0};
     struct gdi_image_bits gdi_bits;
@@ -606,7 +612,7 @@ void *window_surface_get_color( struct window_surface *surface, BITMAPINFO *info
     return gdi_bits.ptr;
 }
 
-W32KAPI void window_surface_flush( struct window_surface *surface )
+void window_surface_flush( struct window_surface *surface )
 {
     char color_buf[FIELD_OFFSET( BITMAPINFO, bmiColors[256] )];
     char shape_buf[FIELD_OFFSET( BITMAPINFO, bmiColors[256] )];
@@ -641,7 +647,7 @@ W32KAPI void window_surface_flush( struct window_surface *surface )
     window_surface_unlock( surface );
 }
 
-W32KAPI void window_surface_set_layered( struct window_surface *surface, COLORREF color_key, UINT alpha_bits, UINT alpha_mask )
+void window_surface_set_layered( struct window_surface *surface, COLORREF color_key, UINT alpha_bits, UINT alpha_mask )
 {
     char color_buf[FIELD_OFFSET( BITMAPINFO, bmiColors[256] )];
     BITMAPINFO *color_info = (BITMAPINFO *)color_buf;
@@ -670,7 +676,7 @@ W32KAPI void window_surface_set_layered( struct window_surface *surface, COLORRE
     window_surface_unlock( surface );
 }
 
-W32KAPI void window_surface_set_clip( struct window_surface *surface, HRGN clip_region )
+void window_surface_set_clip( struct window_surface *surface, HRGN clip_region )
 {
     window_surface_lock( surface );
 
@@ -703,7 +709,7 @@ W32KAPI void window_surface_set_clip( struct window_surface *surface, HRGN clip_
     window_surface_unlock( surface );
 }
 
-W32KAPI void window_surface_set_shape( struct window_surface *surface, HRGN shape_region )
+void window_surface_set_shape( struct window_surface *surface, HRGN shape_region )
 {
     window_surface_lock( surface );
 
@@ -726,22 +732,6 @@ W32KAPI void window_surface_set_shape( struct window_surface *surface, HRGN shap
 }
 
 /*******************************************************************
- *           register_window_surface
- *
- * Register a window surface in the global list, possibly replacing another one.
- */
-void register_window_surface( struct window_surface *old, struct window_surface *new )
-{
-    if (old == &dummy_surface) old = NULL;
-    if (new == &dummy_surface) new = NULL;
-    if (old == new) return;
-    pthread_mutex_lock( &surfaces_lock );
-    if (old) list_remove( &old->entry );
-    if (new) list_add_tail( &window_surfaces, &new->entry );
-    pthread_mutex_unlock( &surfaces_lock );
-}
-
-/*******************************************************************
  *           flush_window_surfaces
  *
  * Flush pending output from all window surfaces.
@@ -749,19 +739,16 @@ void register_window_surface( struct window_surface *old, struct window_surface 
 void flush_window_surfaces( BOOL idle )
 {
     static DWORD last_idle;
-    DWORD now;
+    DWORD now = NtGetTickCount();
     struct window_surface *surface;
+    struct list *window_surfaces = thread_window_surfaces();
 
-    pthread_mutex_lock( &surfaces_lock );
-    now = NtGetTickCount();
     if (idle) last_idle = now;
     /* if not idle, we only flush if there's evidence that the app never goes idle */
-    else if ((int)(now - last_idle) < 50) goto done;
+    else if ((int)(now - last_idle) < 50) return;
 
-    LIST_FOR_EACH_ENTRY( surface, &window_surfaces, struct window_surface, entry )
+    LIST_FOR_EACH_ENTRY( surface, window_surfaces, struct window_surface, entry )
         window_surface_flush( surface );
-done:
-    pthread_mutex_unlock( &surfaces_lock );
 }
 
 /***********************************************************************

@@ -796,9 +796,7 @@ static void check_for_events( UINT flags )
     };
     MSG msg;
 
-    if (!user_driver->pProcessEvents( flags ))
-        flush_window_surfaces( TRUE );
-
+    user_driver->pProcessEvents( flags );
     peek_message( &msg, &filter );
 }
 

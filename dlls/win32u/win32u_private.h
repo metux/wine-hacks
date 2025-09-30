@@ -44,6 +44,7 @@ extern ULONG_PTR set_icon_param( HICON handle, const struct free_icon_params *pa
 
 /* dce.c */
 extern struct window_surface dummy_surface;
+extern struct list *thread_window_surfaces(void);
 extern void create_window_surface( HWND hwnd, BOOL create_layered, const RECT *surface_rect, UINT monitor_dpi,
                                    struct window_surface **window_surface );
 extern struct window_surface *get_driver_window_surface( struct window_surface *surface, UINT monitor_dpi );
@@ -52,9 +53,12 @@ extern void flush_window_surfaces( BOOL idle );
 extern void move_window_bits( HWND hwnd, const struct window_rects *rects, const RECT *valid_rects );
 extern void move_window_bits_surface( HWND hwnd, const RECT *window_rect, struct window_surface *old_surface,
                                       const RECT *old_visible_rect, const RECT *valid_rects );
-extern void register_window_surface( struct window_surface *old,
-                                     struct window_surface *new );
-extern void *window_surface_get_color( struct window_surface *surface, BITMAPINFO *info );
+
+extern void window_surface_lock( struct window_surface *surface );
+extern void window_surface_unlock( struct window_surface *surface );
+extern void window_surface_flush( struct window_surface *surface );
+extern void window_surface_set_clip( struct window_surface *surface, HRGN clip_region );
+extern void window_surface_set_layered( struct window_surface *surface, COLORREF color_key, UINT alpha_bits, UINT alpha_mask );
 
 /* defwnd.c */
 extern BOOL adjust_window_rect( RECT *rect, DWORD style, BOOL menu, DWORD ex_style, UINT dpi );
@@ -287,6 +291,23 @@ extern HWND get_shell_window(void);
 extern HWND get_progman_window(void);
 extern HWND get_taskman_window(void);
 extern BOOL is_client_surface_window( struct client_surface *surface, HWND hwnd );
+
+struct update_layered_window_params
+{
+    HDC                  hdc_dst;
+    const POINT         *pts_dst;
+    const SIZE          *size;
+    HDC                  hdc_src;
+    const POINT         *pts_src;
+    COLORREF             key;
+    const BLENDFUNCTION *blend;
+    DWORD                flags;
+    const RECT          *dirty;
+};
+
+extern BOOL update_layered_window( HWND hwnd, HDC hdc_dst, const POINT *pts_dst, const SIZE *size,
+                                   HDC hdc_src, const POINT *pts_src, COLORREF key,
+                                   const BLENDFUNCTION *blend, DWORD flags, const RECT *dirty );
 
 /* to release pointers retrieved by win_get_ptr */
 static inline void release_win_ptr( struct tagWND *ptr )
