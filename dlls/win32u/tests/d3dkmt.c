@@ -73,11 +73,13 @@ static void run_in_process_( const char *file, int line, const char *args )
     char cmdline[MAX_PATH * 2], test[MAX_PATH], *tmp, **argv;
     STARTUPINFOA startup = {.cb = sizeof(STARTUPINFOA)};
     PROCESS_INFORMATION info = {0};
-    const char *name;
+    char name_buf[MAX_PATH];
+    char *name = name_buf;
     DWORD ret;
     int argc;
 
-    name = file;
+    strcpy( name, file );
+
     if ((tmp = strrchr( name, '\\' ))) name = tmp;
     if ((tmp = strrchr( name, '/' ))) name = tmp;
     strcpy( test, name );
