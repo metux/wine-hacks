@@ -17,6 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#include <assert.h>
+
 #include "wine/debug.h"
 #include "wine/rbtree.h"
 #include "winreg.h"
@@ -414,6 +416,9 @@ static HRESULT devprop_filter_eval_compare( const DEV_OBJECT *obj, const DEVPROP
                 cmp = op & DEVPROP_OPERATOR_MODIFIER_IGNORE_CASE ? wcsicmp( prop->Buffer, cmp_prop->Buffer )
                                                                  : wcscmp( prop->Buffer, cmp_prop->Buffer );
                 break;
+            case DEVPROP_TYPE_GUID:
+                /* Any other comparison operator other than DEVPROP_OPERATOR_EQUALS with GUIDs evaluates to false. */
+                if (!(op & DEVPROP_OPERATOR_EQUALS)) break;
             default:
                 cmp = memcmp( prop->Buffer, cmp_prop->Buffer, prop->BufferSize );
                 break;
@@ -440,72 +445,152 @@ static HRESULT devprop_filter_eval_compare( const DEV_OBJECT *obj, const DEVPROP
     return ret ? S_OK : S_FALSE;
 }
 
+struct devprop_op_pair_idx
+{
+    ULONG idx_open;
+    ULONG idx_close;
+};
+
+static int devprop_op_pair_idx_cmp( const void *idx, const void *pair )
+{
+    return memcmp( idx, pair, sizeof( ULONG ) );
+}
+
+/* Recursively evaluate a sub-expression starting at idx, returning S_OK on a match or S_FALSE.
+ * expr_end_idx gets set to the index where this sub-expression ends.
+ */
+static HRESULT devprop_filter_eval_subexpr( const DEV_OBJECT *obj, const DEVPROP_FILTER_EXPRESSION *filters, ULONG idx,
+                                            const ULONG pairs_len, const struct devprop_op_pair_idx *pairs,
+                                            ULONG *expr_end_idx )
+{
+    const DEVPROP_OPERATOR op_outer_logical = filters[idx].Operator;
+    const struct devprop_op_pair_idx *pair;
+    HRESULT hr = S_OK;
+
+    TRACE( "(%s, %p, %lu, %lu, %p, %p)\n", debugstr_DEV_OBJECT( obj ), filters, idx, pairs_len, pairs, expr_end_idx );
+
+    assert( op_outer_logical == DEVPROP_OPERATOR_AND_OPEN || op_outer_logical == DEVPROP_OPERATOR_OR_OPEN ||
+            op_outer_logical == DEVPROP_OPERATOR_NOT_OPEN );
+
+    pair = bsearch( &idx, pairs, pairs_len, sizeof( *pairs ), devprop_op_pair_idx_cmp );
+    assert( !!pair );
+
+    for (idx = idx + 1; idx != pair->idx_close; idx++)
+    {
+        const DEVPROP_FILTER_EXPRESSION *filter = &filters[idx];
+        DEVPROP_OPERATOR op = filter->Operator, logical;
+
+        logical = op & DEVPROP_OPERATOR_MASK_LOGICAL;
+        if (logical)
+        {
+            DEVPROP_OPERATOR op_close = logical + (DEVPROP_OPERATOR_AND_CLOSE - DEVPROP_OPERATOR_AND_OPEN);
+
+            if (FAILED(hr = devprop_filter_eval_subexpr( obj, filters, idx, pairs_len, pairs, &idx ))) break;
+            assert( filters[idx].Operator == op_close );
+        }
+        else if (op == DEVPROP_OPERATOR_NONE) hr = S_FALSE;
+        else if (op & DEVPROP_OPERATOR_MASK_EVAL) hr = devprop_filter_eval_compare( obj, filter );
+        else
+        {
+            FIXME( "Unsupported operator: %s\n", debugstr_DEVPROP_OPERATOR( op ) );
+            continue;
+        }
+        if (FAILED( hr )) break;
+
+        /* See if we can short-circuit. */
+        switch (op_outer_logical)
+        {
+            /* {NOT_OPEN, ..., NOT_CLOSE} is the same as {NOT_OPEN, AND_OPEN, ..., AND_CLOSE, NOT_CLOSE}, so we can
+             * short circuit here as well. */
+            case DEVPROP_OPERATOR_NOT_OPEN:
+            case DEVPROP_OPERATOR_AND_OPEN:
+                if (hr == S_FALSE) goto done;
+                break;
+            case DEVPROP_OPERATOR_OR_OPEN:
+                if (hr == S_OK) goto done;
+                break;
+            DEFAULT_UNREACHABLE;
+        }
+    }
+
+done:
+    if (SUCCEEDED( hr ))
+    {
+        *expr_end_idx = pair->idx_close;
+        if (op_outer_logical == DEVPROP_OPERATOR_NOT_OPEN)
+            hr = (hr == S_OK) ? S_FALSE : S_OK;
+    }
+    return hr;
+}
+
 /* Return S_OK if the specified filter expressions match the object, S_FALSE if it doesn't. */
 static HRESULT devprop_filter_matches_object( const DEV_OBJECT *obj, ULONG filters_len,
-                                              const DEVPROP_FILTER_EXPRESSION *filters )
+                                              const DEVPROP_FILTER_EXPRESSION *filters, ULONG pairs_len,
+                                              struct devprop_op_pair_idx *pairs )
 {
     HRESULT hr = S_OK;
     ULONG i;
 
-    TRACE( "(%s, %lu, %p)\n", debugstr_DEV_OBJECT( obj ), filters_len, filters );
+    TRACE( "(%s, %lu, %p, %lu, %p)\n", debugstr_DEV_OBJECT( obj ), filters_len, filters, pairs_len, pairs );
 
-    if (!filters_len)
-        return S_OK;
+    if (!filters_len) return S_OK;
 
-    /* By default, the evaluation is performed by AND-ing all individual filter expressions. */
     for (i = 0; i < filters_len; i++)
     {
         const DEVPROP_FILTER_EXPRESSION *filter = &filters[i];
-        DEVPROP_OPERATOR op = filter->Operator;
+        DEVPROP_OPERATOR op = filter->Operator, logical;
 
-        if (op == DEVPROP_OPERATOR_NONE)
+        logical = op & DEVPROP_OPERATOR_MASK_LOGICAL;
+        if (logical)
         {
-            hr = S_FALSE;
-            break;
+            DEVPROP_OPERATOR op_close = logical + (DEVPROP_OPERATOR_AND_CLOSE - DEVPROP_OPERATOR_AND_OPEN);
+
+            if (FAILED(hr = devprop_filter_eval_subexpr( obj, filters, i, pairs_len, pairs, &i ))) break;
+            assert( i < filters_len && filters[i].Operator == op_close );
         }
-        if (op & (DEVPROP_OPERATOR_MASK_LIST | DEVPROP_OPERATOR_MASK_ARRAY))
+        else if (op == DEVPROP_OPERATOR_NONE) hr = S_FALSE;
+        else if (op & DEVPROP_OPERATOR_MASK_EVAL) hr = devprop_filter_eval_compare( obj, filter );
+        else
         {
-            FIXME( "Unsupported list/array operator: %s\n", debugstr_DEVPROP_OPERATOR( op ) );
+            FIXME( "Unsupported operator: %s\n", debugstr_DEVPROP_OPERATOR( op ) );
             continue;
         }
-        if (op & DEVPROP_OPERATOR_MASK_LOGICAL)
-        {
-            FIXME( "Unsupported logical operator: %s\n", debugstr_DEVPROP_OPERATOR( op ) );
-            continue;
-        }
-        if (op & DEVPROP_OPERATOR_MASK_EVAL)
-        {
-            hr = devprop_filter_eval_compare( obj, filter );
-            if (FAILED( hr ) || hr == S_FALSE)
-                break;
-        }
+
+        /* By default, the evaluation is performed by AND-ing all individual filter expressions. */
+        if (FAILED( hr ) || hr == S_FALSE) break;
     }
 
     return hr;
 }
 
-static HRESULT stack_push( DEVPROP_OPERATOR **stack, ULONG *len, DEVPROP_OPERATOR op )
+struct devprop_op_idx
 {
-    DEVPROP_OPERATOR *tmp;
+    DEVPROP_OPERATOR op;
+    ULONG idx;
+};
 
-    if (!(tmp = realloc( *stack, (*len + 1) * sizeof( op ) )))
+static HRESULT stack_push( struct devprop_op_idx **stack, ULONG *len, DEVPROP_OPERATOR op, ULONG idx )
+{
+    struct devprop_op_idx *tmp;
+
+    if (!(tmp = realloc( *stack, (*len + 1) * sizeof( **stack ) )))
         return E_OUTOFMEMORY;
     *stack = tmp;
-    tmp[*len] = op;
+    tmp[*len].op = op;
+    tmp[*len].idx = idx;
     *len += 1;
     return S_OK;
 }
 
-static DEVPROP_OPERATOR stack_pop( DEVPROP_OPERATOR **stack, ULONG *len )
+static BOOL stack_pop( struct devprop_op_idx **stack, ULONG *len, struct devprop_op_idx *val )
 {
-    DEVPROP_OPERATOR op = DEVPROP_OPERATOR_NONE;
-
     if (*len)
     {
-        op = (*stack)[*len - 1];
+        *val = (*stack)[*len-1];
         *len -= 1;
+        return TRUE;
     }
-    return op;
+    return FALSE;
 }
 
 static BOOL devprop_type_validate( DEVPROPTYPE type, ULONG buf_size )
@@ -561,12 +646,16 @@ static BOOL devprop_type_validate( DEVPROPTYPE type, ULONG buf_size )
     return mod == DEVPROP_TYPEMOD_ARRAY ? buf_size >= size : buf_size == size;
 }
 
-static HRESULT devprop_filters_validate( ULONG filters_len, const DEVPROP_FILTER_EXPRESSION *filters )
+static HRESULT devprop_filters_validate( ULONG filters_len, const DEVPROP_FILTER_EXPRESSION *filters,
+                                         struct devprop_op_pair_idx **ret_pairs, ULONG *pairs_len )
 {
-    DEVPROP_OPERATOR *stack = NULL;
-    ULONG i, logical_open = 0, stack_top = 0;
+    struct devprop_op_pair_idx *pairs = NULL;
+    struct devprop_op_idx *stack = NULL;
+    ULONG i, stack_top = 0;
     HRESULT hr = S_OK;
 
+    *ret_pairs = NULL;
+    *pairs_len = 0;
     for (i = 0; i < filters_len; i++)
     {
         const DEVPROP_FILTER_EXPRESSION *filter = &filters[i];
@@ -583,7 +672,6 @@ static HRESULT devprop_filters_validate( ULONG filters_len, const DEVPROP_FILTER
             || (array && (op != DEVPROP_OPERATOR_ARRAY_CONTAINS))
             || !!prop->Buffer != !!prop->BufferSize)
         {
-            FIXME( "Unknown operator: %#x\n", op );
             hr = E_INVALIDARG;
             break;
         }
@@ -626,17 +714,32 @@ static HRESULT devprop_filters_validate( ULONG filters_len, const DEVPROP_FILTER
         case DEVPROP_OPERATOR_AND_OPEN:
         case DEVPROP_OPERATOR_OR_OPEN:
         case DEVPROP_OPERATOR_NOT_OPEN:
-            hr = stack_push( &stack, &stack_top, logical );
-            logical_open = i;
+            hr = stack_push( &stack, &stack_top, logical, i );
             break;
         case DEVPROP_OPERATOR_AND_CLOSE:
         case DEVPROP_OPERATOR_OR_CLOSE:
         case DEVPROP_OPERATOR_NOT_CLOSE:
         {
-            DEVPROP_OPERATOR top = stack_pop( &stack, &stack_top );
+            struct devprop_op_idx val = { 0 };
+            struct devprop_op_pair_idx *tmp;
+            BOOL valid = stack_pop( &stack, &stack_top, &val );
+
             /* The operator should be correct paired, and shouldn't be empty. */
-            if (logical - top != (DEVPROP_OPERATOR_AND_CLOSE - DEVPROP_OPERATOR_AND_OPEN) || logical_open == i - 1)
+            if (!valid || logical - val.op != (DEVPROP_OPERATOR_AND_CLOSE - DEVPROP_OPERATOR_AND_OPEN) || val.idx == i - 1)
+            {
                 hr = E_INVALIDARG;
+                break;
+            }
+            assert( val.idx < i );
+            if (!(tmp = realloc( pairs, sizeof( *tmp ) * (*pairs_len + 1) )))
+            {
+                hr = E_OUTOFMEMORY;
+                break;
+            }
+            pairs = tmp;
+            pairs[*pairs_len].idx_open = val.idx;
+            pairs[*pairs_len].idx_close = i;
+            *pairs_len += 1;
             break;
         }
         default:
@@ -649,6 +752,13 @@ static HRESULT devprop_filters_validate( ULONG filters_len, const DEVPROP_FILTER
 
     if (stack_top)
         hr = E_INVALIDARG;
+    if (FAILED( hr ))
+        free( pairs );
+    else
+    {
+        qsort( pairs, *pairs_len, sizeof( *pairs ), devprop_op_pair_idx_cmp );
+        *ret_pairs = pairs;
+    }
     free( stack );
     return hr;
 }
@@ -779,8 +889,8 @@ static void dev_object_remove_unwanted_props( DEV_OBJECT *obj, ULONG keys_len, c
 }
 
 static HRESULT enum_dev_objects( DEV_OBJECT_TYPE type, ULONG props_len, const DEVPROPCOMPKEY *props, BOOL all_props,
-                                 ULONG filters_len, const DEVPROP_FILTER_EXPRESSION *filters,
-                                 enum_device_object_cb callback, void *data )
+                                 ULONG filters_len, const DEVPROP_FILTER_EXPRESSION *filters, ULONG pairs_len,
+                                 struct devprop_op_pair_idx *pairs, enum_device_object_cb callback, void *data )
 {
     HKEY iface_key;
     HRESULT hr = S_OK;
@@ -859,7 +969,7 @@ static HRESULT enum_dev_objects( DEV_OBJECT_TYPE type, ULONG props_len, const DE
             {
                 if (filters_len)
                 {
-                    hr = devprop_filter_matches_object( &obj, filters_len, filters );
+                    hr = devprop_filter_matches_object( &obj, filters_len, filters, pairs_len, pairs );
                     /* Shrink pProperties to only the desired ones, unless DevQueryFlagAllProperties is set. */
                     if (!all_props)
                         dev_object_remove_unwanted_props( &obj, props_len, props );
@@ -919,6 +1029,8 @@ HRESULT WINAPI DevGetObjectsEx( DEV_OBJECT_TYPE type, ULONG flags, ULONG props_l
 {
     ULONG valid_flags = DevQueryFlagAllProperties | DevQueryFlagLocalize;
     struct objects_list objects = {0};
+    struct devprop_op_pair_idx *pairs;
+    ULONG pairs_len;
     HRESULT hr = S_OK;
 
     TRACE( "(%d, %#lx, %lu, %p, %lu, %p, %lu, %p, %p, %p)\n", type, flags, props_len, props, filters_len, filters,
@@ -926,7 +1038,7 @@ HRESULT WINAPI DevGetObjectsEx( DEV_OBJECT_TYPE type, ULONG flags, ULONG props_l
 
     if (!!props_len != !!props || !!filters_len != !!filters || !!params_len != !!params || (flags & ~valid_flags)
         || (props_len && (flags & DevQueryFlagAllProperties))
-        || FAILED( devprop_filters_validate( filters_len, filters ) ))
+        || FAILED( devprop_filters_validate( filters_len, filters, &pairs, &pairs_len ) ))
         return E_INVALIDARG;
     if (params)
         FIXME( "Query parameters are not supported!\n" );
@@ -934,8 +1046,9 @@ HRESULT WINAPI DevGetObjectsEx( DEV_OBJECT_TYPE type, ULONG flags, ULONG props_l
     *objs = NULL;
     *objs_len = 0;
 
-    hr = enum_dev_objects( type, props_len, props, !!(flags & DevQueryFlagAllProperties), filters_len, filters,
-                           dev_objects_append, &objects );
+    hr = enum_dev_objects( type, props_len, props, !!( flags & DevQueryFlagAllProperties ), filters_len, filters,
+                           pairs_len, pairs, dev_objects_append, &objects );
+    free( pairs );
     if (SUCCEEDED( hr ))
     {
         *objs = objects.objects;
@@ -1289,7 +1402,7 @@ static void CALLBACK device_query_enum_objects_async( TP_CALLBACK_INSTANCE *inst
 
     if (!ctx->filters)
         hr = enum_dev_objects( ctx->type, ctx->prop_keys_len, ctx->prop_keys, !!(ctx->flags & DevQueryFlagAllProperties),
-                               0, NULL, device_query_context_add_object, ctx );
+                               0, NULL, 0, NULL, device_query_context_add_object, ctx );
 
     EnterCriticalSection( &ctx->cs );
     if (ctx->state == DevQueryStateClosed)
@@ -1371,6 +1484,8 @@ HRESULT WINAPI DevCreateObjectQueryEx( DEV_OBJECT_TYPE type, ULONG flags, ULONG 
 {
     ULONG valid_flags = DevQueryFlagUpdateResults | DevQueryFlagAllProperties | DevQueryFlagLocalize | DevQueryFlagAsyncClose;
     struct device_query_context *ctx = NULL;
+    struct devprop_op_pair_idx *pairs;
+    ULONG pairs_len;
     HRESULT hr;
 
     TRACE( "(%d, %#lx, %lu, %p, %lu, %p, %lu, %p, %p, %p, %p)\n", type, flags, props_len, props, filters_len,
@@ -1378,12 +1493,13 @@ HRESULT WINAPI DevCreateObjectQueryEx( DEV_OBJECT_TYPE type, ULONG flags, ULONG 
 
     if (!!props_len != !!props || !!filters_len != !!filters || !!params_len != !!params || (flags & ~valid_flags) || !callback
         || (props_len && (flags & DevQueryFlagAllProperties))
-        || FAILED( devprop_filters_validate( filters_len, filters ) ))
+        || FAILED( devprop_filters_validate( filters_len, filters, &pairs, &pairs_len ) ))
         return E_INVALIDARG;
     if (filters)
         FIXME( "Query filters are not supported!\n" );
     if (params)
         FIXME( "Query parameters are not supported!\n" );
+    free( pairs );
 
     hr = device_query_context_create( &ctx, type, flags, props_len, props, callback, user_data );
     if (FAILED( hr ))

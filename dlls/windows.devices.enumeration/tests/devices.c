@@ -685,7 +685,8 @@ static void test_CreateWatcherAqsFilter_( IDeviceInformationStatics *statics, co
         if (FAILED( hr ) || FAILED( test_case->start_hr )) goto next;
 
         ret = WaitForSingleObject( enumerated_data.event, 500 );
-        todo_wine_if( todo_wait ) ok( !ret, "WaitForSingleObject returned %lu\n", ret );
+        /* Enumeration may take a long time on native if there are many device interfaces. */
+        todo_wine_if( todo_wait ) ok( !ret || broken( ret == WAIT_TIMEOUT ), "WaitForSingleObject returned %lu\n", ret );
 
         hr = IDeviceWatcher_Stop( watcher );
         ret = WaitForSingleObject( stopped_data.event, 500 );
@@ -818,7 +819,7 @@ static void test_aqs_filters( void )
     test_FindAllAsyncAqsFilter( statics, filters_empty, FALSE, FALSE );
     test_CreateWatcherAqsFilter( statics, filters_empty, FALSE, FALSE, FALSE, FALSE );
 
-    test_FindAllAsyncAqsFilter( statics, filters_boolean_op, FALSE, TRUE );
+    test_FindAllAsyncAqsFilter( statics, filters_boolean_op, FALSE, FALSE );
     test_CreateWatcherAqsFilter( statics, filters_boolean_op, FALSE, FALSE, FALSE, TRUE );
 
     test_FindAllAsyncAqsFilter( statics, filters_simple, FALSE, FALSE );
@@ -827,7 +828,7 @@ static void test_aqs_filters( void )
     test_FindAllAsyncAqsFilter( statics, filters_case_insensitive, TRUE, FALSE );
     test_CreateWatcherAqsFilter( statics, filters_case_insensitive, TRUE, FALSE, FALSE, FALSE );
 
-    test_FindAllAsyncAqsFilter( statics, filters_precedence, FALSE, TRUE );
+    test_FindAllAsyncAqsFilter( statics, filters_precedence, FALSE, FALSE );
     test_CreateWatcherAqsFilter( statics, filters_precedence, FALSE, FALSE, FALSE, TRUE );
 
     test_FindAllAsyncAqsFilter( statics, filters_no_results, FALSE, FALSE );
