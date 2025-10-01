@@ -1,14 +1,14 @@
-# English translations for Wine
+# English (Philippines) translations for Wine
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: Wine\n"
 "Report-Msgid-Bugs-To: https://bugs.winehq.org\n"
 "POT-Creation-Date: N/A\n"
-"PO-Revision-Date: N/A\n"
+"PO-Revision-Date: 2025-07-17 21:59+0100\n"
 "Last-Translator: Ken Sharp\n"
-"Language-Team: English\n"
-"Language: en\n"
+"Language-Team: English (Philippines)\n"
+"Language: en_PH\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -53,12 +53,12 @@ msgstr "&Install..."
 #: dlls/appwiz.cpl/appwiz.rc:67
 msgid ""
 "The following software can be automatically removed. To remove a program or "
-"to modify its installed components, select it from the list and click Modify/"
-"Remove."
+"to modify its installed components, select it from the list and click "
+"Modify/Remove."
 msgstr ""
 "The following software can be automatically removed. To remove a program or "
-"to modify its installed components, select it from the list and click Modify/"
-"Remove."
+"to modify its installed components, select it from the list and click "
+"Modify/Remove."
 
 #: dlls/appwiz.cpl/appwiz.rc:69
 msgid "&Support Information"
@@ -90,13 +90,14 @@ msgstr "Support Information"
 #: dlls/cryptui/cryptui.rc:462 dlls/dinput/dinput.rc:37
 #: dlls/ieframe/ieframe.rc:96 dlls/localui/localui.rc:44
 #: dlls/localui/localui.rc:57 dlls/mpr/mpr.rc:49 dlls/msacm32/msacm32.rc:53
-#: dlls/mshtml/mshtml.rc:47 dlls/mshtml/mshtml.rc:57 dlls/msvfw32/msvfw32.rc:36
-#: dlls/oledlg/oledlg.rc:62 dlls/oledlg/oledlg.rc:94
-#: dlls/serialui/serialui.rc:41 dlls/setupapi/setupapi.rc:59
-#: dlls/shell32/shell32.rc:278 dlls/shell32/shell32.rc:302
-#: dlls/shell32/shell32.rc:324 dlls/shell32/shell32.rc:343
-#: dlls/shlwapi/shlwapi.rc:44 dlls/twain_32/twain.rc:32
-#: dlls/user32/user32.rc:94 dlls/user32/user32.rc:109 dlls/user32/user32.rc:73
+#: dlls/mshtml/mshtml.rc:47 dlls/mshtml/mshtml.rc:57
+#: dlls/msvfw32/msvfw32.rc:36 dlls/oledlg/oledlg.rc:62
+#: dlls/oledlg/oledlg.rc:94 dlls/serialui/serialui.rc:41
+#: dlls/setupapi/setupapi.rc:59 dlls/shell32/shell32.rc:278
+#: dlls/shell32/shell32.rc:302 dlls/shell32/shell32.rc:324
+#: dlls/shell32/shell32.rc:343 dlls/shlwapi/shlwapi.rc:44
+#: dlls/twain_32/twain.rc:32 dlls/user32/user32.rc:94
+#: dlls/user32/user32.rc:109 dlls/user32/user32.rc:73
 #: dlls/wininet/wininet.rc:62 dlls/wininet/wininet.rc:82
 #: dlls/winspool.drv/winspool.rc:42 programs/net/net.rc:48
 #: programs/notepad/notepad.rc:125 programs/oleview/oleview.rc:161
@@ -119,7 +120,8 @@ msgstr "OK"
 
 #: dlls/appwiz.cpl/appwiz.rc:81
 msgid "The following information can be used to get technical support for %s:"
-msgstr "The following information can be used to get technical support for %s:"
+msgstr ""
+"The following information can be used to get technical support for %s:"
 
 #: dlls/appwiz.cpl/appwiz.rc:82
 msgid "Publisher:"
@@ -159,21 +161,13 @@ msgstr "Wine Gecko Installer"
 
 #: dlls/appwiz.cpl/appwiz.rc:105
 msgid ""
-"Wine could not find a Gecko package which is needed for applications "
-"embedding HTML to work correctly. Wine can automatically download and "
-"install it for you.\n"
+"Wine could not find a Gecko package which is needed for applications embedding HTML to work correctly. Wine can automatically download and install it for you.\n"
 "\n"
-"Note: it is recommended to use your distribution's packages instead. See <a "
-"href=\"https://gitlab.winehq.org/wine/wine/-/wikis/Gecko\">https://"
-"gitlab.winehq.org/wine/wine/-/wikis/Gecko</a> for details."
+"Note: it is recommended to use your distribution's packages instead. See <a href=\"https://gitlab.winehq.org/wine/wine/-/wikis/Gecko\">https://gitlab.winehq.org/wine/wine/-/wikis/Gecko</a> for details."
 msgstr ""
-"Wine could not find a Gecko package which is needed for applications "
-"embedding HTML to work correctly. Wine can automatically download and "
-"install it for you.\n"
+"Wine could not find a Gecko package which is needed for applications embedding HTML to work correctly. Wine can automatically download and install it for you.\n"
 "\n"
-"Note: it is recommended to use your distribution's packages instead. See <a "
-"href=\"https://gitlab.winehq.org/wine/wine/-/wikis/Gecko\">https://"
-"gitlab.winehq.org/wine/wine/-/wikis/Gecko</a> for details."
+"Note: it is recommended to use your distribution's packages instead. See <a href=\"https://gitlab.winehq.org/wine/wine/-/wikis/Gecko\">https://gitlab.winehq.org/wine/wine/-/wikis/Gecko</a> for details."
 
 #: dlls/appwiz.cpl/appwiz.rc:111 dlls/appwiz.cpl/appwiz.rc:126
 msgid "&Install"
@@ -195,30 +189,31 @@ msgstr "&Install"
 #: dlls/dinput/dinput.rc:38 dlls/ieframe/ieframe.rc:97
 #: dlls/inetcpl.cpl/inetcpl.rc:81 dlls/localui/localui.rc:45
 #: dlls/localui/localui.rc:58 dlls/mpr/mpr.rc:50 dlls/msacm32/msacm32.rc:54
-#: dlls/mshtml/mshtml.rc:48 dlls/mshtml/mshtml.rc:58 dlls/msvfw32/msvfw32.rc:37
-#: dlls/oledlg/oledlg.rc:63 dlls/oledlg/oledlg.rc:95
-#: dlls/serialui/serialui.rc:42 dlls/setupapi/setupapi.rc:42
-#: dlls/setupapi/setupapi.rc:60 dlls/shell32/shell32.rc:279
-#: dlls/shell32/shell32.rc:303 dlls/shell32/shell32.rc:314
-#: dlls/shell32/shell32.rc:344 dlls/shlwapi/shlwapi.rc:45
-#: dlls/twain_32/twain.rc:33 dlls/user32/user32.rc:95 dlls/user32/user32.rc:110
-#: dlls/user32/user32.rc:74 dlls/wininet/wininet.rc:63
-#: dlls/wininet/wininet.rc:83 dlls/winspool.drv/winspool.rc:43
-#: programs/notepad/notepad.rc:126 programs/notepad/notepad.rc:139
-#: programs/oleview/oleview.rc:162 programs/oleview/oleview.rc:175
-#: programs/progman/progman.rc:107 programs/progman/progman.rc:125
-#: programs/progman/progman.rc:143 programs/progman/progman.rc:159
-#: programs/progman/progman.rc:181 programs/progman/progman.rc:200
-#: programs/progman/progman.rc:217 programs/regedit/regedit.rc:302
-#: programs/regedit/regedit.rc:313 programs/regedit/regedit.rc:326
-#: programs/regedit/regedit.rc:342 programs/regedit/regedit.rc:355
-#: programs/regedit/regedit.rc:368 programs/taskmgr/taskmgr.rc:443
-#: programs/taskmgr/taskmgr.rc:518 programs/wineboot/wineboot.rc:34
-#: programs/winecfg/winecfg.rc:220 programs/winecfg/winecfg.rc:230
-#: programs/winefile/winefile.rc:128 programs/winefile/winefile.rc:151
-#: programs/winefile/winefile.rc:181 programs/winemine/winemine.rc:99
-#: programs/wordpad/wordpad.rc:216 programs/wordpad/wordpad.rc:227
-#: programs/wordpad/wordpad.rc:245 programs/wordpad/wordpad.rc:258
+#: dlls/mshtml/mshtml.rc:48 dlls/mshtml/mshtml.rc:58
+#: dlls/msvfw32/msvfw32.rc:37 dlls/oledlg/oledlg.rc:63
+#: dlls/oledlg/oledlg.rc:95 dlls/serialui/serialui.rc:42
+#: dlls/setupapi/setupapi.rc:42 dlls/setupapi/setupapi.rc:60
+#: dlls/shell32/shell32.rc:279 dlls/shell32/shell32.rc:303
+#: dlls/shell32/shell32.rc:314 dlls/shell32/shell32.rc:344
+#: dlls/shlwapi/shlwapi.rc:45 dlls/twain_32/twain.rc:33
+#: dlls/user32/user32.rc:95 dlls/user32/user32.rc:110 dlls/user32/user32.rc:74
+#: dlls/wininet/wininet.rc:63 dlls/wininet/wininet.rc:83
+#: dlls/winspool.drv/winspool.rc:43 programs/notepad/notepad.rc:126
+#: programs/notepad/notepad.rc:139 programs/oleview/oleview.rc:162
+#: programs/oleview/oleview.rc:175 programs/progman/progman.rc:107
+#: programs/progman/progman.rc:125 programs/progman/progman.rc:143
+#: programs/progman/progman.rc:159 programs/progman/progman.rc:181
+#: programs/progman/progman.rc:200 programs/progman/progman.rc:217
+#: programs/regedit/regedit.rc:302 programs/regedit/regedit.rc:313
+#: programs/regedit/regedit.rc:326 programs/regedit/regedit.rc:342
+#: programs/regedit/regedit.rc:355 programs/regedit/regedit.rc:368
+#: programs/taskmgr/taskmgr.rc:443 programs/taskmgr/taskmgr.rc:518
+#: programs/wineboot/wineboot.rc:34 programs/winecfg/winecfg.rc:220
+#: programs/winecfg/winecfg.rc:230 programs/winefile/winefile.rc:128
+#: programs/winefile/winefile.rc:151 programs/winefile/winefile.rc:181
+#: programs/winemine/winemine.rc:99 programs/wordpad/wordpad.rc:216
+#: programs/wordpad/wordpad.rc:227 programs/wordpad/wordpad.rc:245
+#: programs/wordpad/wordpad.rc:258
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -228,21 +223,13 @@ msgstr "Wine Mono Installer"
 
 #: dlls/appwiz.cpl/appwiz.rc:120
 msgid ""
-"Wine could not find a wine-mono package which is needed for .NET "
-"applications to work correctly. Wine can automatically download and install "
-"it for you.\n"
+"Wine could not find a wine-mono package which is needed for .NET applications to work correctly. Wine can automatically download and install it for you.\n"
 "\n"
-"Note: it is recommended to use your distribution's packages instead. See <a "
-"href=\"https://gitlab.winehq.org/wine/wine/-/wikis/Wine-Mono\">https://"
-"gitlab.winehq.org/wine/wine/-/wikis/Wine-Mono</a> for details."
+"Note: it is recommended to use your distribution's packages instead. See <a href=\"https://gitlab.winehq.org/wine/wine/-/wikis/Wine-Mono\">https://gitlab.winehq.org/wine/wine/-/wikis/Wine-Mono</a> for details."
 msgstr ""
-"Wine could not find a wine-mono package which is needed for .NET "
-"applications to work correctly. Wine can automatically download and install "
-"it for you.\n"
+"Wine could not find a wine-mono package which is needed for .NET applications to work correctly. Wine can automatically download and install it for you.\n"
 "\n"
-"Note: it is recommended to use your distribution's packages instead. See <a "
-"href=\"https://gitlab.winehq.org/wine/wine/-/wikis/Wine-Mono\">https://"
-"gitlab.winehq.org/wine/wine/-/wikis/Wine-Mono</a> for details."
+"Note: it is recommended to use your distribution's packages instead. See <a href=\"https://gitlab.winehq.org/wine/wine/-/wikis/Wine-Mono\">https://gitlab.winehq.org/wine/wine/-/wikis/Wine-Mono</a> for details."
 
 #: dlls/appwiz.cpl/appwiz.rc:31
 msgid "Add/Remove Programs"
@@ -263,11 +250,11 @@ msgstr "Applications"
 
 #: dlls/appwiz.cpl/appwiz.rc:35
 msgid ""
-"Unable to execute the uninstaller, '%s'. Do you want to remove the uninstall "
-"entry for this program from the registry?"
+"Unable to execute the uninstaller, '%s'. Do you want to remove the uninstall"
+" entry for this program from the registry?"
 msgstr ""
-"Unable to execute the uninstaller, '%s'. Do you want to remove the uninstall "
-"entry for this program from the registry?"
+"Unable to execute the uninstaller, '%s'. Do you want to remove the uninstall"
+" entry for this program from the registry?"
 
 #: dlls/appwiz.cpl/appwiz.rc:36
 msgid "Not specified"
@@ -393,9 +380,11 @@ msgstr "Pair with '%1!s!' using the following PIN/passkey value: %2!lu!?"
 
 #: dlls/bluetoothapis/bluetoothapis.rc:33
 msgid ""
-"Pair with unnamed device %1!s! using the following PIN/passkey value: %2!lu!?"
+"Pair with unnamed device %1!s! using the following PIN/passkey value: "
+"%2!lu!?"
 msgstr ""
-"Pair with unnamed device %1!s! using the following PIN/passkey value: %2!lu!?"
+"Pair with unnamed device %1!s! using the following PIN/passkey value: "
+"%2!lu!?"
 
 #: dlls/browseui/browseui.rc:28
 msgid "Canceling..."
@@ -454,7 +443,7 @@ msgstr "Finish"
 
 #: dlls/comctl32/comctl32.rc:97
 msgid "Customize Toolbar"
-msgstr "Customise Toolbar"
+msgstr "Customize Toolbar"
 
 #: dlls/comctl32/comctl32.rc:100 dlls/comctl32/comctl32.rc:57
 #: dlls/cryptui/cryptui.rc:356 dlls/ieframe/ieframe.rc:43
@@ -522,12 +511,14 @@ msgid "None"
 msgstr "None"
 
 #: dlls/comctl32/comctl32.rc:52 dlls/shell32/shell32.rc:311
-#: dlls/shlwapi/shlwapi.rc:46 dlls/user32/user32.rc:90 dlls/user32/user32.rc:78
+#: dlls/shlwapi/shlwapi.rc:46 dlls/user32/user32.rc:90
+#: dlls/user32/user32.rc:78
 msgid "&Yes"
 msgstr "&Yes"
 
 #: dlls/comctl32/comctl32.rc:53 dlls/shell32/shell32.rc:313
-#: dlls/shlwapi/shlwapi.rc:47 dlls/user32/user32.rc:91 dlls/user32/user32.rc:79
+#: dlls/shlwapi/shlwapi.rc:47 dlls/user32/user32.rc:91
+#: dlls/user32/user32.rc:79
 msgid "&No"
 msgstr "&No"
 
@@ -707,7 +698,7 @@ msgid "Font St&yle:"
 msgstr "Font St&yle:"
 
 #: dlls/comdlg32/comdlg32.rc:260 dlls/comdlg32/comdlg32.rc:439
-#: programs/winecfg/winecfg.rc:302
+#: programs/winecfg/winecfg.rc:300
 msgid "&Size:"
 msgstr "&Size:"
 
@@ -723,9 +714,9 @@ msgstr "Stri&keout"
 msgid "&Underline"
 msgstr "&Underline"
 
-#: dlls/comdlg32/comdlg32.rc:270 programs/winecfg/winecfg.rc:300
+#: dlls/comdlg32/comdlg32.rc:270 programs/winecfg/winecfg.rc:298
 msgid "&Color:"
-msgstr "&Colour:"
+msgstr "&Color:"
 
 #: dlls/comdlg32/comdlg32.rc:273
 msgid "Sample"
@@ -738,15 +729,15 @@ msgstr "Scr&ipt:"
 #: dlls/comdlg32/comdlg32.rc:283 dlls/comdlg32/comdlg32.rc:288
 #: dlls/compstui/compstui.rc:33
 msgid "Color"
-msgstr "Colour"
+msgstr "Color"
 
 #: dlls/comdlg32/comdlg32.rc:286
 msgid "&Basic Colors:"
-msgstr "&Basic Colours:"
+msgstr "&Basic Colors:"
 
 #: dlls/comdlg32/comdlg32.rc:287
 msgid "&Custom Colors:"
-msgstr "&Custom Colours:"
+msgstr "&Custom Colors:"
 
 #: dlls/comdlg32/comdlg32.rc:289
 msgid "|S&olid"
@@ -780,11 +771,11 @@ msgstr "&Lum:"
 
 #: dlls/comdlg32/comdlg32.rc:310
 msgid "&Add to Custom Colors"
-msgstr "&Add to Custom Colours"
+msgstr "&Add to Custom Colors"
 
 #: dlls/comdlg32/comdlg32.rc:311
 msgid "&Define Custom Colors >>"
-msgstr "&Define Custom Colours >>"
+msgstr "&Define Custom Colors >>"
 
 #: dlls/comdlg32/comdlg32.rc:312
 msgctxt "Solid"
@@ -900,7 +891,7 @@ msgstr "Number of &copies:"
 msgid "C&ollate"
 msgstr "C&ollate"
 
-#: dlls/comdlg32/comdlg32.rc:414 programs/winecfg/winecfg.rc:308
+#: dlls/comdlg32/comdlg32.rc:414 programs/winecfg/winecfg.rc:306
 msgid "Si&ze:"
 msgstr "Si&ze:"
 
@@ -1092,7 +1083,7 @@ msgstr "Teal"
 
 #: dlls/comdlg32/comdlg32.rc:129 programs/wordpad/wordpad.rc:132
 msgid "Gray"
-msgstr "Grey"
+msgstr "Gray"
 
 #: dlls/comdlg32/comdlg32.rc:130 programs/wordpad/wordpad.rc:133
 msgid "Silver"
@@ -1149,7 +1140,7 @@ msgid ""
 "Please reenter margins."
 msgstr ""
 "Margins overlap or fall outside Paper boundaries.\n"
-"Please re-enter margins."
+"Please reenter margins."
 
 #: dlls/comdlg32/comdlg32.rc:65
 msgid "The 'Number of copies' field cannot be empty."
@@ -1289,7 +1280,7 @@ msgstr "Processing; "
 
 #: dlls/comdlg32/comdlg32.rc:100
 msgid "Initializing; "
-msgstr "Initialising; "
+msgstr "Initializing; "
 
 #: dlls/comdlg32/comdlg32.rc:101
 msgid "Warming up; "
@@ -1371,7 +1362,7 @@ msgstr "Print on Both Sides"
 
 #: dlls/compstui/compstui.rc:32
 msgid "C&olor"
-msgstr "C&olour"
+msgstr "C&olor"
 
 #: dlls/compstui/compstui.rc:34
 msgid "Bla&ck && White"
@@ -1609,11 +1600,11 @@ msgstr "Country/Region"
 
 #: dlls/crypt32/crypt32.rc:72
 msgid "Organization"
-msgstr "Organisation"
+msgstr "Organization"
 
 #: dlls/crypt32/crypt32.rc:73
 msgid "Organizational Unit"
-msgstr "Organisational Unit"
+msgstr "Organizational Unit"
 
 #: dlls/crypt32/crypt32.rc:74
 msgid "Common Name"
@@ -1665,7 +1656,7 @@ msgstr "Cross CA Version"
 
 #: dlls/crypt32/crypt32.rc:86
 msgid "Serialized Signature Serial Number"
-msgstr "Serialised Signature Serial Number"
+msgstr "Serialized Signature Serial Number"
 
 #: dlls/crypt32/crypt32.rc:87
 msgid "Principal Name"
@@ -1677,7 +1668,7 @@ msgstr "Windows Product Update"
 
 #: dlls/crypt32/crypt32.rc:89
 msgid "Enrollment Name Value Pair"
-msgstr "Enrolment Name Value Pair"
+msgstr "Enrollment Name Value Pair"
 
 #: dlls/crypt32/crypt32.rc:90
 msgid "OS Version"
@@ -1685,7 +1676,7 @@ msgstr "OS Version"
 
 #: dlls/crypt32/crypt32.rc:91
 msgid "Enrollment CSP"
-msgstr "Enrolment CSP"
+msgstr "Enrollment CSP"
 
 #: dlls/crypt32/crypt32.rc:92
 msgid "CRL Number"
@@ -1933,11 +1924,11 @@ msgstr "Embedded Windows System Component Verification"
 
 #: dlls/crypt32/crypt32.rc:153 dlls/cryptui/cryptui.rc:143
 msgid "Key Pack Licenses"
-msgstr "Key Pack Licences"
+msgstr "Key Pack Licenses"
 
 #: dlls/crypt32/crypt32.rc:154 dlls/cryptui/cryptui.rc:144
 msgid "License Server Verification"
-msgstr "Licence Server Verification"
+msgstr "License Server Verification"
 
 #: dlls/crypt32/crypt32.rc:155 dlls/cryptui/cryptui.rc:146
 msgid "Smart Card Logon"
@@ -2284,7 +2275,7 @@ msgstr "Notice Reference"
 
 #: dlls/cryptdlg/cryptdlg.rc:38
 msgid "Organization="
-msgstr "Organisation="
+msgstr "Organization="
 
 #: dlls/cryptdlg/cryptdlg.rc:39
 msgid "Notice Number="
@@ -2407,23 +2398,15 @@ msgstr "Welcome to the Certificate Import Wizard"
 
 #: dlls/cryptui/cryptui.rc:291
 msgid ""
-"This wizard helps you import certificates, certificate revocation lists, and "
-"certificate trust lists from a file to a certificate store.\n"
+"This wizard helps you import certificates, certificate revocation lists, and certificate trust lists from a file to a certificate store.\n"
 "\n"
-"A certificate can be used to identify you or the computer with which you are "
-"communicating. It can also be used for authentication, and to sign messages. "
-"Certificate stores are collections of certificates, certificate revocation "
-"lists, and certificate trust lists.\n"
+"A certificate can be used to identify you or the computer with which you are communicating. It can also be used for authentication, and to sign messages. Certificate stores are collections of certificates, certificate revocation lists, and certificate trust lists.\n"
 "\n"
 "To continue, click Next."
 msgstr ""
-"This wizard helps you import certificates, certificate revocation lists, and "
-"certificate trust lists from a file to a certificate store.\n"
+"This wizard helps you import certificates, certificate revocation lists, and certificate trust lists from a file to a certificate store.\n"
 "\n"
-"A certificate can be used to identify you or the computer with which you are "
-"communicating. It can also be used for authentication, and to sign messages. "
-"Certificate stores are collections of certificates, certificate revocation "
-"lists, and certificate trust lists.\n"
+"A certificate can be used to identify you or the computer with which you are communicating. It can also be used for authentication, and to sign messages. Certificate stores are collections of certificates, certificate revocation lists, and certificate trust lists.\n"
 "\n"
 "To continue, click Next."
 
@@ -2432,7 +2415,7 @@ msgid "&File name:"
 msgstr "&File name:"
 
 #: dlls/cryptui/cryptui.rc:301 dlls/cryptui/cryptui.rc:323
-#: dlls/cryptui/cryptui.rc:437 programs/winecfg/winecfg.rc:321
+#: dlls/cryptui/cryptui.rc:437 programs/winecfg/winecfg.rc:319
 msgid "B&rowse..."
 msgstr "B&rowse..."
 
@@ -2455,7 +2438,7 @@ msgstr "Personal Information Exchange/PKCS #12 (*.pfx; *.p12)"
 #: dlls/cryptui/cryptui.rc:308 dlls/cryptui/cryptui.rc:81
 #: dlls/cryptui/cryptui.rc:162
 msgid "Microsoft Serialized Certificate Store (*.sst)"
-msgstr "Microsoft Serialised Certificate Store (*.sst)"
+msgstr "Microsoft Serialized Certificate Store (*.sst)"
 
 #: dlls/cryptui/cryptui.rc:316
 msgid ""
@@ -2551,33 +2534,25 @@ msgstr "Welcome to the Certificate Export Wizard"
 
 #: dlls/cryptui/cryptui.rc:381
 msgid ""
-"This wizard helps you export certificates, certificate revocation lists, and "
-"certificate trust lists from a certificate store to a file.\n"
+"This wizard helps you export certificates, certificate revocation lists, and certificate trust lists from a certificate store to a file.\n"
 "\n"
-"A certificate can be used to identify you or the computer with which you are "
-"communicating. It can also be used for authentication, and to sign messages. "
-"Certificate stores are collections of certificates, certificate revocation "
-"lists, and certificate trust lists.\n"
+"A certificate can be used to identify you or the computer with which you are communicating. It can also be used for authentication, and to sign messages. Certificate stores are collections of certificates, certificate revocation lists, and certificate trust lists.\n"
 "\n"
 "To continue, click Next."
 msgstr ""
-"This wizard helps you export certificates, certificate revocation lists, and "
-"certificate trust lists from a certificate store to a file.\n"
+"This wizard helps you export certificates, certificate revocation lists, and certificate trust lists from a certificate store to a file.\n"
 "\n"
-"A certificate can be used to identify you or the computer with which you are "
-"communicating. It can also be used for authentication, and to sign messages. "
-"Certificate stores are collections of certificates, certificate revocation "
-"lists, and certificate trust lists.\n"
+"A certificate can be used to identify you or the computer with which you are communicating. It can also be used for authentication, and to sign messages. Certificate stores are collections of certificates, certificate revocation lists, and certificate trust lists.\n"
 "\n"
 "To continue, click Next."
 
 #: dlls/cryptui/cryptui.rc:389
 msgid ""
-"If you choose to export the private key, you will be prompted for a password "
-"to protect the private key on a later page."
+"If you choose to export the private key, you will be prompted for a password"
+" to protect the private key on a later page."
 msgstr ""
-"If you choose to export the private key, you will be prompted for a password "
-"to protect the private key on a later page."
+"If you choose to export the private key, you will be prompted for a password"
+" to protect the private key on a later page."
 
 #: dlls/cryptui/cryptui.rc:390
 msgid "Do you wish to export the private key?"
@@ -2673,7 +2648,8 @@ msgstr ""
 
 #: dlls/cryptui/cryptui.rc:34
 msgid "This certificate could not be validated to a trusted root certificate."
-msgstr "This certificate could not be validated to a trusted root certificate."
+msgstr ""
+"This certificate could not be validated to a trusted root certificate."
 
 #: dlls/cryptui/cryptui.rc:35
 msgid "This certificate's issuer could not be found."
@@ -2867,7 +2843,7 @@ msgstr "Please select a file."
 
 #: dlls/cryptui/cryptui.rc:85
 msgid "The file format is not recognized. Please select another file."
-msgstr "The file format is not recognised. Please select another file."
+msgstr "The file format is not recognized. Please select another file."
 
 #: dlls/cryptui/cryptui.rc:86
 msgid "Could not open "
@@ -2947,82 +2923,66 @@ msgstr "<None>"
 
 #: dlls/cryptui/cryptui.rc:110
 msgid ""
-"You will no longer be able to decrypt messages with this certificate, or "
-"sign messages with it.\n"
+"You will no longer be able to decrypt messages with this certificate, or sign messages with it.\n"
 "Are you sure you want to remove this certificate?"
 msgstr ""
-"You will no longer be able to decrypt messages with this certificate, or "
-"sign messages with it.\n"
+"You will no longer be able to decrypt messages with this certificate, or sign messages with it.\n"
 "Are you sure you want to remove this certificate?"
 
 #: dlls/cryptui/cryptui.rc:111
 msgid ""
-"You will no longer be able to decrypt messages with these certificates, or "
-"sign messages with them.\n"
+"You will no longer be able to decrypt messages with these certificates, or sign messages with them.\n"
 "Are you sure you want to remove these certificates?"
 msgstr ""
-"You will no longer be able to decrypt messages with these certificates, or "
-"sign messages with them.\n"
+"You will no longer be able to decrypt messages with these certificates, or sign messages with them.\n"
 "Are you sure you want to remove these certificates?"
 
 #: dlls/cryptui/cryptui.rc:112
 msgid ""
-"You will no longer be able to encrypt messages with this certificate, or "
-"verify messages signed with it.\n"
+"You will no longer be able to encrypt messages with this certificate, or verify messages signed with it.\n"
 "Are you sure you want to remove this certificate?"
 msgstr ""
-"You will no longer be able to encrypt messages with this certificate, or "
-"verify messages signed with it.\n"
+"You will no longer be able to encrypt messages with this certificate, or verify messages signed with it.\n"
 "Are you sure you want to remove this certificate?"
 
 #: dlls/cryptui/cryptui.rc:113
 msgid ""
-"You will no longer be able to encrypt messages with these certificates, or "
-"verify messages signed with them.\n"
+"You will no longer be able to encrypt messages with these certificates, or verify messages signed with them.\n"
 "Are you sure you want to remove these certificates?"
 msgstr ""
-"You will no longer be able to encrypt messages with these certificates, or "
-"verify messages signed with them.\n"
+"You will no longer be able to encrypt messages with these certificates, or verify messages signed with them.\n"
 "Are you sure you want to remove these certificates?"
 
 #: dlls/cryptui/cryptui.rc:114
 msgid ""
-"Certificates issued by this certification authority will no longer be "
-"trusted.\n"
+"Certificates issued by this certification authority will no longer be trusted.\n"
 "Are you sure you want to remove this certificate?"
 msgstr ""
-"Certificates issued by this certification authority will no longer be "
-"trusted.\n"
+"Certificates issued by this certification authority will no longer be trusted.\n"
 "Are you sure you want to remove this certificate?"
 
 #: dlls/cryptui/cryptui.rc:115
 msgid ""
-"Certificates issued by these certification authorities will no longer be "
-"trusted.\n"
+"Certificates issued by these certification authorities will no longer be trusted.\n"
 "Are you sure you want to remove these certificates?"
 msgstr ""
-"Certificates issued by these certification authorities will no longer be "
-"trusted.\n"
+"Certificates issued by these certification authorities will no longer be trusted.\n"
 "Are you sure you want to remove these certificates?"
 
 #: dlls/cryptui/cryptui.rc:116
 msgid ""
-"Certificates issued by this root certification authority, or any "
-"certification authorities it issued, will no longer be trusted.\n"
+"Certificates issued by this root certification authority, or any certification authorities it issued, will no longer be trusted.\n"
 "Are you sure you want to remove this trusted root certificate?"
 msgstr ""
-"Certificates issued by this root certification authority, or any "
-"certification authorities it issued, will no longer be trusted.\n"
+"Certificates issued by this root certification authority, or any certification authorities it issued, will no longer be trusted.\n"
 "Are you sure you want to remove this trusted root certificate?"
 
 #: dlls/cryptui/cryptui.rc:117
 msgid ""
-"Certificates issued by these root certification authorities, or any "
-"certification authorities they issued, will no longer be trusted.\n"
+"Certificates issued by these root certification authorities, or any certification authorities they issued, will no longer be trusted.\n"
 "Are you sure you want to remove these trusted root certificates?"
 msgstr ""
-"Certificates issued by these root certification authorities, or any "
-"certification authorities they issued, will no longer be trusted.\n"
+"Certificates issued by these root certification authorities, or any certification authorities they issued, will no longer be trusted.\n"
 "Are you sure you want to remove these trusted root certificates?"
 
 #: dlls/cryptui/cryptui.rc:118
@@ -3461,7 +3421,7 @@ msgstr "&Search"
 
 #: dlls/hhctrl.ocx/hhctrl.rc:34
 msgid "Favor&ites"
-msgstr "Favour&ites"
+msgstr "Favor&ites"
 
 #: dlls/hhctrl.ocx/hhctrl.rc:36
 msgid "Hide &Tabs"
@@ -3567,11 +3527,11 @@ msgstr "&Address bar"
 
 #: dlls/ieframe/ieframe.rc:53 programs/regedit/regedit.rc:73
 msgid "&Favorites"
-msgstr "&Favourites"
+msgstr "&Favorites"
 
 #: dlls/ieframe/ieframe.rc:55 programs/regedit/regedit.rc:75
 msgid "&Add to Favorites..."
-msgstr "&Add to Favourites..."
+msgstr "&Add to Favorites..."
 
 #: dlls/ieframe/ieframe.rc:60
 msgid "&About Internet Explorer"
@@ -3669,12 +3629,10 @@ msgstr ""
 #: dlls/inetcpl.cpl/inetcpl.rc:73
 msgid ""
 "Cookies\n"
-"Files saved on your computer by websites, which store things like user "
-"preferences and login information."
+"Files saved on your computer by websites, which store things like user preferences and login information."
 msgstr ""
 "Cookies\n"
-"Files saved on your computer by websites, which store things like user "
-"preferences and login information."
+"Files saved on your computer by websites, which store things like user preferences and login information."
 
 #: dlls/inetcpl.cpl/inetcpl.rc:75
 msgid ""
@@ -3840,15 +3798,15 @@ msgstr "Disable hidraw"
 msgid "DInput"
 msgstr "DInput"
 
-#: dlls/joy.cpl/joy.rc:62 dlls/joy.cpl/joy.rc:111
+#: dlls/joy.cpl/joy.rc:62
 msgid "Axes"
 msgstr "Axes"
 
-#: dlls/joy.cpl/joy.rc:63 dlls/joy.cpl/joy.rc:112
+#: dlls/joy.cpl/joy.rc:63
 msgid "POVs"
 msgstr "POVs"
 
-#: dlls/joy.cpl/joy.rc:64 dlls/joy.cpl/joy.rc:113
+#: dlls/joy.cpl/joy.rc:64
 msgid "Buttons"
 msgstr "Buttons"
 
@@ -3858,11 +3816,11 @@ msgstr "Force Feedback Effect"
 
 #: dlls/joy.cpl/joy.rc:67
 msgid ""
-"Hold any button in the controller to play the chosen effect. The effect "
-"direction can be changed with the controller axis."
+"Press any button in the controller to activate the chosen effect. The effect"
+" direction can be changed with the controller axis."
 msgstr ""
-"Hold any button in the controller to play the chosen effect. The effect "
-"direction can be changed with the controller axis."
+"Press any button in the controller to activate the chosen effect. The effect"
+" direction can be changed with the controller axis."
 
 #: dlls/joy.cpl/joy.rc:73
 msgid "XInput"
@@ -3917,13 +3875,9 @@ msgstr ""
 "overridden for DInput in the Joysticks tab."
 
 #: dlls/joy.cpl/joy.rc:98 dlls/joy.cpl/joy.rc:99 dlls/joy.cpl/joy.rc:100
-#: dlls/joy.cpl/joy.rc:101 dlls/joy.cpl/joy.rc:115
+#: dlls/joy.cpl/joy.rc:101
 msgid "Rumble"
 msgstr "Rumble"
-
-#: dlls/joy.cpl/joy.rc:106
-msgid "Windows.Gaming.Input"
-msgstr "Windows.Gaming.Input"
 
 #: dlls/joy.cpl/joy.rc:31
 msgid "Game Controllers"
@@ -4037,19 +3991,19 @@ msgstr "Conditional compilation is turned off"
 msgid "Expected '@'"
 msgstr "Expected '@'"
 
-#: dlls/jscript/jscript.rc:92
+#: dlls/jscript/jscript.rc:90
 msgid "Microsoft JScript compilation error"
 msgstr "Microsoft JScript compilation error"
 
-#: dlls/jscript/jscript.rc:93
+#: dlls/jscript/jscript.rc:91
 msgid "Microsoft JScript runtime error"
 msgstr "Microsoft JScript runtime error"
 
-#: dlls/jscript/jscript.rc:94 dlls/vbscript/vbscript.rc:64
+#: dlls/jscript/jscript.rc:92 dlls/vbscript/vbscript.rc:64
 msgid "Unknown runtime error"
 msgstr "Unknown runtime error"
 
-#: dlls/jscript/jscript.rc:57
+#: dlls/jscript/jscript.rc:56
 msgid "Number expected"
 msgstr "Number expected"
 
@@ -4058,90 +4012,82 @@ msgid "Function expected"
 msgstr "Function expected"
 
 #: dlls/jscript/jscript.rc:55
-msgid "'[object]' is not a string object"
-msgstr "'[object]' is not a string object"
-
-#: dlls/jscript/jscript.rc:56
 msgid "'[object]' is not a date object"
 msgstr "'[object]' is not a date object"
 
-#: dlls/jscript/jscript.rc:58
+#: dlls/jscript/jscript.rc:57
 msgid "Object expected"
 msgstr "Object expected"
 
-#: dlls/jscript/jscript.rc:59
+#: dlls/jscript/jscript.rc:58
 msgid "Illegal assignment"
 msgstr "Illegal assignment"
 
-#: dlls/jscript/jscript.rc:60
+#: dlls/jscript/jscript.rc:59
 msgid "'|' is undefined"
 msgstr "'|' is undefined"
 
-#: dlls/jscript/jscript.rc:61
+#: dlls/jscript/jscript.rc:60
 msgid "Boolean object expected"
 msgstr "Boolean object expected"
 
-#: dlls/jscript/jscript.rc:62
+#: dlls/jscript/jscript.rc:61
 msgid "Cannot delete '|'"
 msgstr "Cannot delete '|'"
 
-#: dlls/jscript/jscript.rc:63
+#: dlls/jscript/jscript.rc:62
 msgid "VBArray object expected"
 msgstr "VBArray object expected"
 
-#: dlls/jscript/jscript.rc:64
+#: dlls/jscript/jscript.rc:63
 msgid "JScript object expected"
 msgstr "JScript object expected"
 
-#: dlls/jscript/jscript.rc:65
+#: dlls/jscript/jscript.rc:64
 msgid "Enumerator object expected"
 msgstr "Enumerator object expected"
 
-#: dlls/jscript/jscript.rc:66
+#: dlls/jscript/jscript.rc:65
 msgid "Regular Expression object expected"
 msgstr "Regular Expression object expected"
 
-#: dlls/jscript/jscript.rc:67
+#: dlls/jscript/jscript.rc:66
 msgid "Syntax error in regular expression"
 msgstr "Syntax error in regular expression"
 
-#: dlls/jscript/jscript.rc:68
+#: dlls/jscript/jscript.rc:67
 msgid "Unexpected quantifier"
 msgstr "Unexpected quantifier"
 
-#: dlls/jscript/jscript.rc:69
+#: dlls/jscript/jscript.rc:68
 msgid "Exception thrown and not caught"
 msgstr "Exception thrown and not caught"
 
-#: dlls/jscript/jscript.rc:71
+#: dlls/jscript/jscript.rc:70
 msgid "URI to be encoded contains invalid characters"
 msgstr "URI to be encoded contains invalid characters"
 
-#: dlls/jscript/jscript.rc:70
+#: dlls/jscript/jscript.rc:69
 msgid "URI to be decoded is incorrect"
 msgstr "URI to be decoded is incorrect"
 
-#: dlls/jscript/jscript.rc:72
+#: dlls/jscript/jscript.rc:71
 msgid "Number of fraction digits is out of range"
 msgstr "Number of fraction digits is out of range"
 
-#: dlls/jscript/jscript.rc:73
+#: dlls/jscript/jscript.rc:72
 msgid "Precision is out of range"
 msgstr "Precision is out of range"
 
-#: dlls/jscript/jscript.rc:74
-msgid "Array or arguments object expected"
-msgstr "Array or arguments object expected"
-
-#: dlls/jscript/jscript.rc:75
+#: dlls/jscript/jscript.rc:73
 msgid "Array length must be a finite positive integer"
 msgstr "Array length must be a finite positive integer"
 
-#: dlls/jscript/jscript.rc:76
+#: dlls/jscript/jscript.rc:74
 msgid "Array object expected"
 msgstr "Array object expected"
 
-#: dlls/jscript/jscript.rc:77
+#: dlls/jscript/jscript.rc:75
 msgid ""
 "'writable' attribute on the property descriptor cannot be set to 'true' on "
 "this object"
@@ -4149,55 +4095,55 @@ msgstr ""
 "'writable' attribute on the property descriptor cannot be set to 'true' on "
 "this object"
 
-#: dlls/jscript/jscript.rc:78
+#: dlls/jscript/jscript.rc:76
 msgid "Cyclic __proto__ value"
 msgstr "Cyclic __proto__ value"
 
-#: dlls/jscript/jscript.rc:79
+#: dlls/jscript/jscript.rc:77
 msgid "Cannot create property for a non-extensible object"
 msgstr "Cannot create property for a non-extensible object"
 
-#: dlls/jscript/jscript.rc:80
+#: dlls/jscript/jscript.rc:78
 msgid "Cannot define property '|': object is not extensible"
 msgstr "Cannot define property '|': object is not extensible"
 
-#: dlls/jscript/jscript.rc:81
+#: dlls/jscript/jscript.rc:79
 msgid "Cannot redefine non-configurable property '|'"
 msgstr "Cannot redefine non-configurable property '|'"
 
-#: dlls/jscript/jscript.rc:82
+#: dlls/jscript/jscript.rc:80
 msgid "Cannot modify non-writable property '|'"
 msgstr "Cannot modify non-writable property '|'"
 
-#: dlls/jscript/jscript.rc:83
+#: dlls/jscript/jscript.rc:81
 msgid "'this' is not a DataView object"
 msgstr "'this' is not a DataView object"
 
-#: dlls/jscript/jscript.rc:84
+#: dlls/jscript/jscript.rc:82
 msgid "Required argument offset or value in DataView method is not specified"
 msgstr "Required argument offset or value in DataView method is not specified"
 
-#: dlls/jscript/jscript.rc:85
+#: dlls/jscript/jscript.rc:83
 msgid "DataView operation access beyond specified buffer length"
 msgstr "DataView operation access beyond specified buffer length"
 
-#: dlls/jscript/jscript.rc:86
+#: dlls/jscript/jscript.rc:84
 msgid "DataView constructor argument offset is invalid"
 msgstr "DataView constructor argument offset is invalid"
 
-#: dlls/jscript/jscript.rc:87
+#: dlls/jscript/jscript.rc:85
 msgid "'this' is not a | object"
 msgstr "'this' is not a | object"
 
-#: dlls/jscript/jscript.rc:88
+#: dlls/jscript/jscript.rc:86
 msgid "'key' is not an object"
 msgstr "'key' is not an object"
 
-#: dlls/jscript/jscript.rc:89
+#: dlls/jscript/jscript.rc:87
 msgid "ArrayBuffer object expected"
 msgstr "ArrayBuffer object expected"
 
-#: dlls/jscript/jscript.rc:90
+#: dlls/jscript/jscript.rc:88
 msgid "Property cannot have both accessors and a value"
 msgstr "Property cannot have both accessors and a value"
 
@@ -4428,7 +4374,7 @@ msgstr "Too many commands.\n"
 
 #: dlls/kernelbase/winerror.mc:253
 msgid "Adapter hardware error.\n"
-msgstr "Adaptor hardware error.\n"
+msgstr "Adapter hardware error.\n"
 
 #: dlls/kernelbase/winerror.mc:258
 msgid "Bad network response.\n"
@@ -4440,7 +4386,7 @@ msgstr "Unexpected network error.\n"
 
 #: dlls/kernelbase/winerror.mc:268
 msgid "Bad remote adapter.\n"
-msgstr "Bad remote adaptor.\n"
+msgstr "Bad remote adapter.\n"
 
 #: dlls/kernelbase/winerror.mc:273
 msgid "Print queue full.\n"
@@ -4852,7 +4798,7 @@ msgstr "Auto data segment exceeds 64k.\n"
 
 #: dlls/kernelbase/winerror.mc:793
 msgid "Ring 2 segment must be movable.\n"
-msgstr "Ring 2 segment must be moveable.\n"
+msgstr "Ring 2 segment must be movable.\n"
 
 #: dlls/kernelbase/winerror.mc:798
 msgid "Relocation chain exceeds segment limit in %1.\n"
@@ -5052,7 +4998,7 @@ msgstr "Invalid flags.\n"
 
 #: dlls/kernelbase/winerror.mc:1043
 msgid "Unrecognized volume.\n"
-msgstr "Unrecognised volume.\n"
+msgstr "Unrecognized volume.\n"
 
 #: dlls/kernelbase/winerror.mc:1048
 msgid "File invalid.\n"
@@ -5312,7 +5258,7 @@ msgstr "No Unicode translation.\n"
 
 #: dlls/kernelbase/winerror.mc:1368
 msgid "DLL initialization failed.\n"
-msgstr "DLL initialisation failed.\n"
+msgstr "DLL initialization failed.\n"
 
 #: dlls/kernelbase/winerror.mc:1373
 msgid "Shutdown in progress.\n"
@@ -5456,7 +5402,7 @@ msgstr "The magazine is not present.\n"
 
 #: dlls/kernelbase/winerror.mc:1548
 msgid "The device needs reinitialization.\n"
-msgstr "The device needs reinitialisation.\n"
+msgstr "The device needs reinitialization.\n"
 
 #: dlls/kernelbase/winerror.mc:1553
 msgid "The device requires cleaning.\n"
@@ -5708,7 +5654,7 @@ msgstr "Continue work in progress.\n"
 
 #: dlls/kernelbase/winerror.mc:1868
 msgid "Already initialized.\n"
-msgstr "Already initialised.\n"
+msgstr "Already initialized.\n"
 
 #: dlls/kernelbase/winerror.mc:1873
 msgid "No more local devices.\n"
@@ -6112,7 +6058,7 @@ msgstr "No user session key.\n"
 
 #: dlls/kernelbase/winerror.mc:2378
 msgid "License quota exceeded.\n"
-msgstr "Licence quota exceeded.\n"
+msgstr "License quota exceeded.\n"
 
 #: dlls/kernelbase/winerror.mc:2383
 msgid "Wrong target name.\n"
@@ -6740,7 +6686,7 @@ msgstr "Invalid authentication identity.\n"
 
 #: dlls/kernelbase/winerror.mc:3168
 msgid "Unknown authorization service.\n"
-msgstr "Unknown authorisation service.\n"
+msgstr "Unknown authorization service.\n"
 
 #: dlls/kernelbase/winerror.mc:3173
 msgid "Invalid entry.\n"
@@ -6876,7 +6822,7 @@ msgstr "Invalid user buffer.\n"
 
 #: dlls/kernelbase/winerror.mc:3338
 msgid "Unrecognized media.\n"
-msgstr "Unrecognised media.\n"
+msgstr "Unrecognized media.\n"
 
 #: dlls/kernelbase/winerror.mc:3343
 msgid "No trust secret.\n"
@@ -7020,7 +6966,7 @@ msgstr "RPC comm failure.\n"
 
 #: dlls/kernelbase/winerror.mc:3518
 msgid "Unsupported authorization level.\n"
-msgstr "Unsupported authorisation level.\n"
+msgstr "Unsupported authorization level.\n"
 
 #: dlls/kernelbase/winerror.mc:3523
 msgid "No principal name registered.\n"
@@ -7048,7 +6994,7 @@ msgstr "Invalid handle operation.\n"
 
 #: dlls/kernelbase/winerror.mc:3553
 msgid "Wrong serializing package version.\n"
-msgstr "Wrong serialising package version.\n"
+msgstr "Wrong serializing package version.\n"
 
 #: dlls/kernelbase/winerror.mc:3558
 msgid "Wrong stub version.\n"
@@ -7794,7 +7740,7 @@ msgstr "Clock was stopped\n"
 
 #: dlls/mferror/mferror.mc:32
 msgid "Media Foundation platform is not initialized.\n"
-msgstr "Media Foundation platform is not initialised.\n"
+msgstr "Media Foundation platform is not initialized.\n"
 
 #: dlls/mferror/mferror.mc:39
 msgid "Buffer is too small.\n"
@@ -7818,7 +7764,7 @@ msgstr "No more input is accepted.\n"
 
 #: dlls/mferror/mferror.mc:74
 msgid "Object is not initialized.\n"
-msgstr "Object is not initialised.\n"
+msgstr "Object is not initialized.\n"
 
 #: dlls/mferror/mferror.mc:81
 msgid "Representation is not supported.\n"
@@ -8030,7 +7976,7 @@ msgstr "Media stream has no duration set.\n"
 
 #: dlls/mferror/mferror.mc:473
 msgid "Media format was recognized but is invalid.\n"
-msgstr "Media format was recognised but is invalid.\n"
+msgstr "Media format was recognized but is invalid.\n"
 
 #: dlls/mferror/mferror.mc:480
 msgid "Property wasn't found.\n"
@@ -8532,7 +8478,7 @@ msgstr "Unregistering modules"
 
 #: dlls/msi/msi.rc:140
 msgid "Initializing ODBC directories"
-msgstr "Initialising ODBC directories"
+msgstr "Initializing ODBC directories"
 
 #: dlls/msi/msi.rc:141
 msgid "Starting services"
@@ -9181,12 +9127,12 @@ msgstr "offscreen"
 #: dlls/oleacc/oleacc.rc:115
 msgctxt "object state"
 msgid "sizable"
-msgstr "sizeable"
+msgstr "sizable"
 
 #: dlls/oleacc/oleacc.rc:116
 msgctxt "object state"
 msgid "movable"
-msgstr "moveable"
+msgstr "movable"
 
 #: dlls/oleacc/oleacc.rc:117
 msgctxt "object state"
@@ -9361,7 +9307,7 @@ msgid ""
 "These are the initialization properties for this type of data. To edit a "
 "value, select a property, then choose Edit Value below."
 msgstr ""
-"These are the initialisation properties for this type of data. To edit a "
+"These are the initialization properties for this type of data. To edit a "
 "value, select a property, then choose Edit Value below."
 
 #: dlls/oledb32/version.rc:112
@@ -9729,7 +9675,7 @@ msgstr "Create Shor&tcut"
 #: dlls/shdoclc/shdoclc.rc:137 dlls/shdoclc/shdoclc.rc:164
 #: dlls/shdoclc/shdoclc.rc:188
 msgid "Add to &Favorites..."
-msgstr "Add to &Favourites..."
+msgstr "Add to &Favorites..."
 
 #: dlls/shdoclc/shdoclc.rc:56
 msgid "&Encoding"
@@ -10107,7 +10053,7 @@ msgstr "About %s"
 
 #: dlls/shell32/shell32.rc:325
 msgid "Wine &license"
-msgstr "Wine &licence"
+msgstr "Wine &license"
 
 #: dlls/shell32/shell32.rc:330
 msgid "Running on %s"
@@ -10123,11 +10069,11 @@ msgstr "Run"
 
 #: dlls/shell32/shell32.rc:340
 msgid ""
-"Type the name of a program, folder, document, or Internet resource, and Wine "
-"will open it for you."
+"Type the name of a program, folder, document, or Internet resource, and Wine"
+" will open it for you."
 msgstr ""
-"Type the name of a program, folder, document, or Internet resource, and Wine "
-"will open it for you."
+"Type the name of a program, folder, document, or Internet resource, and Wine"
+" will open it for you."
 
 #: dlls/shell32/shell32.rc:341
 msgid "&Open:"
@@ -10275,7 +10221,7 @@ msgstr "Documents"
 
 #: dlls/shell32/shell32.rc:205
 msgid "Favorites"
-msgstr "Favourites"
+msgstr "Favorites"
 
 #: dlls/shell32/shell32.rc:206
 msgid "StartUp"
@@ -10447,7 +10393,8 @@ msgid "Are you sure that you want to send these %1 items to the Trash?"
 msgstr "Are you sure that you want to send these %1 items to the Trash?"
 
 #: dlls/shell32/shell32.rc:179
-msgid "The item '%1' can't be sent to Trash. Do you want to delete it instead?"
+msgid ""
+"The item '%1' can't be sent to Trash. Do you want to delete it instead?"
 msgstr ""
 "The item '%1' can't be sent to Trash. Do you want to delete it instead?"
 
@@ -10523,37 +10470,21 @@ msgstr "Confirm overwrite"
 
 #: dlls/shell32/shell32.rc:270
 msgid ""
-"Wine is free software; you can redistribute it and/or modify it under the "
-"terms of the GNU Lesser General Public License as published by the Free "
-"Software Foundation; either version 2.1 of the License, or (at your option) "
-"any later version.\n"
+"Wine is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.\n"
 "\n"
-"Wine is distributed in the hope that it will be useful, but WITHOUT ANY "
-"WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS "
-"FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more "
-"details.\n"
+"Wine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.\n"
 "\n"
-"You should have received a copy of the GNU Lesser General Public License "
-"along with Wine; if not, write to the Free Software Foundation, Inc., 51 "
-"Franklin St, Fifth Floor, Boston, MA 02110-1301, USA."
+"You should have received a copy of the GNU Lesser General Public License along with Wine; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA."
 msgstr ""
-"Wine is free software; you can redistribute it and/or modify it under the "
-"terms of the GNU Lesser General Public Licence as published by the Free "
-"Software Foundation; either version 2.1 of the Licence, or (at your option) "
-"any later version.\n"
+"Wine is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.\n"
 "\n"
-"Wine is distributed in the hope that it will be useful, but WITHOUT ANY "
-"WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS "
-"FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public Licence for more "
-"details.\n"
+"Wine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.\n"
 "\n"
-"You should have received a copy of the GNU Lesser General Public Licence "
-"along with Wine; if not, write to the Free Software Foundation, Inc., 51 "
-"Franklin St, Fifth Floor, Boston, MA 02110-1301, USA."
+"You should have received a copy of the GNU Lesser General Public License along with Wine; if not, write to the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA."
 
 #: dlls/shell32/shell32.rc:258
 msgid "Wine License"
-msgstr "Wine Licence"
+msgstr "Wine License"
 
 #: dlls/shell32/shell32.rc:153
 msgid "Trash"
@@ -12583,13 +12514,13 @@ msgstr "&Size"
 
 #: dlls/user32/user32.rc:33 dlls/user32/user32.rc:46
 msgid "Mi&nimize"
-msgstr "Mi&nimise"
+msgstr "Mi&nimize"
 
 #: dlls/user32/user32.rc:34 dlls/user32/user32.rc:47
 #: programs/taskmgr/taskmgr.rc:83 programs/taskmgr/taskmgr.rc:99
 #: programs/taskmgr/taskmgr.rc:126
 msgid "Ma&ximize"
-msgstr "Ma&ximise"
+msgstr "Ma&ximize"
 
 #: dlls/user32/user32.rc:36
 msgid "&Close\tAlt+F4"
@@ -12765,7 +12696,7 @@ msgstr "Window"
 
 #: dlls/winemac.drv/winemac.rc:41
 msgid "Minimize"
-msgstr "Minimise"
+msgstr "Minimize"
 
 #: dlls/winemac.drv/winemac.rc:42
 msgid "Zoom"
@@ -12871,7 +12802,7 @@ msgstr "The URL is invalid.\n"
 
 #: dlls/wininet/winineterror.mc:41
 msgid "The URL scheme could not be recognized or is not supported.\n"
-msgstr "The URL scheme could not be recognised or is not supported.\n"
+msgstr "The URL scheme could not be recognized or is not supported.\n"
 
 #: dlls/wininet/winineterror.mc:46
 msgid "The server name could not be resolved.\n"
@@ -12886,8 +12817,8 @@ msgid ""
 "The operation was canceled, usually because the handle on which the request "
 "was operating was closed before the operation completed.\n"
 msgstr ""
-"The operation was cancelled, usually because the handle on which the request "
-"was operating was closed before the operation completed.\n"
+"The operation was cancelled, usually because the handle on which the request"
+" was operating was closed before the operation completed.\n"
 
 #: dlls/wininet/winineterror.mc:61
 msgid "The requested item could not be located.\n"
@@ -13039,44 +12970,45 @@ msgstr ""
 
 #: dlls/winmm/winmm.rc:57
 msgid ""
-"The current MIDI setup is damaged. Copy the original MIDIMAP.CFG file to the "
-"Windows SYSTEM directory, and then try again."
+"The current MIDI setup is damaged. Copy the original MIDIMAP.CFG file to the"
+" Windows SYSTEM directory, and then try again."
 msgstr ""
-"The current MIDI setup is damaged. Copy the original MIDIMAP.CFG file to the "
-"Windows SYSTEM directory, and then try again."
+"The current MIDI setup is damaged. Copy the original MIDIMAP.CFG file to the"
+" Windows SYSTEM directory, and then try again."
 
 #: dlls/winmm/winmm.rc:60
-msgid "Invalid MCI device ID. Use the ID returned when opening the MCI device."
+msgid ""
+"Invalid MCI device ID. Use the ID returned when opening the MCI device."
 msgstr ""
 "Invalid MCI device ID. Use the ID returned when opening the MCI device."
 
 #: dlls/winmm/winmm.rc:61
 msgid "The driver cannot recognize the specified command parameter."
-msgstr "The driver cannot recognise the specified command parameter."
+msgstr "The driver cannot recognize the specified command parameter."
 
 #: dlls/winmm/winmm.rc:62
 msgid "The driver cannot recognize the specified command."
-msgstr "The driver cannot recognise the specified command."
+msgstr "The driver cannot recognize the specified command."
 
 #: dlls/winmm/winmm.rc:63
 msgid ""
-"There is a problem with your media device. Make sure it is working correctly "
-"or contact the device manufacturer."
+"There is a problem with your media device. Make sure it is working correctly"
+" or contact the device manufacturer."
 msgstr ""
-"There is a problem with your media device. Make sure it is working correctly "
-"or contact the device manufacturer."
+"There is a problem with your media device. Make sure it is working correctly"
+" or contact the device manufacturer."
 
 #: dlls/winmm/winmm.rc:64
 msgid "The specified device is not open or is not recognized by MCI."
-msgstr "The specified device is not open or is not recognised by MCI."
+msgstr "The specified device is not open or is not recognized by MCI."
 
 #: dlls/winmm/winmm.rc:66
 msgid ""
-"The device name is already being used as an alias by this application. Use a "
-"unique alias."
+"The device name is already being used as an alias by this application. Use a"
+" unique alias."
 msgstr ""
-"The device name is already being used as an alias by this application. Use a "
-"unique alias."
+"The device name is already being used as an alias by this application. Use a"
+" unique alias."
 
 #: dlls/winmm/winmm.rc:67
 msgid ""
@@ -13144,7 +13076,7 @@ msgstr "The device driver is not ready."
 
 #: dlls/winmm/winmm.rc:78
 msgid "A problem occurred in initializing MCI. Try restarting Windows."
-msgstr "A problem occurred in initialising MCI. Try restarting Windows."
+msgstr "A problem occurred in initializing MCI. Try restarting Windows."
 
 #: dlls/winmm/winmm.rc:79
 msgid ""
@@ -13192,7 +13124,7 @@ msgid ""
 "device name is spelled correctly."
 msgstr ""
 "Cannot find the specified device. Make sure it is installed and that the "
-"device name is spelt correctly."
+"device name is spelled correctly."
 
 #: dlls/winmm/winmm.rc:87
 msgid ""
@@ -13407,23 +13339,23 @@ msgid ""
 "The device you are trying to play to cannot recognize the current file "
 "format."
 msgstr ""
-"The device you are trying to play to cannot recognise the current file "
+"The device you are trying to play to cannot recognize the current file "
 "format."
 
 #: dlls/winmm/winmm.rc:120
 msgid ""
-"No wave device that can record files in the current format is installed. Use "
-"the Drivers option to install the wave device."
+"No wave device that can record files in the current format is installed. Use"
+" the Drivers option to install the wave device."
 msgstr ""
-"No wave device that can record files in the current format is installed. Use "
-"the Drivers option to install the wave device."
+"No wave device that can record files in the current format is installed. Use"
+" the Drivers option to install the wave device."
 
 #: dlls/winmm/winmm.rc:121
 msgid ""
 "The device you are trying to record from cannot recognize the current file "
 "format."
 msgstr ""
-"The device you are trying to record from cannot recognise the current file "
+"The device you are trying to record from cannot recognize the current file "
 "format."
 
 #: dlls/winmm/winmm.rc:126
@@ -13852,14 +13784,14 @@ msgstr ""
 
 #: programs/clock/clock.rc:32
 msgid "Ana&log"
-msgstr "Ana&logue"
+msgstr "Ana&log"
 
 #: programs/clock/clock.rc:33
 msgid "Digi&tal"
 msgstr "Digi&tal"
 
 #: programs/clock/clock.rc:35 programs/notepad/notepad.rc:59
-#: programs/winecfg/winecfg.rc:315 programs/winefile/winefile.rc:63
+#: programs/winecfg/winecfg.rc:313 programs/winefile/winefile.rc:63
 #: programs/wordpad/wordpad.rc:84
 msgid "&Font..."
 msgstr "&Font..."
@@ -14161,8 +14093,7 @@ msgstr "RENAME <filename> renames a file.\n"
 
 #: programs/cmd/cmd.rc:178
 msgid "RD <directory> is the short version of RMDIR. It deletes a directory.\n"
-msgstr ""
-"RD <directory> is the short version of RMDIR. It deletes a directory.\n"
+msgstr "RD <directory> is the short version of RMDIR. It deletes a directory.\n"
 
 #: programs/cmd/cmd.rc:180
 msgid "RMDIR <directory> deletes a directory.\n"
@@ -14253,8 +14184,8 @@ msgstr ""
 "/d directory   Start the program in the specified directory.\n"
 "/b             Don't create a new console for the program.\n"
 "/i             Start the program with fresh environment variables.\n"
-"/min           Start the program minimised.\n"
-"/max           Start the program maximised.\n"
+"/min           Start the program minimized.\n"
+"/max           Start the program maximized.\n"
 "/low           Start the program in the idle priority class.\n"
 "/normal        Start the program in the normal priority class.\n"
 "/high          Start the program in the high priority class.\n"
@@ -14329,7 +14260,7 @@ msgid ""
 "file, whichever comes first), at which point the previous environment\n"
 "settings are restored.\n"
 msgstr ""
-"SETLOCAL starts localisation of environment changes in a batch file.\n"
+"SETLOCAL starts localization of environment changes in a batch file.\n"
 "\n"
 "Environment changes done after a SETLOCAL are local to the batch file, and\n"
 "are preserved until the next ENDLOCAL is encountered (or at the end of the\n"
@@ -14493,7 +14424,7 @@ msgstr ""
 "DEL (ERASE)\tDelete a file or set of files\n"
 "DIR\t\tList the contents of a directory\n"
 "ECHO\t\tCopy text directly to the console output\n"
-"ENDLOCAL\tEnd localisation of environment changes in a batch file\n"
+"ENDLOCAL\tEnd localization of environment changes in a batch file\n"
 "FTYPE\t\tShow or modify open commands associated with file types\n"
 "HELP\t\tShow brief help details on a topic\n"
 "MD (MKDIR)\tCreate a subdirectory\n"
@@ -14508,7 +14439,7 @@ msgstr ""
 "REN (RENAME)\tRename a file\n"
 "RD (RMDIR)\tDelete a subdirectory\n"
 "SET\t\tSet or show environment variables\n"
-"SETLOCAL\tStart localisation of environment changes in a batch file\n"
+"SETLOCAL\tStart localization of environment changes in a batch file\n"
 "START\t\tStart a program, or open a document in the associated program\n"
 "TIME\t\tSet or show the current system time\n"
 "TITLE\t\tSet the window title for the CMD session\n"
@@ -14675,7 +14606,7 @@ msgstr " (Yes|No|All)"
 msgid ""
 "Can't recognize '%1' as an internal or external command, or batch script.\n"
 msgstr ""
-"Can't recognise '%1' as an internal or external command, or batch script.\n"
+"Can't recognize '%1' as an internal or external command, or batch script.\n"
 
 #: programs/cmd/cmd.rc:401
 msgid "Division by zero error.\n"
@@ -14775,7 +14706,7 @@ msgstr "&Font"
 
 #: programs/conhost/conhost.rc:81
 msgid "&Color"
-msgstr "&Colour"
+msgstr "&Color"
 
 #: programs/conhost/conhost.rc:92
 msgid "Configuration"
@@ -14975,7 +14906,7 @@ msgstr "Error: Unknown or invalid command line parameters specified\n"
 
 #: programs/ipconfig/ipconfig.rc:32
 msgid "%1 adapter %2\n"
-msgstr "%1 adaptor %2\n"
+msgstr "%1 adapter %2\n"
 
 #: programs/ipconfig/ipconfig.rc:33
 msgid "Ethernet"
@@ -15015,7 +14946,7 @@ msgstr "Hybrid"
 
 #: programs/ipconfig/ipconfig.rc:44
 msgid "IP routing enabled"
-msgstr "IP routeing enabled"
+msgstr "IP routing enabled"
 
 #: programs/ipconfig/ipconfig.rc:46
 msgid "Physical address"
@@ -15105,15 +15036,13 @@ msgid ""
 "\n"
 "NET START [service]\n"
 "\n"
-"Displays the list of running services if 'service' is omitted. Otherwise "
-"'service' is the name of the service to start.\n"
+"Displays the list of running services if 'service' is omitted. Otherwise 'service' is the name of the service to start.\n"
 msgstr ""
 "The syntax of this command is:\n"
 "\n"
 "NET START [service]\n"
 "\n"
-"Displays the list of running services if 'service' is omitted. Otherwise "
-"'service' is the name of the service to start.\n"
+"Displays the list of running services if 'service' is omitted. Otherwise 'service' is the name of the service to start.\n"
 
 #: programs/net/net.rc:32
 msgid ""
@@ -15438,7 +15367,7 @@ msgstr "&Footer:"
 
 #: programs/notepad/notepad.rc:115
 msgid "Margins (millimeters)"
-msgstr "Margins (millimetres)"
+msgstr "Margins (millimeters)"
 
 #: programs/notepad/notepad.rc:116
 msgid "&Left:"
@@ -15981,7 +15910,7 @@ msgstr "&Arrange automatically"
 
 #: programs/progman/progman.rc:46
 msgid "&Minimize on run"
-msgstr "&Minimise on run"
+msgstr "&Minimize on run"
 
 #: programs/progman/progman.rc:47 programs/winefile/winefile.rc:70
 msgid "&Save settings on exit"
@@ -16066,7 +15995,7 @@ msgstr "&Key combination:"
 
 #: programs/progman/progman.rc:179 programs/progman/progman.rc:215
 msgid "&Minimize at launch"
-msgstr "&Minimise at launch"
+msgstr "&Minimize at launch"
 
 #: programs/progman/progman.rc:183
 msgid "Change &icon..."
@@ -16338,10 +16267,8 @@ msgid ""
 "     Copy all subkeys and values from <key1> to <key2>.\n"
 "\n"
 "  /f\n"
-"     Overwrite all registry data in <key2> without prompting for "
-"confirmation.\n"
-"     This option does not modify subkeys and values that only exist in "
-"<key2>.\n"
+"     Overwrite all registry data in <key2> without prompting for confirmation.\n"
+"     This option does not modify subkeys and values that only exist in <key2>.\n"
 "\n"
 msgstr ""
 "REG COPY <key1> <key2> [/s] [/f]\n"
@@ -16370,10 +16297,8 @@ msgstr ""
 "     Copy all subkeys and values from <key1> to <key2>.\n"
 "\n"
 "  /f\n"
-"     Overwrite all registry data in <key2> without prompting for "
-"confirmation.\n"
-"     This option does not modify subkeys and values that only exist in "
-"<key2>.\n"
+"     Overwrite all registry data in <key2> without prompting for confirmation.\n"
+"     This option does not modify subkeys and values that only exist in <key2>.\n"
 "\n"
 
 #: programs/reg/reg.rc:92
@@ -16686,7 +16611,7 @@ msgstr "The file '%1' already exists. Do you want to overwrite it?"
 
 #: programs/reg/reg.rc:151
 msgid "reg: Unrecognized escape sequence [\\%1!c!]\n"
-msgstr "reg: Unrecognised escape sequence [\\%1!c!]\n"
+msgstr "reg: Unrecognized escape sequence [\\%1!c!]\n"
 
 #: programs/reg/reg.rc:175
 msgid "reg: Unable to import the registry key '%1'\n"
@@ -16774,7 +16699,7 @@ msgstr "Sp&lit"
 
 #: programs/regedit/regedit.rc:76
 msgid "&Remove Favorite..."
-msgstr "&Remove Favourite..."
+msgstr "&Remove Favorite..."
 
 #: programs/regedit/regedit.rc:81
 msgid "&About Registry Editor"
@@ -16823,7 +16748,7 @@ msgstr "Whole string only"
 
 #: programs/regedit/regedit.rc:296
 msgid "Add Favorite"
-msgstr "Add Favourite"
+msgstr "Add Favorite"
 
 #: programs/regedit/regedit.rc:299 programs/regedit/regedit.rc:310
 msgid "Name:"
@@ -16831,7 +16756,7 @@ msgstr "Name:"
 
 #: programs/regedit/regedit.rc:307
 msgid "Remove Favorite"
-msgstr "Remove Favourite"
+msgstr "Remove Favorite"
 
 #: programs/regedit/regedit.rc:318
 msgid "Edit String"
@@ -16881,7 +16806,7 @@ msgstr "Contains commands for editing values or keys"
 
 #: programs/regedit/regedit.rc:164
 msgid "Contains commands for customizing the registry window"
-msgstr "Contains commands for customising the registry window"
+msgstr "Contains commands for customizing the registry window"
 
 #: programs/regedit/regedit.rc:165
 msgid "Contains commands for accessing frequently used keys"
@@ -16915,11 +16840,11 @@ msgstr "Export Registry File"
 
 #: programs/regedit/regedit.rc:228
 msgid "Registry files (*.reg)"
-msgstr "Registry files (*.reg)"
+msgstr "Registry Files (*.reg)"
 
 #: programs/regedit/regedit.rc:229
 msgid "Win9x/NT4 Registry files (REGEDIT4)"
-msgstr "Win9x/NT4 Registry files (REGEDIT4)"
+msgstr "Win9x/NT4 Registry Files (REGEDIT4)"
 
 #: programs/regedit/regedit.rc:246
 msgid "(cannot display value)"
@@ -16997,10 +16922,8 @@ msgid ""
 "  /S             Silent mode. No messages will be displayed.\n"
 "  /V             Launch the GUI in advanced mode. Ignored.\n"
 "  /?             Display this information and exit.\n"
-"  [filename]     The location of the file containing registry information "
-"to\n"
-"                 be imported. When used with [/E], this option specifies "
-"the\n"
+"  [filename]     The location of the file containing registry information to\n"
+"                 be imported. When used with [/E], this option specifies the\n"
 "                 file location where registry information will be exported.\n"
 "  [reg_key]      The registry key to be modified.\n"
 "\n"
@@ -17025,10 +16948,8 @@ msgstr ""
 "  /S             Silent mode. No messages will be displayed.\n"
 "  /V             Launch the GUI in advanced mode. Ignored.\n"
 "  /?             Display this information and exit.\n"
-"  [filename]     The location of the file containing registry information "
-"to\n"
-"                 be imported. When used with [/E], this option specifies "
-"the\n"
+"  [filename]     The location of the file containing registry information to\n"
+"                 be imported. When used with [/E], this option specifies the\n"
 "                 file location where registry information will be exported.\n"
 "  [reg_key]      The registry key to be modified.\n"
 "\n"
@@ -17039,7 +16960,7 @@ msgstr ""
 
 #: programs/regedit/regedit.rc:414
 msgid "regedit: Invalid or unrecognized switch [%1]\n"
-msgstr "regedit: Invalid or unrecognised switch [%1]\n"
+msgstr "regedit: Invalid or unrecognized switch [%1]\n"
 
 #: programs/regedit/regedit.rc:415
 msgid "Type \"regedit /?\" for help.\n"
@@ -17083,7 +17004,7 @@ msgstr ""
 
 #: programs/regedit/regedit.rc:424
 msgid "regedit: Unrecognized escape sequence [\\%1!c!]\n"
-msgstr "regedit: Unrecognised escape sequence [\\%1!c!]\n"
+msgstr "regedit: Unrecognized escape sequence [\\%1!c!]\n"
 
 #: programs/regedit/regedit.rc:425
 msgid "regedit: Unsupported registry data type [0x%1!x!]\n"
@@ -17095,7 +17016,7 @@ msgstr "regedit: Unexpected end of line in '%1'.\n"
 
 #: programs/regedit/regedit.rc:427
 msgid "regedit: The line '%1' was not recognized.\n"
-msgstr "regedit: The line '%1' was not recognised.\n"
+msgstr "regedit: The line '%1' was not recognized.\n"
 
 #: programs/regedit/regedit.rc:428
 msgid "regedit: Unable to add the registry value '%1' to '%2'.\n"
@@ -17106,8 +17027,7 @@ msgid "regedit: Unable to open the registry key '%1'.\n"
 msgstr "regedit: Unable to open the registry key '%1'.\n"
 
 #: programs/regedit/regedit.rc:430
-msgid ""
-"regedit: Unsupported registry data type [0x%1!x!] encountered in '%2'.\n"
+msgid "regedit: Unsupported registry data type [0x%1!x!] encountered in '%2'.\n"
 msgstr ""
 "regedit: Unsupported registry data type [0x%1!x!] encountered in '%2'.\n"
 
@@ -17139,11 +17059,11 @@ msgstr "Quits the Registry Editor"
 
 #: programs/regedit/regedit.rc:192
 msgid "Adds keys to the favorites list"
-msgstr "Adds keys to the favourites list"
+msgstr "Adds keys to the favorites list"
 
 #: programs/regedit/regedit.rc:193
 msgid "Removes keys from the favorites list"
-msgstr "Removes keys from the favourites list"
+msgstr "Removes keys from the favorites list"
 
 #: programs/regedit/regedit.rc:194
 msgid "Shows or hides the status bar"
@@ -17340,7 +17260,7 @@ msgid ""
 "regsvr32: Invalid or unrecognized switch [%1]\n"
 "\n"
 msgstr ""
-"regsvr32: Invalid or unrecognised switch [%1]\n"
+"regsvr32: Invalid or unrecognized switch [%1]\n"
 "\n"
 
 #: programs/regsvr32/regsvr32.rc:43
@@ -17407,10 +17327,8 @@ msgid ""
 "/node n        Start the program on the specified NUMA node.\n"
 "/affinity mask Start the program with the specified affinity mask.\n"
 "/machine arch  Force using a specific architecture (x86,arm,amd64,arm64).\n"
-"/wait          Wait for the program to finish, then exit with its exit "
-"code.\n"
-"/unix          Use a Unix filename and start the file like Windows "
-"Explorer.\n"
+"/wait          Wait for the program to finish, then exit with its exit code.\n"
+"/unix          Use a Unix filename and start the file like Windows Explorer.\n"
 "/exec          Exec the specified file (for internal Wine usage).\n"
 "/ProgIDOpen    Open a document using the specified progID.\n"
 "/?             Display this help and exit.\n"
@@ -17426,8 +17344,8 @@ msgstr ""
 "/d directory   Start the program in the specified directory.\n"
 "/b             Don't create a new console for the program.\n"
 "/i             Start the program with fresh environment variables.\n"
-"/min           Start the program minimised.\n"
-"/max           Start the program maximised.\n"
+"/min           Start the program minimized.\n"
+"/max           Start the program maximized.\n"
 "/low           Start the program in the idle priority class.\n"
 "/normal        Start the program in the normal priority class.\n"
 "/high          Start the program in the high priority class.\n"
@@ -17437,22 +17355,18 @@ msgstr ""
 "/node n        Start the program on the specified NUMA node.\n"
 "/affinity mask Start the program with the specified affinity mask.\n"
 "/machine arch  Force using a specific architecture (x86,arm,amd64,arm64).\n"
-"/wait          Wait for the program to finish, then exit with its exit "
-"code.\n"
-"/unix          Use a Unix filename and start the file like Windows "
-"Explorer.\n"
+"/wait          Wait for the program to finish, then exit with its exit code.\n"
+"/unix          Use a Unix filename and start the file like Windows Explorer.\n"
 "/exec          Exec the specified file (for internal Wine usage).\n"
 "/ProgIDOpen    Open a document using the specified progID.\n"
 "/?             Display this help and exit.\n"
 
 #: programs/start/start.rc:58
 msgid ""
-"Application could not be started, or no application associated with the "
-"specified file.\n"
+"Application could not be started, or no application associated with the specified file.\n"
 "ShellExecuteEx failed"
 msgstr ""
-"Application could not be started, or no application associated with the "
-"specified file.\n"
+"Application could not be started, or no application associated with the specified file.\n"
 "ShellExecuteEx failed"
 
 #: programs/start/start.rc:60
@@ -17488,10 +17402,8 @@ msgid "Close message sent to top-level windows of process with PID %1!u!.\n"
 msgstr "Close message sent to top-level windows of process with PID %1!u!.\n"
 
 #: programs/taskkill/taskkill.rc:37
-msgid ""
-"Close message sent to top-level windows of process \"%1\" with PID %2!u!.\n"
-msgstr ""
-"Close message sent to top-level windows of process \"%1\" with PID %2!u!.\n"
+msgid "Close message sent to top-level windows of process \"%1\" with PID %2!u!.\n"
+msgstr "Close message sent to top-level windows of process \"%1\" with PID %2!u!.\n"
 
 #: programs/taskkill/taskkill.rc:38
 msgid "Process with PID %1!u! was forcibly terminated.\n"
@@ -17526,8 +17438,7 @@ msgstr ""
 "terminated.\n"
 
 #: programs/taskkill/taskkill.rc:45
-msgid ""
-"Sent termination signal to process with PID %1!u!, child of PID %2!u!.\n"
+msgid "Sent termination signal to process with PID %1!u!, child of PID %2!u!.\n"
 msgstr ""
 "Sent termination signal to process with PID %1!u!, child of PID %2!u!.\n"
 
@@ -17569,7 +17480,7 @@ msgstr "ERROR: Invalid syntax\n"
 
 #: programs/tasklist/tasklist.rc:37
 msgid "ERROR: The search filter cannot be recognized.\n"
-msgstr "ERROR: The search filter cannot be recognised.\n"
+msgstr "ERROR: The search filter cannot be recognized.\n"
 
 #: programs/taskmgr/taskmgr.rc:37 programs/taskmgr/taskmgr.rc:108
 msgid "&New Task (Run...)"
@@ -17581,11 +17492,11 @@ msgstr "E&xit Task Manager"
 
 #: programs/taskmgr/taskmgr.rc:45
 msgid "&Minimize On Use"
-msgstr "&Minimise On Use"
+msgstr "&Minimize On Use"
 
 #: programs/taskmgr/taskmgr.rc:47
 msgid "&Hide When Minimized"
-msgstr "&Hide When Minimised"
+msgstr "&Hide When Minimized"
 
 #: programs/taskmgr/taskmgr.rc:49 programs/taskmgr/taskmgr.rc:257
 msgid "&Show 16-bit tasks"
@@ -17648,7 +17559,7 @@ msgstr "Tile &Vertically"
 #: programs/taskmgr/taskmgr.rc:82 programs/taskmgr/taskmgr.rc:98
 #: programs/taskmgr/taskmgr.rc:125
 msgid "&Minimize"
-msgstr "&Minimise"
+msgstr "&Minimize"
 
 #: programs/taskmgr/taskmgr.rc:84 programs/taskmgr/taskmgr.rc:100
 #: programs/taskmgr/taskmgr.rc:127
@@ -18058,15 +17969,15 @@ msgstr "Runs a new program"
 
 #: programs/taskmgr/taskmgr.rc:188
 msgid "Task Manager remains in front of all other windows unless minimized"
-msgstr "Task Manager remains in front of all other windows unless minimised"
+msgstr "Task Manager remains in front of all other windows unless minimized"
 
 #: programs/taskmgr/taskmgr.rc:190
 msgid "Task Manager is minimized when a SwitchTo operation is performed"
-msgstr "Task Manager is minimised when a SwitchTo operation is performed"
+msgstr "Task Manager is minimized when a SwitchTo operation is performed"
 
 #: programs/taskmgr/taskmgr.rc:191
 msgid "Hide the Task Manager when it is minimized"
-msgstr "Hide the Task Manager when it is minimised"
+msgstr "Hide the Task Manager when it is minimized"
 
 #: programs/taskmgr/taskmgr.rc:192
 msgid "Force Task Manager to update now, regardless of Update Speed setting"
@@ -18110,11 +18021,11 @@ msgstr "Tiles the windows vertically on the desktop"
 
 #: programs/taskmgr/taskmgr.rc:207
 msgid "Minimizes the windows"
-msgstr "Minimises the windows"
+msgstr "Minimizes the windows"
 
 #: programs/taskmgr/taskmgr.rc:208
 msgid "Maximizes the windows"
-msgstr "Maximises the windows"
+msgstr "Maximizes the windows"
 
 #: programs/taskmgr/taskmgr.rc:209
 msgid "Cascades the windows diagonally on the desktop"
@@ -18398,12 +18309,10 @@ msgstr "Wine Application Uninstaller"
 
 #: programs/uninstaller/uninstaller.rc:30
 msgid ""
-"Execution of uninstall command '%s' failed, perhaps due to missing "
-"executable.\n"
+"Execution of uninstall command '%s' failed, perhaps due to missing executable.\n"
 "Do you want to remove the uninstall entry from the registry?"
 msgstr ""
-"Execution of uninstall command '%s' failed, perhaps due to missing "
-"executable.\n"
+"Execution of uninstall command '%s' failed, perhaps due to missing executable.\n"
 "Do you want to remove the uninstall entry from the registry?"
 
 #: programs/uninstaller/uninstaller.rc:31
@@ -18490,13 +18399,11 @@ msgstr "Terminate Process"
 
 #: programs/wineboot/wineboot.rc:36
 msgid ""
-"A simulated log-off or shutdown is in progress, but this program isn't "
-"responding.\n"
+"A simulated log-off or shutdown is in progress, but this program isn't responding.\n"
 "\n"
 "If you terminate the process you may lose all unsaved data."
 msgstr ""
-"A simulated log-off or shutdown is in progress, but this program isn't "
-"responding.\n"
+"A simulated log-off or shutdown is in progress, but this program isn't responding.\n"
 "\n"
 "If you terminate the process you may lose all unsaved data."
 
@@ -18507,13 +18414,13 @@ msgstr "The Wine configuration in %s is being updated, please wait..."
 #: programs/winecfg/winecfg.rc:146
 msgid ""
 "This program is free software; you can redistribute it and/or modify it "
-"under the terms of the GNU Lesser General Public License as published by the "
-"Free Software Foundation; either version 2.1 of the License, or (at your "
+"under the terms of the GNU Lesser General Public License as published by the"
+" Free Software Foundation; either version 2.1 of the License, or (at your "
 "option) any later version."
 msgstr ""
 "This program is free software; you can redistribute it and/or modify it "
-"under the terms of the GNU Lesser General Public Licence as published by the "
-"Free Software Foundation; either version 2.1 of the Licence, or (at your "
+"under the terms of the GNU Lesser General Public License as published by the"
+" Free Software Foundation; either version 2.1 of the License, or (at your "
 "option) any later version."
 
 #: programs/winecfg/winecfg.rc:148
@@ -18526,7 +18433,7 @@ msgstr "&Owner:"
 
 #: programs/winecfg/winecfg.rc:151
 msgid "Organi&zation:"
-msgstr "Organi&sation:"
+msgstr "Organi&zation:"
 
 #: programs/winecfg/winecfg.rc:159
 msgid "Application settings"
@@ -18535,12 +18442,12 @@ msgstr "Application settings"
 #: programs/winecfg/winecfg.rc:160
 msgid ""
 "Wine can mimic different Windows versions for each application. This tab is "
-"linked to the Libraries and Graphics tabs to allow you to change system-wide "
-"or per-application settings in those tabs as well."
+"linked to the Libraries and Graphics tabs to allow you to change system-wide"
+" or per-application settings in those tabs as well."
 msgstr ""
 "Wine can mimic different Windows versions for each application. This tab is "
-"linked to the Libraries and Graphics tabs to allow you to change system-wide "
-"or per-application settings in those tabs as well."
+"linked to the Libraries and Graphics tabs to allow you to change system-wide"
+" or per-application settings in those tabs as well."
 
 #: programs/winecfg/winecfg.rc:164
 msgid "Add appli&cation..."
@@ -18693,78 +18600,74 @@ msgid "Driver diagnostics"
 msgstr "Driver diagnostics"
 
 #: programs/winecfg/winecfg.rc:271
-msgid "&Test Sound"
-msgstr "&Test Sound"
-
-#: programs/winecfg/winecfg.rc:272
 msgid "Defaults"
 msgstr "Defaults"
 
-#: programs/winecfg/winecfg.rc:273
+#: programs/winecfg/winecfg.rc:272
 msgid "Output device:"
 msgstr "Output device:"
 
-#: programs/winecfg/winecfg.rc:274
+#: programs/winecfg/winecfg.rc:273
 msgid "Voice output device:"
 msgstr "Voice output device:"
 
-#: programs/winecfg/winecfg.rc:275
+#: programs/winecfg/winecfg.rc:274
 msgid "Input device:"
 msgstr "Input device:"
 
-#: programs/winecfg/winecfg.rc:276
+#: programs/winecfg/winecfg.rc:275
 msgid "Voice input device:"
 msgstr "Voice input device:"
 
-#: programs/winecfg/winecfg.rc:277
-msgid "MIDI output device:"
-msgstr "MIDI output device:"
+#: programs/winecfg/winecfg.rc:280
+msgid "&Test Sound"
+msgstr "&Test Sound"
 
-#: programs/winecfg/winecfg.rc:283 programs/winecfg/winecfg.rc:89
+#: programs/winecfg/winecfg.rc:281 programs/winecfg/winecfg.rc:89
 msgid "Speaker configuration"
 msgstr "Speaker configuration"
 
-#: programs/winecfg/winecfg.rc:286
+#: programs/winecfg/winecfg.rc:284
 msgid "Speakers:"
 msgstr "Speakers:"
 
-#: programs/winecfg/winecfg.rc:294
+#: programs/winecfg/winecfg.rc:292
 msgid "Appearance"
 msgstr "Appearance"
 
-#: programs/winecfg/winecfg.rc:295
+#: programs/winecfg/winecfg.rc:293
 msgid "&Theme:"
 msgstr "&Theme:"
 
-#: programs/winecfg/winecfg.rc:297
+#: programs/winecfg/winecfg.rc:295
 msgid "&WinRT theme:"
 msgstr "&WinRT theme:"
 
-#: programs/winecfg/winecfg.rc:299
+#: programs/winecfg/winecfg.rc:297
 msgid "&Install theme..."
 msgstr "&Install theme..."
 
-#: programs/winecfg/winecfg.rc:304
+#: programs/winecfg/winecfg.rc:302
 msgid "It&em:"
 msgstr "It&em:"
 
-#: programs/winecfg/winecfg.rc:306
+#: programs/winecfg/winecfg.rc:304
 msgid "C&olor:"
-msgstr "C&olour:"
+msgstr "C&olor:"
 
-#: programs/winecfg/winecfg.rc:312
+#: programs/winecfg/winecfg.rc:310
 msgid "MIME types"
 msgstr "MIME types"
 
-#: programs/winecfg/winecfg.rc:313
+#: programs/winecfg/winecfg.rc:311
 msgid "Manage file and protocol &associations"
 msgstr "Manage file and protocol &associations"
 
-#: programs/winecfg/winecfg.rc:316
+#: programs/winecfg/winecfg.rc:314
 msgid "Folders"
 msgstr "Folders"
 
-#: programs/winecfg/winecfg.rc:319
+#: programs/winecfg/winecfg.rc:317
 msgid "&Link to:"
 msgstr "&Link to:"
 
@@ -18954,13 +18857,11 @@ msgstr "System drive"
 msgid ""
 "Are you sure you want to delete drive C?\n"
 "\n"
-"Most Windows applications expect drive C to exist, and will die messily if "
-"it doesn't. If you proceed, remember to recreate it!"
+"Most Windows applications expect drive C to exist, and will die messily if it doesn't. If you proceed, remember to recreate it!"
 msgstr ""
 "Are you sure you want to delete drive C?\n"
 "\n"
-"Most Windows applications expect drive C to exist, and will die messily if "
-"it doesn't. If you proceed, remember to recreate it!"
+"Most Windows applications expect drive C to exist, and will die messily if it doesn't. If you proceed, remember to recreate it!"
 
 #: programs/winecfg/winecfg.rc:76
 msgctxt "Drive letter"
@@ -19067,7 +18968,7 @@ msgstr "Controls Shadow"
 
 #: programs/winecfg/winecfg.rc:126
 msgid "Gray Text"
-msgstr "Grey Text"
+msgstr "Gray Text"
 
 #: programs/winecfg/winecfg.rc:127
 msgid "Controls Highlight"
@@ -19147,13 +19048,15 @@ msgstr "Program Error Details"
 msgid ""
 "If this problem is not present under Windows and has not been reported yet, "
 "you can save the detailed information to a file using the \"Save As\" "
-"button, then <a href=\"https://gitlab.winehq.org/wine/wine/-/wikis/"
-"Bugs\">file a bug report</a> and attach that file to the report."
+"button, then <a "
+"href=\"https://gitlab.winehq.org/wine/wine/-/wikis/Bugs\">file a bug "
+"report</a> and attach that file to the report."
 msgstr ""
 "If this problem is not present under Windows and has not been reported yet, "
 "you can save the detailed information to a file using the \"Save As\" "
-"button, then <a href=\"https://gitlab.winehq.org/wine/wine/-/wikis/"
-"Bugs\">file a bug report</a> and attach that file to the report."
+"button, then <a "
+"href=\"https://gitlab.winehq.org/wine/wine/-/wikis/Bugs\">file a bug "
+"report</a> and attach that file to the report."
 
 #: programs/winedbg/winedbg.rc:40
 msgid ""
@@ -19568,10 +19471,6 @@ msgstr "Error: Invalid syntax for PATH\n"
 msgid "Supply a command\n"
 msgstr "Supply a command\n"
 
-#: programs/wmic/wmic.rc:33
-msgid "Example usage: wmic ALIAS get PROPERTY[,PROPERTY2,...]\n"
-msgstr "Example usage: wmic ALIAS get PROPERTY[,PROPERTY2,...]\n"
-
 #: programs/wordpad/wordpad.rc:31
 msgid "&New...\tCtrl+N"
 msgstr "&New...\tCtrl+N"
@@ -19837,7 +19736,7 @@ msgstr "Printer files (*.prn)"
 
 #: programs/wordpad/wordpad.rc:161
 msgid "Center"
-msgstr "Centre"
+msgstr "Center"
 
 #: programs/wordpad/wordpad.rc:167
 msgid "Text"
