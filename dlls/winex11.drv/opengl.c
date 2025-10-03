@@ -487,7 +487,15 @@ BOOL visual_from_pixel_format( int format, XVisualInfo *visual )
 {
     if (use_egl)
     {
-        *visual = default_visual;
+        EGLConfig config = egl_config_for_format( format );
+        XVisualInfo *visuals;
+        int count;
+
+        memset( visual, 0, sizeof(*visual) );
+        funcs->p_eglGetConfigAttrib( egl->display, config, EGL_NATIVE_VISUAL_ID, (EGLint *)&visual->visualid );
+        if (!(visuals = XGetVisualInfo( gdi_display, VisualIDMask, visual, &count ))) return FALSE;
+        *visual = *visuals;
+        XFree( visuals );
         return TRUE;
     }
     else
