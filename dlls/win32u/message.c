@@ -3179,6 +3179,21 @@ static HANDLE get_server_queue_handle(void)
     return ret;
 }
 
+static BOOL is_queue_signaled(void)
+{
+    struct object_lock lock = OBJECT_LOCK_INIT;
+    const queue_shm_t *queue_shm;
+    BOOL signaled = FALSE;
+    UINT status;
+
+    while ((status = get_shared_queue( &lock, &queue_shm )) == STATUS_PENDING)
+        signaled = (queue_shm->wake_bits & queue_shm->wake_mask) ||
+                   (queue_shm->changed_bits & queue_shm->changed_mask);
+    if (status) return FALSE;
+
+    return signaled;
+}
+
 static BOOL check_internal_bits( UINT mask )
 {
     struct object_lock lock = OBJECT_LOCK_INIT;
@@ -3266,16 +3281,13 @@ static DWORD wait_message( DWORD count, const HANDLE *handles, DWORD timeout, DW
         params.restore = TRUE;
     }
 
-    if (process_driver_events( QS_ALLINPUT )) ret = count - 1;
-    else
+    while (ret == count - 1 && !process_driver_events( QS_ALLINPUT ) && !is_queue_signaled())
+        ret = NtWaitForMultipleObjects( count, handles, !(flags & MWMO_WAITALL),
+                                        !!(flags & MWMO_ALERTABLE), abs );
+    if (HIWORD(ret)) /* is it an error code? */
     {
-        ret = NtWaitForMultipleObjects( count, handles, !(flags & MWMO_WAITALL), !!(flags & MWMO_ALERTABLE), abs );
-        if (ret == count - 1) process_driver_events( QS_ALLINPUT );
-        else if (HIWORD(ret)) /* is it an error code? */
-        {
-            RtlSetLastWin32Error( RtlNtStatusToDosError(ret) );
-            ret = WAIT_FAILED;
-        }
+        RtlSetLastWin32Error( RtlNtStatusToDosError(ret) );
+        ret = WAIT_FAILED;
     }
 
     if (ret == WAIT_TIMEOUT && !count && !timeout) NtYieldExecution();
