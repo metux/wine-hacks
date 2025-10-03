@@ -172,7 +172,7 @@ static DWORD load_service_config(HKEY hKey, struct service_entry *entry)
     return ERROR_SUCCESS;
 }
 
-static DWORD reg_set_string_value(HKEY hKey, LPCWSTR value_name, LPCWSTR string)
+static DWORD reg_set_string_value(HKEY hKey, LPCWSTR value_name, LPCWSTR string, BOOL expand)
 {
     if (!string)
     {
@@ -184,7 +184,8 @@ static DWORD reg_set_string_value(HKEY hKey, LPCWSTR value_name, LPCWSTR string)
         return ERROR_SUCCESS;
     }
 
-    return RegSetValueExW(hKey, value_name, 0, REG_SZ, (const BYTE*)string, sizeof(WCHAR)*(lstrlenW(string) + 1));
+    return RegSetValueExW(hKey, value_name, 0, expand ? REG_EXPAND_SZ : REG_SZ,
+            (const BYTE*)string, sizeof(WCHAR)*(lstrlenW(string) + 1));
 }
 
 static DWORD reg_set_multisz_value(HKEY hKey, LPCWSTR value_name, LPCWSTR string)
@@ -220,11 +221,11 @@ DWORD save_service_config(struct service_entry *entry)
     if (err != ERROR_SUCCESS)
         goto cleanup;
 
-    if ((err = reg_set_string_value(hKey, L"DisplayName", entry->config.lpDisplayName))) goto cleanup;
-    if ((err = reg_set_string_value(hKey, L"ImagePath", entry->config.lpBinaryPathName))) goto cleanup;
-    if ((err = reg_set_string_value(hKey, L"Group", entry->config.lpLoadOrderGroup))) goto cleanup;
-    if ((err = reg_set_string_value(hKey, L"ObjectName", entry->config.lpServiceStartName))) goto cleanup;
-    if ((err = reg_set_string_value(hKey, L"Description", entry->description))) goto cleanup;
+    if ((err = reg_set_string_value(hKey, L"DisplayName", entry->config.lpDisplayName, FALSE))) goto cleanup;
+    if ((err = reg_set_string_value(hKey, L"ImagePath", entry->config.lpBinaryPathName, TRUE))) goto cleanup;
+    if ((err = reg_set_string_value(hKey, L"Group", entry->config.lpLoadOrderGroup, FALSE))) goto cleanup;
+    if ((err = reg_set_string_value(hKey, L"ObjectName", entry->config.lpServiceStartName, FALSE))) goto cleanup;
+    if ((err = reg_set_string_value(hKey, L"Description", entry->description, FALSE))) goto cleanup;
     if ((err = reg_set_multisz_value(hKey, L"DependOnService", entry->dependOnServices))) goto cleanup;
     if ((err = reg_set_multisz_value(hKey, L"DependOnGroup", entry->dependOnGroups))) goto cleanup;
     if ((err = reg_set_dword_value(hKey, L"Start", entry->config.dwStartType))) goto cleanup;
@@ -291,10 +292,12 @@ static void scmdatabase_remove_service(struct scmdatabase *db, struct service_en
     service->entry.next = service->entry.prev = NULL;
 }
 
-static int __cdecl compare_tags(const void *a, const void *b)
+static int __cdecl compare_service(const void *a, const void *b)
 {
     struct service_entry *service_a = *(struct service_entry **)a;
     struct service_entry *service_b = *(struct service_entry **)b;
+    if (service_a->config.dwStartType != service_b->config.dwStartType)
+        return service_a->config.dwStartType - service_b->config.dwStartType;
     return service_a->config.dwTagId - service_b->config.dwTagId;
 }
 
@@ -443,7 +446,7 @@ static void scmdatabase_autostart_services(struct scmdatabase *db)
     size = i;
 
     scmdatabase_unlock(db);
-    qsort(services_list, size, sizeof(services_list[0]), compare_tags);
+    qsort(services_list, size, sizeof(services_list[0]), compare_service);
     scmdatabase_lock_startup(db, INFINITE);
 
     for (i = 0; i < size; i++)
