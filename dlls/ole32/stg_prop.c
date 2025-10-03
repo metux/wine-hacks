@@ -2337,6 +2337,13 @@ static HRESULT PropertyStorage_WritePropertyToStream(PropertyStorage_impl *This,
         bytesWritten = count + sizeof(DWORD);
         break;
     }
+    case VT_BOOL:
+    {
+        hr = IStream_Write(This->stm, &var->boolVal, sizeof(var->boolVal),
+         &count);
+        bytesWritten = count;
+        break;
+    }
     case VT_FILETIME:
     {
         FILETIME temp;
