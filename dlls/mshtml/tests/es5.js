@@ -1356,7 +1356,6 @@ sync_test("getOwnPropertyNames", function() {
     ok(names === "defined,test", "names = " + names);
 
     names = Object.getOwnPropertyNames([]).sort().join();
-    todo_wine.
     ok(names === "length", "names = " + names);
 
     ok(Object.getOwnPropertyNames.length === 1, "Object.getOwnPropertyNames.length = " + Object.getOwnPropertyNames.length);
@@ -2595,6 +2594,60 @@ sync_test("functions scope", function() {
     })();
 });
 
+sync_test("perf toJSON", function() {
+    var json, objs = [ performance, performance.navigation, performance.timing ];
+    var non_props = [ "constructor", "TYPE_BACK_FORWARD", "TYPE_NAVIGATE", "TYPE_RELOAD", "TYPE_RESERVED" ];
+
+    for(var i = 0; i < objs.length; i++) {
+        var desc, prop, proto = Object.getPrototypeOf(objs[i]), props = Object.getOwnPropertyNames(proto);
+        var name = Object.prototype.toString.call(objs[i]).slice(8, -1);
+
+        Object.defineProperty(objs[i], "foobar", {writable: true, enumerable: true, configurable: true, value: 1});
+        Object.defineProperty(proto, "barfoo", {writable: true, enumerable: true, configurable: true, value: 3});
+        json = objs[i].toJSON();
+
+        ok(Object.getPrototypeOf(json) === Object.prototype, "prototype of " + name + ".toJSON() != Object.prototype");
+        ok(typeof json === "object", "typeof " + name + ".toJSON() != object");
+
+        for(var j = 0; j < non_props.length; j++) {
+            var idx = props.indexOf(non_props[j]);
+            if(idx !== -1)
+                props.splice(idx, 1);
+        }
+
+        for(var j = 0; j < props.length; j++) {
+            if(typeof(proto[props[j]]) === "function")
+                ok(!(props[j] in json), props[j] + " in " + name + ".toJSON()");
+            else {
+                test_own_data_prop_desc(json, props[j], true, true, true);
+                prop = props[j];
+            }
+        }
+
+        for(var j = 0; j < non_props.length; j++)
+            ok(!json.hasOwnProperty(non_props[j]), non_props[j] + " in " + name + ".toJSON()");
+        ok(!("foobar" in json), "foobar in " + name + ".toJSON()");
+        ok(!("barfoo" in json), "barfoo in " + name + ".toJSON()");
+
+        delete objs[i].foobar;
+        delete proto.barfoo;
+
+        // test delete a builtin from the prototype and toJSON after
+        desc = Object.getOwnPropertyDescriptor(proto, prop);
+        delete proto[prop];
+        ok(!(prop in objs[i]), prop + " in " + name + " after delete");
+        json = objs[i].toJSON();
+        ok(json.hasOwnProperty(prop), name + ".toJSON() does not have " + prop + " after delete");
+        Object.defineProperty(proto, prop, desc);
+    }
+
+    json = performance.toJSON();
+    ok(typeof json.navigation === "object", "JSON'd performance's navigation type = " + typeof json.navigation);
+    ok(typeof json.navigation.redirectCount === "number", "JSON'd performance's navigation.redirectCount type = " + typeof json.navigation.redirectCount);
+    ok(Object.getPrototypeOf(json.navigation) === Object.prototype, "JSON'd performance's navigation prototype != Object.prototype");
+    ok(!("toJSON" in json.navigation), "toJSON in JSON'd performance's navigation");
+});
+
 sync_test("console", function() {
     var except
 
@@ -2815,6 +2868,121 @@ sync_test("screen", function() {
     ok(!check_enum(o, "prop2"), "prop2 enumerated");
 });
 
+sync_test("DOMParser", function() {
+    var p, r = DOMParser.length, mimeType;
+    ok(r === 0, "length = " + r);
+
+    p = DOMParser();
+    r = Object.getPrototypeOf(p);
+    ok(r === DOMParser.prototype, "prototype of instance created without new = " + r);
+    ok(p !== new DOMParser(), "DOMParser() == new DOMParser()");
+    ok(new DOMParser() !== new DOMParser(), "new DOMParser() == new DOMParser()");
+
+    var teststr = { toString: function() { return "<a name=\"test\">wine</a>"; } };
+
+    // HTML mime types
+    mimeType = [
+        "text/hTml"
+    ];
+    for(var i = 0; i < mimeType.length; i++) {
+        var m = mimeType[i], html = p.parseFromString(teststr, m), e = external.getExpectedMimeType(m.toLowerCase());
+        r = html.mimeType;
+        ok(r === e, "mimeType of HTML document with mime type " + m + " = " + r + ", expected " + e);
+        r = html.childNodes;
+        ok(r.length === 1 || r.length === 2, "childNodes.length of HTML document with mime type " + m + " = " + r.length);
+        var html_elem = r[r.length - 1];
+        ok(html_elem.nodeName === "HTML", "child nodeName of HTML document with mime type " + m + " = " + html_elem.nodeName);
+        ok(html_elem.nodeValue === null, "child nodeValue of HTML document with mime type " + m + " = " + html_elem.nodeValue);
+        r = html.anchors;
+        ok(r.length === 1, "anchors.length of HTML document with mime type " + m + " = " + r.length);
+        r = r[0];
+        ok(r.nodeName === "A", "anchor nodeName of HTML document with mime type " + m + " = " + r.nodeName);
+        ok(r.nodeValue === null, "anchor nodeValue of HTML document with mime type " + m + " = " + r.nodeValue);
+        r = r.parentNode;
+        ok(r.nodeName === "BODY", "anchor parent nodeName of HTML document with mime type " + m + " = " + r.nodeName);
+        ok(r.nodeValue === null, "anchor parent nodeValue of HTML document with mime type " + m + " = " + r.nodeValue);
+        r = r.parentNode;
+        ok(r === html_elem, "body parent of HTML document with mime type " + m + " = " + r);
+    }
+
+    // XML mime types
+    mimeType = [
+        "text/xmL",
+        "aPPlication/xml",
+        "application/xhtml+xml",
+        "image/svg+xml"
+    ];
+    for(var i = 0; i < mimeType.length; i++) {
+        var m = mimeType[i], xml = p.parseFromString(teststr, m), e;
+        e = external.getExpectedMimeType(m === "aPPlication/xml" ? "text/xml" : m.toLowerCase());
+        r = xml.mimeType;
+        ok(r === e, "mimeType of XML document with mime type " + m + " = " + r + ", expected " + e);
+        r = xml.childNodes;
+        ok(r.length === 1, "childNodes.length of XML document with mime type " + m + " = " + r.length);
+        r = r[0];
+        ok(r.nodeName === "a", "child nodeName of XML document with mime type " + m + " = " + r.nodeName);
+        ok(r.nodeValue === null, "child nodeValue of XML document with mime type " + m + " = " + r.nodeValue);
+        r = r.childNodes;
+        ok(r.length === 1, "childNodes of child.length of XML document with mime type " + m + " = " + r.length);
+        r = r[0];
+        ok(r.nodeName === "#text", "child of child nodeName of XML document with mime type " + m + " = " + r.nodeName);
+        ok(r.nodeValue === "wine", "child of child nodeValue of XML document with mime type " + m + " = " + r.nodeValue);
+        ok(!("test" in xml), "'test' in XML document with mime type " + m);
+
+        // test HTMLDocument specific props, which are available in DocumentPrototype,
+        // so they are shared in XMLDocument since they both have the same prototype
+        r = xml.anchors;
+        if(m === "application/xhtml+xml") {
+            todo_wine.
+            ok(r.length === 1, "anchors.length of XML document with mime type " + m + " = " + r.length);
+            r = r[0];
+            todo_wine.
+            ok(r === xml.childNodes[0], "anchor of XML document with mime type " + m + " = " + r);
+            r = Object.prototype.toString.call(xml.getElementsByTagName("a")[0]);
+            todo_wine.
+            ok(r === "[object HTMLAnchorElement]", "element's Object.toString of XML document with mime type " + m + " = " + r);
+        }else {
+            ok(r.length === 0, "anchors.length of XML document with mime type " + m + " = " + r.length);
+            r = Object.getPrototypeOf(xml.getElementsByTagName("a")[0]);
+            ok(r === Element.prototype, "element's prototype of XML document with mime type " + m + " = " + r);
+            r = document.importNode(xml.childNodes[0], true);
+            ok(r.nodeName === "a", "imported node name of XML document with mime type " + m + " = " + r.nodeName);
+            ok(r.nodeValue === null, "imported node value of XML document with mime type " + m + " = " + r.nodeValue);
+            r = Object.getPrototypeOf(r);
+            ok(r === Element.prototype, "imported node's prototype of XML document with mime type " + m + " = " + r);
+        }
+    }
+
+    // Invalid mime types
+    mimeType = [
+        "application/html",
+        "wine/test+xml",
+        "image/jpeg",
+        "text/plain",
+        "html",
+        "+xml",
+        "xml",
+        42
+    ];
+    for(var i = 0; i < mimeType.length; i++) {
+        try {
+            p.parseFromString(teststr, mimeType[i]);
+            ok(false, "expected exception calling parseFromString with mime type " + mimeType[i]);
+        }catch(ex) {
+            var n = ex.number >>> 0;
+            ok(n === E_INVALIDARG, "parseFromString with mime type " + mimeType[i] + " threw " + n);
+        }
+    }
+
+    try {
+        r = p.parseFromString("<invalid>xml", "text/xml");
+        ok(false, "expected exception calling parseFromString with invalid xml");
+    }catch(ex) {
+        ok(ex.name === "SyntaxError", "parseFromString with invalid xml threw " + ex.name);
+    }
+    p.parseFromString("<parsererror></parsererror>", "text/xml");
+});
+
 sync_test("builtin_func", function() {
     var o = document.implementation, r;
     var f = o.hasFeature;
@@ -2845,9 +3013,9 @@ async_test("script_global", function() {
     // Created documents share script global, so their objects are instances of Object from
     // the current script context.
     var doc = document.implementation.createHTMLDocument("test");
-    todo_wine.
     ok(doc instanceof Object, "created doc is not an instance of Object");
     ok(doc.implementation instanceof Object, "created doc.implementation is not an instance of Object");
+    ok(doc.implementation instanceof DOMImplementation, "created doc.implementation is not an instance of DOMImplementation");
 
     document.body.innerHTML = "";
     var iframe = document.createElement("iframe");
@@ -2858,10 +3026,32 @@ async_test("script_global", function() {
         var doc = iframe.contentWindow.document;
         ok(!(doc instanceof Object), "doc is an instance of Object");
         ok(!(doc.implementation instanceof Object), "doc.implementation is an instance of Object");
+        ok(!(doc.implementation instanceof DOMImplementation), "doc.implementation is an instance of DOMImplementation");
+        ok(doc.implementation instanceof iframe.contentWindow.DOMImplementation, "doc.implementation is not an instance of iframe's DOMImplementation");
+        ok(Object.getPrototypeOf(doc) !== Object.getPrototypeOf(document), "doc's prototype same as doc prototype");
+        ok(Object.getPrototypeOf(doc) === iframe.contentWindow.HTMLDocument.prototype, "doc's prototype not iframe's HTMLDocument.prototype");
 
         doc = doc.implementation.createHTMLDocument("test");
         ok(!(doc instanceof Object), "created iframe doc is an instance of Object");
         ok(!(doc.implementation instanceof Object), "created iframe doc.implementation is an instance of Object");
+        ok(!(doc.implementation instanceof DOMImplementation), "created iframe doc.implementation is an instance of DOMImplementation");
+        ok(doc.implementation instanceof iframe.contentWindow.DOMImplementation, "created iframe doc.implementation is not an instance of iframe's DOMImplementation");
+        ok(Object.getPrototypeOf(doc) !== Object.getPrototypeOf(document), "created iframe doc's prototype same as doc prototype");
+        ok(Object.getPrototypeOf(doc) === iframe.contentWindow.HTMLDocument.prototype, "created iframe doc's prototype not iframe's HTMLDocument.prototype");
+
+        Object.defineProperty(doc, "winetest", { writable: true, enumerable: true, configurable: true, value: 42 });
+        test_own_data_prop_desc(doc, "winetest", true, true, true);
+
+        ok(Object.isFrozen(doc) === false, "created iframe doc isFrozen is not false");
+        ok(Object.isSealed(doc) === false, "created iframe doc isSealed is not false");
+        Object.freeze(doc);
+        ok(Object.isFrozen(doc) === true, "created iframe doc isFrozen is not true after freezing it");
+        ok(Object.isSealed(doc) === true, "created iframe doc isSealed is not true after freezing it");
+
+        var r = Object.prototype.toString.call(iframe.contentWindow);
+        ok(r === "[object Window]", "iframe's Window toString = " + r);
+        r = Object.prototype.toString.call(iframe.contentWindow.DOMImplementation);
+        ok(r === "[object DOMImplementation]", "iframe's DOMImplementation toString = " + r);
 
         next_test();
     });
@@ -2970,4 +3160,59 @@ sync_test("prototypes", function() {
     ok(document.body instanceof HTMLElement, "body is not an instance of HTMLElement");
     ok(document.body instanceof Element, "body is not an instance of Element");
     ok(document.body instanceof Node, "body is not an instance of Node");
+});
+
+sync_test("prototypes_delete", function() {
+    function check_prop(name) {
+        var orig = Object.getOwnPropertyDescriptor(Element.prototype, name);
+        ok(orig != undefined, "Could not get " + name + " descriptor");
+        var is_func = "value" in orig;
+
+        function check(obj, has_own, has_prop, has_enum, todo_enum) {
+            var r = obj.hasOwnProperty(name);
+            ok(r === has_own, obj + ".hasOwnProperty(" + name + ") returned " + r);
+            r = name in obj;
+            ok(r === has_prop, name + " in " + obj + " returned " + r);
+            r = check_enum(obj, name);
+            todo_wine_if(todo_enum).
+            ok(r === has_enum, "enumerating " + name + " in " + obj + "returned " + r);
+        }
+
+        check(document.body, false, true, true, is_func);
+        check(Element.prototype, true, true, true, is_func);
+        check(Node.prototype, false, false, false);
+
+        delete Element.prototype[name];
+        check(document.body, false, false, false);
+        check(Element.prototype, false, false, false);
+        check(Node.prototype, false, false, false);
+
+        Element.prototype[name] = -2;
+        Node.prototype[name] = -3;
+        ok(document.body[name] === -2, "document.body[" + name + "] = " + Element.prototype[name]);
+
+        check(document.body, false, true, true);
+        check(Element.prototype, true, true, true);
+        check(Node.prototype, true, true, true);
+
+        delete Element.prototype[name];
+        ok(document.body[name] === -3, "document.body[" + name + "] = " + Element.prototype[name]);
+        check(document.body, false, true, true);
+        check(Element.prototype, false, true, true);
+        check(Node.prototype, true, true, true);
+
+        delete Node.prototype[name];
+        check(document.body, false, false, false);
+        check(Element.prototype, false, false, false);
+        check(Node.prototype, false, false, false);
+
+        /* Restore the prop */
+        Object.defineProperty(Element.prototype, name, orig);
+        check(document.body, false, true, true, is_func);
+        check(Element.prototype, true, true, true, is_func);
+        check(Node.prototype, false, false, false);
+    }
+
+    check_prop("scrollLeft"); /* accessor prop */
+    check_prop("getBoundingClientRect"); /* function prop */
 });

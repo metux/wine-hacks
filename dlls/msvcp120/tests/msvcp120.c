@@ -105,7 +105,7 @@ static void free_expect_struct(void)
 /* Emulate a __thiscall */
 #ifdef __i386__
 
-#include "pshpack1.h"
+#pragma pack(push,1)
 struct thiscall_thunk
 {
     BYTE pop_eax;    /* popl  %eax (ret addr) */
@@ -114,7 +114,7 @@ struct thiscall_thunk
     BYTE push_eax;   /* pushl %eax */
     WORD jmp_edx;    /* jmp  *%edx */
 };
-#include "poppack.h"
+#pragma pack(pop)
 
 static void * (WINAPI *call_thiscall_func1)( void *func, void *this );
 static void * (WINAPI *call_thiscall_func2)( void *func, void *this, void *a );
@@ -3374,9 +3374,10 @@ static void test_data_exports(void)
 
 static void test__Fiopen(void)
 {
-    int i;
+    int i, ret;
     FILE *f;
     wchar_t wpath[MAX_PATH];
+    HANDLE h;
     static const struct {
         const char *loc;
         const char *path;
@@ -3395,12 +3396,21 @@ static void test__Fiopen(void)
         }
 
         memset(wpath, 0, sizeof(wpath));
-        ok(MultiByteToWideChar(CP_ACP, 0, tests[i].path, -1, wpath, MAX_PATH),
-            "MultiByteToWideChar failed on %s with locale %s: %lx\n",
+        ret = MultiByteToWideChar(CP_ACP, 0, tests[i].path, -1, wpath, MAX_PATH);
+        ok(ret, "MultiByteToWideChar failed on %s with locale %s: %lx\n",
             tests[i].path, tests[i].loc, GetLastError());
 
-        f = p__Fiopen(tests[i].path, OPENMODE_out, SH_DENYNO);
-        ok(!!f, "failed to create %s with locale %s\n", tests[i].path, tests[i].loc);
+        h = CreateFileW(wpath, GENERIC_READ | GENERIC_WRITE, 0, NULL,
+                CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (h == INVALID_HANDLE_VALUE)
+        {
+            skip("can't create test file (%s)\n", wine_dbgstr_w(wpath));
+            continue;
+        }
+        CloseHandle(h);
+
+        f = p__Fiopen(tests[i].path, OPENMODE_in, SH_DENYNO);
+        ok(!!f, "failed to create %s with locale %s\n", wine_dbgstr_a(tests[i].path), tests[i].loc);
         p_fclose(f);
 
         f = p__Fiopen_wchar(wpath, OPENMODE_in, SH_DENYNO);
