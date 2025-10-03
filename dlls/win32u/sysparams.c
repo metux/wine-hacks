@@ -2635,9 +2635,9 @@ RECT map_rect_virt_to_raw( RECT rect, UINT dpi_from )
 /* map (absolute) window rects from MDT_DEFAULT to MDT_RAW_DPI coordinates */
 struct window_rects map_window_rects_virt_to_raw( struct window_rects rects, UINT dpi_from )
 {
-    RECT rect, monitor_rect, virt_visible_rect = rects.visible;
+    RECT rect, monitor_rect, raw_monitor_rect, raw_virtual_screen_rect = {0}, virt_visible_rect = rects.visible;
+    BOOL is_fullscreen, limit_to_virtual_screen = FALSE;
     struct monitor *monitor;
-    BOOL is_fullscreen;
 
     if (!lock_display_devices( FALSE )) return rects;
     if ((monitor = get_monitor_from_rect( rects.window, MONITOR_DEFAULTTONEAREST, dpi_from, MDT_DEFAULT )))
@@ -2652,13 +2652,25 @@ struct window_rects map_window_rects_virt_to_raw( struct window_rects rects, UIN
         if (!is_monitor_active( monitor ) || monitor->is_clone) continue;
 
         monitor_rect = monitor_get_rect( monitor, dpi_from, MDT_DEFAULT );
+        raw_monitor_rect = monitor_get_rect( monitor, 0, MDT_RAW_DPI );
+        union_rect( &raw_virtual_screen_rect, &raw_virtual_screen_rect, &raw_monitor_rect );
         is_fullscreen = intersect_rect( &rect, &monitor_rect, &virt_visible_rect ) && EqualRect( &rect, &monitor_rect );
         if (is_fullscreen)
         {
-            rect = monitor_get_rect( monitor, 0, MDT_RAW_DPI );
-            union_rect( &rects.visible, &rects.visible, &rect );
+            limit_to_virtual_screen = TRUE;
+            union_rect( &rects.visible, &rects.visible, &raw_monitor_rect );
         }
     }
+
+    /* If the visible rect is fullscreen on any one of the monitors, limit the visible rect to the
+     * virtual screen rect. This is needed because adding __NET_WM_STATE_FULLSCREEN will make WMs
+     * move the window to cover exactly the monitor rect. If the application sets a visible rect
+     * slightly larger than the monitor rect and insists on changing to the rect that it previously
+     * set when the rect is changed by the WM, then the window rect will be repeatedly changed by
+     * the WM and the application, causing a flickering effect */
+    if (limit_to_virtual_screen)
+        intersect_rect( &rects.visible, &rects.visible, &raw_virtual_screen_rect );
+
     unlock_display_devices();
 
     return rects;
