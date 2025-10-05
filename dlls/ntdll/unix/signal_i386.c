@@ -213,9 +213,9 @@ static inline int set_thread_area( struct modify_ldt_s *ptr )
 #define EIP_sig(context)     ((context)->uc_mcontext.mc_eip)
 #define ESP_sig(context)     ((context)->uc_mcontext.mc_esp)
 
-#define FPU_sig(context)     NULL  /* FIXME */
-#define FPUX_sig(context)    NULL  /* FIXME */
-#define XState_sig(context)  NULL  /* FIXME */
+#define FPU_sig(context)     ((FLOATING_SAVE_AREA *) NULL)  /* FIXME */
+#define FPUX_sig(context)    ((XSAVE_FORMAT *) NULL)  /* FIXME */
+#define XState_sig(context)  ((XSAVE_AREA_HEADER *) NULL)  /* FIXME */
 
 #elif defined (__OpenBSD__)
 
@@ -244,9 +244,9 @@ static inline int set_thread_area( struct modify_ldt_s *ptr )
 #define EIP_sig(context)     ((context)->sc_eip)
 #define ESP_sig(context)     ((context)->sc_esp)
 
-#define FPU_sig(context)     NULL  /* FIXME */
-#define FPUX_sig(context)    NULL  /* FIXME */
-#define XState_sig(context)  NULL  /* FIXME */
+#define FPU_sig(context)     ((FLOATING_SAVE_AREA *) NULL)  /* FIXME */
+#define FPUX_sig(context)    ((XSAVE_FORMAT *) NULL)  /* FIXME */
+#define XState_sig(context)  ((XSAVE_AREA_HEADER *) NULL)  /* FIXME */
 
 #define T_MCHK T_MACHK
 #define T_XMMFLT T_XFTRAP
@@ -290,9 +290,9 @@ static inline int set_thread_area( struct modify_ldt_s *ptr )
 #define ERROR_sig(context)   ((context)->uc_mcontext.gregs[ERR])
 #define TRAP_sig(context)    ((context)->uc_mcontext.gregs[TRAPNO])
 
-#define FPU_sig(context)     NULL  /* FIXME */
-#define FPUX_sig(context)    NULL  /* FIXME */
-#define XState_sig(context)  NULL  /* FIXME */
+#define FPU_sig(context)     ((FLOATING_SAVE_AREA *) NULL)  /* FIXME */
+#define FPUX_sig(context)    ((XSAVE_FORMAT *) NULL)  /* FIXME */
+#define XState_sig(context)  ((XSAVE_AREA_HEADER *) NULL)  /* FIXME */
 
 #elif defined (__APPLE__)
 
@@ -316,9 +316,10 @@ static inline int set_thread_area( struct modify_ldt_s *ptr )
 #define ESP_sig(context)     ((context)->uc_mcontext->__ss.__esp)
 #define TRAP_sig(context)    ((context)->uc_mcontext->__es.__trapno)
 #define ERROR_sig(context)   ((context)->uc_mcontext->__es.__err)
-#define FPU_sig(context)     NULL
+
+#define FPU_sig(context)     ((FLOATING_SAVE_AREA *) NULL)  /* FIXME */
 #define FPUX_sig(context)    ((XSAVE_FORMAT *)&(context)->uc_mcontext->__fs.__fpu_fcw)
-#define XState_sig(context)  NULL  /* FIXME */
+#define XState_sig(context)  ((XSAVE_AREA_HEADER *) NULL)  /* FIXME */
 
 #elif defined(__NetBSD__)
 
@@ -346,9 +347,9 @@ static inline int set_thread_area( struct modify_ldt_s *ptr )
 #define TRAP_sig(context)      ((context)->uc_mcontext.__gregs[_REG_TRAPNO])
 #define ERROR_sig(context)     ((context)->uc_mcontext.__gregs[_REG_ERR])
 
-#define FPU_sig(context)     NULL
+#define FPU_sig(context)     ((FLOATING_SAVE_AREA *) NULL)  /* FIXME */
 #define FPUX_sig(context)    ((XSAVE_FORMAT *)&((context)->uc_mcontext.__fpregs))
-#define XState_sig(context)  NULL  /* FIXME */
+#define XState_sig(context)  ((XSAVE_AREA_HEADER *) NULL)  /* FIXME */
 
 #define T_MCHK T_MCA
 #define T_XMMFLT T_XMM
@@ -380,8 +381,8 @@ static inline int set_thread_area( struct modify_ldt_s *ptr )
 #define ERROR_sig(context)   ((context)->uc_mcontext.gregs[REG_ERR])
 
 #define FPU_sig(context)     ((FLOATING_SAVE_AREA *)&(context)->uc_mcontext.fpregs.fp_reg_set.fpchip_state)
-#define FPUX_sig(context)    NULL
-#define XState_sig(context)  NULL  /* FIXME */
+#define FPUX_sig(context)    ((XSAVE_FORMAT *) NULL)  /* FIXME */
+#define XState_sig(context)  ((XSAVE_AREA_HEADER *) NULL)  /* FIXME */
 
 #else
 #error You must define the signal context functions for your platform
