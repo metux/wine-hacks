@@ -375,9 +375,29 @@ static HRESULT WINAPI opc_factory_CreatePackage(IOpcFactory *iface, IOpcPackage 
 static HRESULT WINAPI opc_factory_ReadPackageFromStream(IOpcFactory *iface, IStream *stream,
         OPC_READ_FLAGS flags, IOpcPackage **package)
 {
-    FIXME("iface %p, stream %p, flags %#x, package %p stub!\n", iface, stream, flags, package);
+    IOpcPartSet *part_set;
+    HRESULT hr;
 
-    return E_NOTIMPL;
+    TRACE("iface %p, stream %p, flags %#x, package %p\n", iface, stream, flags, package);
+
+    if (flags)
+        FIXME("Unsupported flags: %#x\n", flags);
+
+    if (FAILED(hr = opc_package_create(iface, package))) return hr;
+    if (FAILED(hr = IOpcPackage_GetPartSet(*package, &part_set)))
+    {
+        IOpcPackage_Release(*package);
+        *package = NULL;
+        return hr;
+    }
+    hr = compress_open_archive(iface, stream, part_set);
+    IOpcPartSet_Release(part_set);
+    if (FAILED(hr))
+    {
+        IOpcPackage_Release(*package);
+        *package = NULL;
+    }
+    return hr;
 }
 
 static HRESULT WINAPI opc_factory_WritePackageToStream(IOpcFactory *iface, IOpcPackage *package, OPC_WRITE_FLAGS flags,

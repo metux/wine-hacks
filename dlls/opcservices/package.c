@@ -1515,6 +1515,11 @@ static const IOpcPackageVtbl opc_package_vtbl =
 
 HRESULT opc_package_create(IOpcFactory *factory, IOpcPackage **out)
 {
+    return opc_package_create_with_partset(factory, NULL, out);
+}
+
+HRESULT opc_package_create_with_partset(IOpcFactory *factory, IOpcPartSet *part_set, IOpcPackage **out)
+{
     struct opc_package *package;
     HRESULT hr;
 
@@ -1529,6 +1534,7 @@ HRESULT opc_package_create(IOpcFactory *factory, IOpcPackage **out)
         free(package);
         return hr;
     }
+    if (part_set) IOpcPartSet_AddRef((package->part_set = part_set));
 
     *out = &package->IOpcPackage_iface;
     TRACE("Created package %p.\n", *out);
