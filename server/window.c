@@ -22,12 +22,14 @@
 
 #include <assert.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 #include "ntstatus.h"
 #define WIN32_NO_STATUS
 #include "windef.h"
 #include "winbase.h"
 #include "ntuser.h"
+#include "windows.h"
 
 #include "object.h"
 #include "file.h"
@@ -36,6 +38,7 @@
 #include "process.h"
 #include "user.h"
 #include "unicode.h"
+#include "wine/debug.h"
 
 /* a window property */
 struct property
@@ -52,6 +55,14 @@ enum property_type
     PROP_TYPE_ATOM    /* plain atom */
 };
 
+static inline const char *proptypestr(enum property_type pt) {
+    switch (pt) {
+        case PROP_TYPE_FREE: return "(free)";
+        case PROP_TYPE_STRING: return "(string)";
+        case PROP_TYPE_ATOM: return "(atom)";
+        default: return "(unknown type)";
+    }
+}
 
 struct window
 {
@@ -475,6 +486,8 @@ static void set_property( struct window *win, atom_t atom, lparam_t data, enum p
     int i, free = -1;
     struct property *new_props;
 
+//    fprintf(stderr, "set_property: %s: %lld\n", proptypestr(type), data);
+
     /* check if it exists already */
     for (i = 0; i < win->prop_inuse; i++)
     {
@@ -485,6 +498,7 @@ static void set_property( struct window *win, atom_t atom, lparam_t data, enum p
         }
         if (win->properties[i].atom == atom)
         {
+//            fprintf(stderr, "overwriting existing property idx %d type=%s\n", i, proptypestr(type));
             win->properties[i].type = type;
             win->properties[i].data = data;
             return;
@@ -511,6 +525,7 @@ static void set_property( struct window *win, atom_t atom, lparam_t data, enum p
         }
         free = win->prop_inuse++;
     }
+//    fprintf(stderr, "adding property idx %d atom=%d type=%s\n", free, atom, proptypestr(type));
     win->properties[free].atom = atom;
     win->properties[free].type = type;
     win->properties[free].data = data;
@@ -619,6 +634,9 @@ static struct window *create_window( struct window *parent, struct window *owner
     struct desktop *desktop;
     struct window_class *class;
     struct obj_locator class_locator;
+
+//    fprintf(stderr, "entering create_window()\n");
+//    fflush(stderr);
 
     if (!(desktop = get_thread_desktop( current, DESKTOP_CREATEWINDOW ))) return NULL;
 
@@ -3088,8 +3106,41 @@ DECL_HANDLER(set_window_property)
     if (name.len)
     {
         atom_t atom = add_atom( table, &name );
+//        fprintf(stderr, "X set_window_property: name.len=%u atom=%d\n", name.len, atom);
+//        fprintf(stderr, "Y STRING: \"");
+//        int namelen = name.len / sizeof(WCHAR);
+//
+//        for (int x=0; x<namelen; x++)
+//            fprintf(stderr, "%lc", name.str[x]);
+//        fprintf(stderr, "\"\n");
+//        fprintf(stderr, "___\n");
+//        fflush(stderr);
+//
+//        if (1) {
+//            WCHAR *data = (WCHAR *)(uintptr_t)req->data;
+//            fprintf(stderr, "DATA => \"");
+//            fflush(stderr);
+//            while (*data) {
+//                fprintf(stderr, "'%lc' %d | ", *data, *data);
+//                fflush(stderr);
+//                data++;
+//            }
+//            if (*data)
+//                fprintf(stderr, "first data element non-null\n");
+//            else
+//                fprintf(stderr, "first data element null\n");
+//            if (data)
+//	        fprintf(stderr, "data pointer non-null\n");
+//            else
+//                fprintf(stderr, "data pointer is NULL\n");
+//            fflush(stderr);
+//            fprintf(stderr, "\"\n");
+//            fprintf(stderr, "---\n");
+//        }
+
         if (atom)
         {
+//            fprintf(stderr, "calling set_property()\n");
             set_property( win, atom, req->data, PROP_TYPE_STRING );
             release_atom( table, atom );
         }

@@ -290,6 +290,10 @@ HWND WIN_CreateWindowEx( CREATESTRUCTW *cs, LPCWSTR className, HINSTANCE module,
     WCHAR name_buf[8];
     HMENU menu;
 
+//    fprintf(stderr, "WIN_CreateWindowEx className=%ls\n", className);
+    fprintf(stderr, "WIN_CreateWindowEx class=\"");
+    fflush(stderr);
+
     init_class_name( &class, className );
     get_class_version( &class, &version, TRUE );
 
@@ -299,6 +303,8 @@ HWND WIN_CreateWindowEx( CREATESTRUCTW *cs, LPCWSTR className, HINSTANCE module,
         SetLastError( ERROR_CLASS_DOES_NOT_EXIST );
         return FALSE;
     }
+
+    fprintf(stderr, "--> className=%s\n", debugstr_w(className));
 
     TRACE("%s %s%s%s ex=%08lx style=%08lx %d,%d %dx%d parent=%p menu=%p inst=%p params=%p\n",
           unicode ? debugstr_w(cs->lpszName) : debugstr_a((LPCSTR)cs->lpszName),
