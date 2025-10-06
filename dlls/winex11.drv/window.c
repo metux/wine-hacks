@@ -2345,6 +2345,19 @@ static void create_whole_window( struct x11drv_win_data *data )
     DWORD layered_flags;
     HRGN win_rgn;
     POINT pos;
+    Window parent_xwin = root_window; /* most windows are top-level */
+    HWND parent = NtUserGetAncestor( data->hwnd, GA_PARENT );
+
+    /* desktop window has no parent and no actual X11 window */
+    if (!parent) return;
+
+    if (parent != NtUserGetDesktopWindow())
+    {
+        /* specially flagged w/ WS_NATIVE - enforce creating an actual X11 window */
+        struct x11drv_win_data *parent_data = get_win_data(parent);
+        if ((parent_data) && (NtUserGetWindowLongW(data->hwnd, GWL_STYLE) & WS_NATIVE))
+            parent_xwin = parent_data->whole_window;
+    }
 
     if ((win_rgn = NtGdiCreateRectRgn( 0, 0, 0, 0 )) &&
         NtUserGetWindowRgnEx( data->hwnd, win_rgn, 0 ) == ERROR)
@@ -2367,7 +2380,7 @@ static void create_whole_window( struct x11drv_win_data *data )
     else if (cy > 65535) cy = 65535;
 
     pos = virtual_screen_to_root( data->rects.visible.left, data->rects.visible.top );
-    data->whole_window = XCreateWindow( data->display, root_window, pos.x, pos.y,
+    data->whole_window = XCreateWindow( data->display, parent_xwin, pos.x, pos.y,
                                         cx, cy, 0, data->vis.depth, InputOutput,
                                         data->vis.visual, mask, &attr );
     if (!data->whole_window) goto done;
@@ -2767,10 +2780,16 @@ static struct x11drv_win_data *X11DRV_create_win_data( HWND hwnd, const struct w
 
     if (parent == NtUserGetDesktopWindow())
     {
+        /* top-level NT windows always getting an actual X11 window */
         create_whole_window( data );
         TRACE( "win %p/%lx window %s whole %s client %s\n",
                hwnd, data->whole_window, wine_dbgstr_rect( &data->rects.window ),
                wine_dbgstr_rect( &data->rects.visible ), wine_dbgstr_rect( &data->rects.client ));
+    } else {
+        /* enforce creating X11 window specially flagged NT windows */
+        if (NtUserGetWindowLongW(data->hwnd, GWL_STYLE) & WS_NATIVE) {
+            create_whole_window( data );
+        }
     }
     return data;
 }
