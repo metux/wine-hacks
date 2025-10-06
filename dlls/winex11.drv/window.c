@@ -2358,7 +2358,9 @@ static void create_whole_window( struct x11drv_win_data *data )
     if (parent != NtUserGetDesktopWindow())
     {
         char *classname = get_window_classname(data->hwnd);
+        fprintf(stderr, "ClassName: \"%s\"\n", classname);
         if (classname && (strncmp(classname, "_X11_NATIVE_", 12)==0)) {
+            fprintf(stderr, "==> native window requested\n");
             struct x11drv_win_data *parent_data = get_win_data(parent);
             if (parent_data)
                 parent_xwin = parent_data->whole_window;
@@ -2809,8 +2811,10 @@ static struct x11drv_win_data *X11DRV_create_win_data( HWND hwnd, const struct w
     } else {
         /* enforce creating X11 window specially flagged NT windows */
         char *classname = get_window_classname(data->hwnd);
+        fprintf(stderr, "[X11DRV] ClassName: \"%s\"\n", classname);
         if (classname && (strncmp(classname, "_X11_NATIVE_", 12)==0)) {
             TRACE( "native X11 window requested\n");
+            fprintf(stderr, "[X11DRV] ==> native window requested\n");
             create_whole_window( data );
         }
         free(classname);
