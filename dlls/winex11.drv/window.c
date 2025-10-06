@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xresource.h>
@@ -629,6 +630,11 @@ static void sync_window_text( Display *display, Window win, const WCHAR *text )
         return;
     }
     RtlUnicodeToUTF8N( utf8_buffer, count, &count, text, len * sizeof(WCHAR) );
+
+//    fprintf(stderr, "sync_window_text(): utf8_buffer=%s\n", utf8_buffer);
+//    fprintf(stderr, "sync_window_text(): => buffer=%s\n", buffer);
+    fprintf(stderr, "sync_window_text(): => XID=0x%lX\n", win);
+    fflush(stderr);
 
     if (XmbTextListToTextProperty( display, &buffer, 1, XStdICCTextStyle, &prop ) == Success)
     {
@@ -2309,6 +2315,7 @@ Window create_client_window( HWND hwnd, const XVisualInfo *visual, Colormap colo
     cx = min( max( 1, client_rect.right - client_rect.left ), 65535 );
     cy = min( max( 1, client_rect.bottom - client_rect.top ), 65535 );
 
+    fprintf(stderr, "create_client_window() -> calling XCreateWindow\n");
     XSync( gdi_display, False ); /* make sure whole_window is known from gdi_display */
     ret = data->client_window = XCreateWindow( gdi_display,
                                                data->whole_window ? data->whole_window : get_dummy_parent(),
@@ -2317,6 +2324,7 @@ Window create_client_window( HWND hwnd, const XVisualInfo *visual, Colormap colo
                                                CWBackingStore | CWColormap | CWBorderPixel, &attr );
     if (data->client_window)
     {
+        fprintf(stderr, "create_client_window() -> calling XMapWindow\n");
         XMapWindow( gdi_display, data->client_window );
         if (data->whole_window)
         {
@@ -2345,6 +2353,38 @@ static void create_whole_window( struct x11drv_win_data *data )
     DWORD layered_flags;
     HRGN win_rgn;
     POINT pos;
+    HWND parent;
+    bool toplevel = false;
+    Window parent_xwin = root_window;
+    struct x11drv_win_data *parent_data = NULL;
+
+    LONG style = NtUserGetWindowLongW(data->hwnd, GWL_STYLE);
+    fprintf(stderr, "create_whole_window(): style=0x%X\n", style);
+    if (style & WS_NATIVE)
+        fprintf(stderr, "--> window is native\n");
+    else
+        fprintf(stderr, "--> window is not native\n");
+
+    if (!(parent = NtUserGetAncestor( data->hwnd, GA_PARENT ))) return;  /* desktop */
+
+    if (parent == NtUserGetDesktopWindow())
+    {
+        fprintf(stderr, "create_whole_window(): toplevel window\n");
+        parent_xwin = root_window;
+        toplevel = true;
+    } else {
+        fprintf(stderr, "create_whole_window(): child window\n");
+        toplevel = false;
+        // FIXME: find the parent window XID
+//        return;
+        parent_data = get_win_data(parent);
+        if (parent_data) {
+            fprintf(stderr, "create_whole_window(): parent XID %lX\n", parent_data->whole_window);
+            parent_xwin = parent_data->whole_window;
+        } else {
+            fprintf(stderr, "create_whole_window(): no parent ?!\n");
+        }
+    }
 
     if ((win_rgn = NtGdiCreateRectRgn( 0, 0, 0, 0 )) &&
         NtUserGetWindowRgnEx( data->hwnd, win_rgn, 0 ) == ERROR)
@@ -2367,7 +2407,7 @@ static void create_whole_window( struct x11drv_win_data *data )
     else if (cy > 65535) cy = 65535;
 
     pos = virtual_screen_to_root( data->rects.visible.left, data->rects.visible.top );
-    data->whole_window = XCreateWindow( data->display, root_window, pos.x, pos.y,
+    data->whole_window = XCreateWindow( data->display, parent_xwin, pos.x, pos.y,
                                         cx, cy, 0, data->vis.depth, InputOutput,
                                         data->vis.visual, mask, &attr );
     if (!data->whole_window) goto done;
@@ -2470,6 +2510,7 @@ static void destroy_whole_window( struct x11drv_win_data *data, BOOL already_des
  */
 void set_window_visual( struct x11drv_win_data *data, const XVisualInfo *vis, BOOL use_alpha )
 {
+    fprintf(stderr, "set_window_visual()\n");
     BOOL same_visual = (data->vis.visualid == vis->visualid);
     Window client_window = data->client_window;
 
@@ -2680,6 +2721,7 @@ BOOL X11DRV_CreateWindow( HWND hwnd )
 {
     if (hwnd == NtUserGetDesktopWindow())
     {
+        fprintf(stderr, "X11DRV_CreateWindow(): hwnd == NtUserGetDesktopWindow()");
         struct x11drv_thread_data *data = x11drv_init_thread_data();
         XSetWindowAttributes attr;
 
@@ -2692,6 +2734,8 @@ BOOL X11DRV_CreateWindow( HWND hwnd )
         XFlush( data->display );
         NtUserSetProp( hwnd, clip_window_prop, (HANDLE)data->clip_window );
         X11DRV_DisplayDevices_RegisterEventHandlers();
+    } else {
+        fprintf(stderr, "X11DRV_CreateWindow(): other window\n");
     }
     return TRUE;
 }
@@ -2752,6 +2796,8 @@ static struct x11drv_win_data *X11DRV_create_win_data( HWND hwnd, const struct w
     struct x11drv_win_data *data;
     HWND parent;
 
+    fprintf(stderr, "X11DRV_create_win_data()\n");
+
     if (!(parent = NtUserGetAncestor( hwnd, GA_PARENT ))) return NULL;  /* desktop */
 
     /* don't create win data for HWND_MESSAGE windows */
@@ -2771,7 +2817,17 @@ static struct x11drv_win_data *X11DRV_create_win_data( HWND hwnd, const struct w
         TRACE( "win %p/%lx window %s whole %s client %s\n",
                hwnd, data->whole_window, wine_dbgstr_rect( &data->rects.window ),
                wine_dbgstr_rect( &data->rects.visible ), wine_dbgstr_rect( &data->rects.client ));
+    } else {
+        LONG style = NtUserGetWindowLongW(data->hwnd, GWL_STYLE);
+        fprintf(stderr, "create_whole_window(): style=0x%X\n", style);
+        if (style & WS_NATIVE) {
+            fprintf(stderr, "--> window is native\n");
+            create_whole_window( data );
+        }
+        else
+            fprintf(stderr, "--> window is not native\n");
     }
+
     return data;
 }
 
@@ -3061,6 +3117,7 @@ void X11DRV_SetParent( HWND hwnd, HWND parent, HWND old_parent )
 
     if (parent != NtUserGetDesktopWindow()) /* a child window */
     {
+        fprintf(stderr, "X11DRV_SetParent(): child window\n");
         if (old_parent == NtUserGetDesktopWindow())
         {
             /* destroy the old X windows */
@@ -3069,6 +3126,7 @@ void X11DRV_SetParent( HWND hwnd, HWND parent, HWND old_parent )
     }
     else  /* new top level window */
     {
+        fprintf(stderr, "X11DRV_SetParent(): new top level window\n");
         create_whole_window( data );
     }
 done:

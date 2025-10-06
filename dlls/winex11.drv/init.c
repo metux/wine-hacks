@@ -221,7 +221,7 @@ static BOOL needs_client_window_clipping( HWND hwnd )
 BOOL needs_offscreen_rendering( HWND hwnd )
 {
     if (NtUserGetDpiForWindow( hwnd ) != NtUserGetWinMonitorDpi( hwnd, MDT_RAW_DPI )) return TRUE; /* needs DPI scaling */
-    if (NtUserGetAncestor( hwnd, GA_PARENT ) != NtUserGetDesktopWindow()) return TRUE; /* child window, needs compositing */
+//    if (NtUserGetAncestor( hwnd, GA_PARENT ) != NtUserGetDesktopWindow()) return TRUE; /* child window, needs compositing */
     if (NtUserGetWindowRelative( hwnd, GW_CHILD )) return needs_client_window_clipping( hwnd ); /* window has children, needs compositing */
     return FALSE;
 }
@@ -429,6 +429,8 @@ static const struct client_surface_funcs x11drv_client_surface_funcs =
 Window x11drv_client_surface_create( HWND hwnd, const XVisualInfo *visual, Colormap colormap, struct client_surface **client )
 {
     struct x11drv_client_surface *surface;
+
+    fprintf(stderr, "x11drv_client_surface_create()\n");
 
     if (!(surface = client_surface_create( sizeof(*surface), &x11drv_client_surface_funcs, hwnd ))) return None;
     if (!(surface->window = create_client_window( hwnd, visual, colormap )))
