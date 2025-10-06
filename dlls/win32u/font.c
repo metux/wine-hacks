@@ -40,6 +40,7 @@
 #include "winternl.h"
 #include "winreg.h"
 #include "ntgdi_private.h"
+#undef small
 
 #include "wine/unixlib.h"
 #include "wine/rbtree.h"
