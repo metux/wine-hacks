@@ -326,6 +326,37 @@ static BOOL XCOPY_ProcessExcludeList(WCHAR* parms) {
 }
 
 /* =========================================================================
+ * XCOPY_IsSameFile
+ *
+ * Checks if the two paths reference to the same file.
+ * Copied from WCMD builtins.c.
+ * ========================================================================= */
+static BOOL XCOPY_IsSameFile(const WCHAR *name1, const WCHAR *name2)
+{
+  BOOL ret = FALSE;
+  HANDLE file1 = INVALID_HANDLE_VALUE, file2 = INVALID_HANDLE_VALUE;
+  BY_HANDLE_FILE_INFORMATION info1, info2;
+
+  file1 = CreateFileW(name1, 0, FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
+  if (file1 == INVALID_HANDLE_VALUE || !GetFileInformationByHandle(file1, &info1))
+    goto end;
+
+  file2 = CreateFileW(name2, 0, FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, 0, 0);
+  if (file2 == INVALID_HANDLE_VALUE || !GetFileInformationByHandle(file2, &info2))
+    goto end;
+
+  ret = info1.dwVolumeSerialNumber == info2.dwVolumeSerialNumber
+    && info1.nFileIndexHigh == info2.nFileIndexHigh
+    && info1.nFileIndexLow == info2.nFileIndexLow;
+end:
+  if (file1 != INVALID_HANDLE_VALUE)
+    CloseHandle(file1);
+  if (file2 != INVALID_HANDLE_VALUE)
+    CloseHandle(file2);
+  return ret;
+}
+
+/* =========================================================================
    XCOPY_DoCopy - Recursive function to copy files based on input parms
      of a stem and a spec
 
@@ -345,7 +376,7 @@ static int XCOPY_DoCopy(WCHAR *srcstem, WCHAR *srcspec,
     WCHAR           *inputpath, *outputpath;
     BOOL            copiedFile = FALSE;
     DWORD           destAttribs, srcAttribs;
-    BOOL            skipFile;
+    BOOL            skipFile, quitCopy = FALSE;
     int             ret = 0;
 
     /* Allocate some working memory on heap to minimize footprint */
@@ -359,7 +390,7 @@ static int XCOPY_DoCopy(WCHAR *srcstem, WCHAR *srcspec,
 
     /* Search 1 - Look for matching files */
     h = FindFirstFileW(inputpath, finddata);
-    while (h != INVALID_HANDLE_VALUE && findres) {
+    while (h != INVALID_HANDLE_VALUE && !quitCopy && findres) {
 
         skipFile = FALSE;
 
@@ -465,6 +496,18 @@ static int XCOPY_DoCopy(WCHAR *srcstem, WCHAR *srcspec,
                 }
             }
 
+            /* Don't copy a file over itself. */
+            if (XCOPY_IsSameFile(copyFrom, copyTo)) {
+                skipFile = quitCopy = TRUE;
+                if (!(flags & OPT_QUIET)) {
+                    if (flags & OPT_FULL)
+                        XCOPY_wprintf(L"%1 -> %2\n", copyFrom, copyTo);
+                    else
+                        XCOPY_wprintf(L"%1\n", copyFrom);
+                }
+                XCOPY_wprintf(XCOPY_LoadMessage(STRING_NOCOPYTOSELF));
+            }
+
             /* Prompt each file if necessary */
             if (!skipFile && (flags & OPT_SRCPROMPT)) {
                 DWORD count;
@@ -550,11 +593,10 @@ static int XCOPY_DoCopy(WCHAR *srcstem, WCHAR *srcspec,
                            copyFrom, copyTo, error);
                     XCOPY_FailMessage(error);
 
-                    if (flags & OPT_IGNOREERRORS) {
-                        skipFile = TRUE;
-                    } else {
+                    skipFile = TRUE;
+                    if (!(flags & OPT_IGNOREERRORS)) {
                         ret = RC_WRITEERROR;
-                        goto cleanup;
+                        quitCopy = TRUE;
                     }
                 } else {
 
@@ -580,12 +622,14 @@ static int XCOPY_DoCopy(WCHAR *srcstem, WCHAR *srcspec,
         }
 
         /* Find next file */
-        findres = FindNextFileW(h, finddata);
+        if (!quitCopy) {
+            findres = FindNextFileW(h, finddata);
+        }
     }
     FindClose(h);
 
     /* Search 2 - do subdirs */
-    if (flags & OPT_RECURSIVE) {
+    if (!quitCopy && (flags & OPT_RECURSIVE)) {
 
         /* If /E is supplied, create the directory now */
         if ((flags & OPT_EMPTYDIR) &&
@@ -627,8 +671,6 @@ static int XCOPY_DoCopy(WCHAR *srcstem, WCHAR *srcspec,
         }
         FindClose(h);
     }
-
-cleanup:
 
     /* free up memory */
     HeapFree(GetProcessHeap(), 0, finddata);
