@@ -809,6 +809,7 @@
 #define WS_TABSTOP             __MSABI_LONG(0x00010000)
 #define WS_MINIMIZEBOX         __MSABI_LONG(0x00020000)
 #define WS_MAXIMIZEBOX         __MSABI_LONG(0x00010000)
+#define WS_NATIVE              __MSABI_LONG(0x00000001) /* HACK: tell WinE to create native (x11) window */
 #define WS_CAPTION             (WS_BORDER | WS_DLGFRAME)
 #define WS_TILED               WS_OVERLAPPED
 #define WS_ICONIC              WS_MINIMIZE
