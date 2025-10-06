@@ -1041,6 +1041,7 @@ RETURN_CODE WCMD_copy(WCHAR * args)
         WCHAR outname[MAX_PATH];
         BOOL  overwrite;
         BOOL  appendtofirstfile = FALSE;
+        BOOL  issamefile;
 
         /* Skip . and .., and directories */
         if (!srcisdevice && fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
@@ -1060,13 +1061,24 @@ RETURN_CODE WCMD_copy(WCHAR * args)
             overwrite = TRUE;
           }
 
+          issamefile = WCMD_IsSameFile(srcpath, outname);
+
           WINE_TRACE("Copying from : '%s'\n", wine_dbgstr_w(srcpath));
           WINE_TRACE("Copying to : '%s'\n", wine_dbgstr_w(outname));
-          WINE_TRACE("Flags: srcbinary(%d), dstbinary(%d), over(%d), prompt(%d)\n",
-                     thiscopy->binarycopy, destination->binarycopy, overwrite, prompt);
+          WINE_TRACE("Flags: srcbinary(%d), dstbinary(%d), over(%d), prompt(%d), issamefile(%d)\n",
+                     thiscopy->binarycopy, destination->binarycopy, overwrite, prompt, issamefile);
+
+          if (!anyconcats && issamefile) {
+            WCMD_output_asis(srcpath);
+            WCMD_output_asis(L"\r\n");
+            WCMD_output_stderr(WCMD_LoadMessage(WCMD_NOCOPYTOSELF));
+            WCMD_output(WCMD_LoadMessage(WCMD_NUMCOPIED), numcopied);
+            return_code = ERROR_INVALID_FUNCTION;
+            goto exitreturn;
+          }
 
           if (!writtenoneconcat) {
-            appendtofirstfile = anyconcats && WCMD_IsSameFile(srcpath, outname);
+            appendtofirstfile = anyconcats && issamefile;
           }
 
           /* Prompt before overwriting */
@@ -1098,7 +1110,7 @@ RETURN_CODE WCMD_copy(WCHAR * args)
               WCMD_output_asis(srcpath);
               WCMD_output_asis(L"\r\n");
             }
-            if (anyconcats && WCMD_IsSameFile(srcpath, outname)) {
+            if (anyconcats && issamefile) {
               /* behavior is as Unix 'touch' (change last-written time only) */
               HANDLE file = CreateFileW(srcpath, GENERIC_WRITE, FILE_SHARE_WRITE, NULL,
                                         OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
