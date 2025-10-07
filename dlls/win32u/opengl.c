@@ -980,6 +980,52 @@ static BOOL egl_query_integer( GLint renderer, GLenum attribute, GLuint *value )
     return ret;
 }
 
+static const char *egl_query_string( GLint renderer, GLenum attribute )
+{
+    const char* ret = NULL;
+    struct egl_renderer_info egl_renderer = {
+        .index = renderer,
+        .display = NULL,
+        .context = NULL,
+        .device = NULL,
+        .gl_core_version = 0,
+        .gl_compatibility_version = 0,
+    };
+    const struct egl_platform *egl = &display_egl;
+    const struct opengl_funcs *funcs = &display_funcs;
+    struct wgl_context *wgl_context = NtCurrentTeb()->glContext;
+
+    if (!egl_get_renderer_info( &egl_renderer )) {
+        return ret;
+    }
+
+    funcs->p_eglMakeCurrent( egl_renderer.display, EGL_NO_SURFACE, EGL_NO_SURFACE, egl_renderer.context );
+
+    switch (attribute)
+    {
+        case WGL_RENDERER_DEVICE_ID_WINE:
+            ret = (const char*) funcs->p_glGetString( GL_RENDERER );
+            TRACE( "WGL_RENDERER_DEVICE_ID_WINE -> %s\n", debugstr_a( ret ) );
+            break;
+        case WGL_RENDERER_VENDOR_ID_WINE:
+            ret = (const char*) funcs->p_glGetString( GL_VENDOR );
+            TRACE( "WGL_RENDERER_VENDOR_ID_WINE -> %s\n", debugstr_a( ret ) );
+            break;
+        default:
+            FIXME( "Unrecognized attribute 0x%04x\n", attribute );
+            break;
+    }
+
+    if (egl_renderer.context)
+        funcs->p_eglDestroyContext( egl_renderer.display, egl_renderer.context );
+
+    if (wgl_context->driver_private)
+        funcs->p_eglMakeCurrent( egl->display, wgl_context ? wgl_context->draw->surface : EGL_NO_SURFACE,
+                                wgl_context ? wgl_context->read->surface : EGL_NO_SURFACE, wgl_context->driver_private );
+
+    return ret;
+}
+
 static BOOL egldrv_wglQueryCurrentRendererIntegerWINE( GLenum attribute, GLuint *value )
 {
     struct wgl_context *wgl_context = NtCurrentTeb()->glContext;
@@ -990,9 +1036,20 @@ static BOOL egldrv_wglQueryCurrentRendererIntegerWINE( GLenum attribute, GLuint 
     return egl_query_integer( -1, attribute, value );
 }
 
+static const char *egldrv_wglQueryCurrentRendererStringWINE( GLenum attribute )
+{
+    struct wgl_context *context = NtCurrentTeb()->glContext;
+
+    TRACE("context %p/%p/%p attribute 0x%04x\n", context, (context ? context->driver_private : NULL),
+          (context ? context->internal_context : NULL), attribute);
+
+    return egl_query_string( -1, attribute );
+}
+
 static const char *egldrv_init_wgl_extensions( struct opengl_funcs *funcs )
 {
     funcs->p_wglQueryCurrentRendererIntegerWINE = egldrv_wglQueryCurrentRendererIntegerWINE;
+    funcs->p_wglQueryCurrentRendererStringWINE = egldrv_wglQueryCurrentRendererStringWINE;
     return "";
 }
 
