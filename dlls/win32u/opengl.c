@@ -1068,11 +1068,13 @@ static const char *egldrv_wglQueryRendererStringWINE( HDC dc, GLint renderer, GL
 
 static const char *egldrv_init_wgl_extensions( struct opengl_funcs *funcs )
 {
+    static char egldrv_wgl_extensions[4096];
     funcs->p_wglQueryCurrentRendererIntegerWINE = egldrv_wglQueryCurrentRendererIntegerWINE;
     funcs->p_wglQueryCurrentRendererStringWINE = egldrv_wglQueryCurrentRendererStringWINE;
     funcs->p_wglQueryRendererIntegerWINE = egldrv_wglQueryRendererIntegerWINE;
     funcs->p_wglQueryRendererStringWINE = egldrv_wglQueryRendererStringWINE;
-    return "";
+    register_extension( egldrv_wgl_extensions, ARRAY_SIZE(egldrv_wgl_extensions), "WGL_WINE_query_renderer" );
+    return egldrv_wgl_extensions;
 }
 
 static BOOL egldrv_surface_create( HWND hwnd, int format, struct opengl_drawable **drawable )
