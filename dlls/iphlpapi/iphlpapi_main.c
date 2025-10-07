@@ -1369,10 +1369,10 @@ ULONG WINAPI DECLSPEC_HOTPATCH GetAdaptersAddresses( ULONG family, ULONG flags, 
  */
 DWORD WINAPI GetBestInterface(IPAddr dwDestAddr, PDWORD pdwBestIfIndex)
 {
-    struct sockaddr_in sa_in;
+    SOCKADDR_INET sa_in;
     memset(&sa_in, 0, sizeof(sa_in));
-    sa_in.sin_family = AF_INET;
-    sa_in.sin_addr.S_un.S_addr = dwDestAddr;
+    sa_in.si_family = AF_INET;
+    sa_in.Ipv4.sin_addr.S_un.S_addr = dwDestAddr;
     return GetBestInterfaceEx((struct sockaddr *)&sa_in, pdwBestIfIndex);
 }
 
