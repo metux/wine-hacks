@@ -25,6 +25,7 @@
 
 #include <assert.h>
 #include <pthread.h>
+#include <dirent.h>
 #include <dlfcn.h>
 
 #include "ntstatus.h"
@@ -172,6 +173,40 @@ static BOOL opengl_drawable_swap( struct opengl_drawable *drawable )
 }
 
 #ifdef SONAME_LIBEGL
+
+struct egl_renderer_info
+{
+    EGLint index;
+    EGLDisplay display;
+    EGLDeviceEXT device;
+    EGLContext context;
+    EGLint gl_core_version;
+    EGLint gl_compatibility_version;
+};
+
+static const struct { int major, minor; } gl_versions[] =
+{
+   {4, 6},
+   {4, 5},
+   {4, 4},
+   {4, 3},
+   {4, 2},
+   {4, 1},
+   {4, 0},
+   {3, 3},
+   {3, 2},
+   {3, 1},
+   {3, 0},
+   {2, 1},
+   {2, 0},
+   {1, 5},
+   {1, 4},
+   {1, 3},
+   {1, 2},
+   {1, 1},
+   {1, 0},
+   {0, 0}
+};
 
 struct framebuffer_surface
 {
@@ -624,8 +659,340 @@ static BOOL egldrv_describe_pixel_format( int format, struct wgl_pixel_format *d
     return describe_egl_config( egl->configs[format % count], desc, onscreen );
 }
 
+static BOOL get_drm_device_pci_id( const char* drm_device_file, const char* type, GLuint* value )
+{
+    DIR *dfd;
+    FILE *file;
+    char path[PATH_MAX], symlink[PATH_MAX];
+    char* pci_id;
+    int i;
+    struct dirent *dent;
+
+    dfd = opendir("/dev/dri/by-path");
+    if (!dfd)
+    {
+        WARN( "Can't open directory /dev/dri/by-path\n" );
+        return FALSE;
+    }
+
+    while((dent = readdir( dfd )) != NULL)
+    {
+        if(strcmp( dent->d_name, "." ) == 0 || strcmp( dent->d_name, ".." ) == 0)
+            continue;
+
+        snprintf( symlink, sizeof(symlink), "/dev/dri/by-path/%s", dent->d_name );
+
+        if(!realpath( symlink, path ))
+            continue;
+
+        if (strcmp( path, drm_device_file ) != 0)
+            continue;
+
+        pci_id = dent->d_name;
+        for (i = 0; i < strlen( "pci-" ); i++) pci_id++;
+        for (i = 0; i < strlen( "-card" ); i++) pci_id[strlen( pci_id ) - 1] = 0;
+        snprintf( path, sizeof( path ), "/sys/bus/pci/devices/%s/%s", pci_id, type );
+        file = fopen( path, "r" );
+
+        if (!file) {
+            closedir( dfd );
+            return FALSE;
+        }
+
+        fscanf( file, "%x", value );
+        fclose( file );
+        closedir( dfd );
+        return TRUE;
+    }
+
+    closedir( dfd );
+    return FALSE;
+}
+
+static BOOL egl_get_renderer_info( struct egl_renderer_info* renderer )
+{
+    EGLDeviceEXT* devices;
+    EGLContext tmp;
+    EGLint devices_count, configs_count;
+    const struct egl_platform *egl = &display_egl;
+    const struct opengl_funcs *funcs = &display_funcs;
+    static const int config_attribs[] = {
+       EGL_ALPHA_SIZE,      1,
+       EGL_BLUE_SIZE,       1,
+       EGL_CONFORMANT,      EGL_OPENGL_BIT,
+       EGL_GREEN_SIZE,      1,
+       EGL_RED_SIZE,        1,
+       EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
+       EGL_NONE
+    };
+    EGLConfig configs[1] = { EGL_NO_CONFIG_KHR };
+
+    /*
+     * Do not iterate over devices if we query information
+     * about the default display device.
+     */
+    if (renderer->index != -1) {
+        funcs->p_eglQueryDevicesEXT( 0, NULL, &devices_count );
+        devices = calloc( devices_count, sizeof(EGLDeviceEXT*) );
+        funcs->p_eglQueryDevicesEXT( devices_count, devices, &devices_count );
+
+        if (renderer->index < devices_count) {
+            renderer->device = devices[renderer->index];
+            free(devices);
+        }
+
+        if (!renderer->device) {
+            WARN( "Failed to find a renderer %u in EGL devices\n", renderer->index );
+            return FALSE;
+        }
+
+        renderer->display = funcs->p_eglGetPlatformDisplay( EGL_PLATFORM_DEVICE_EXT, renderer->device, NULL );
+
+        if (renderer->display == EGL_NO_DISPLAY) {
+            WARN( "Failed to get EGL display for renderer %u (error %#x)\n", renderer->index, funcs->p_eglGetError() );
+            return FALSE;
+        }
+
+        if (renderer->display != egl->display && !funcs->p_eglInitialize( renderer->display, NULL, NULL )) {
+            WARN( "Failed to initialize EGL display for renderer %u (error %#x)\n", renderer->index, funcs->p_eglGetError() );
+            return FALSE;
+        }
+    } else {
+        renderer->display = egl->display;
+
+        if (!funcs->p_eglQueryDisplayAttribEXT( renderer->display, EGL_DEVICE_EXT, (EGLAttrib*) &renderer->device )) {
+            WARN( "Failed to query EGL display attribute (error %#x).\n", funcs->p_eglGetError() );
+            return FALSE;
+        }
+    }
+
+    funcs->p_eglBindAPI(EGL_OPENGL_API);
+
+    renderer->gl_compatibility_version = renderer->gl_core_version = 0;
+
+    for (int i = 0; gl_versions[i].major > 2; i++) {
+        const int context_attribs[] = {
+           EGL_CONTEXT_MAJOR_VERSION, gl_versions[i].major,
+           EGL_CONTEXT_MINOR_VERSION, gl_versions[i].minor,
+           EGL_CONTEXT_OPENGL_PROFILE_MASK,
+           EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT,
+           EGL_NONE,
+        };
+
+        if ((tmp = funcs->p_eglCreateContext( renderer->display, configs[0], EGL_NO_CONTEXT, context_attribs ))) {
+            renderer->gl_compatibility_version = (gl_versions[i].major * 10) + gl_versions[i].minor;
+            renderer->context = tmp;
+            break;
+        }
+    }
+
+    for (int i = 0; gl_versions[i].major > 0; i++) {
+        const int context_attribs[] = {
+           EGL_CONTEXT_MAJOR_VERSION, gl_versions[i].major,
+           EGL_CONTEXT_MINOR_VERSION, gl_versions[i].minor,
+           EGL_CONTEXT_OPENGL_PROFILE_MASK,
+           EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
+           EGL_NONE,
+        };
+
+        /* Fallback to config choosing, since EGL_NO_CONFIG_KHR is not supported
+         * for contexts below OpenGL 3.
+         */
+        if (gl_versions[i].major <= 2) {
+            if (!funcs->p_eglChooseConfig( renderer->display, config_attribs, configs, 1, &configs_count )) {
+                WARN( "Failed to choose EGL config for renderer %u (error %#x)\n", renderer->index, funcs->p_eglGetError() );
+                break;
+            }
+        }
+
+        if ((tmp = funcs->p_eglCreateContext( renderer->display, configs[0], EGL_NO_CONTEXT, context_attribs ))) {
+            renderer->gl_core_version = (gl_versions[i].major * 10) + gl_versions[i].minor;
+            renderer->context = tmp;
+            break;
+        }
+    }
+
+    if (!renderer->context) {
+        WARN( "Failed to create EGL context for renderer %u (error %#x)\n", renderer->index, funcs->p_eglGetError() );
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static BOOL egl_query_integer( GLint renderer, GLenum attribute, GLuint *value )
+{
+    BOOL ret = TRUE;
+    struct egl_renderer_info egl_renderer = {
+        .index = renderer,
+        .display = NULL,
+        .context = NULL,
+        .device = NULL,
+        .gl_core_version = 0,
+        .gl_compatibility_version = 0,
+    };
+    const struct opengl_funcs *funcs = &display_funcs;
+    const struct egl_platform *egl = &display_egl;
+    struct wgl_context *wgl_context = NtCurrentTeb()->glContext;
+
+    if (!egl_get_renderer_info( &egl_renderer )) {
+        WARN( "Failed to get info about %d renderer\n", renderer );
+        return FALSE;
+    }
+
+    funcs->p_eglMakeCurrent( egl_renderer.display, EGL_NO_SURFACE, EGL_NO_SURFACE, egl_renderer.context );
+
+    switch (attribute)
+    {
+        case WGL_RENDERER_VERSION_WINE:
+        {
+            const char* version = (const char*) funcs->p_glGetString( GL_VERSION );
+            int count = 0;
+
+            if (version) {
+                const char* tmp = strrchr( version, ' ' );
+                if (!tmp) ret = FALSE;
+                if ((count = sscanf( tmp, "%u.%u.%u", &value[0], &value[1], &value[2] )) < 2)
+                    ret = FALSE;
+                if (count < 3) value[2] = 0;
+            } else {
+                ret = FALSE;
+            }
+
+            if (!ret) {
+                WARN( "Failed to parse renderer version\n" );
+                value[0] = value[1] = value[2] = 0;
+                ret = TRUE;
+            }
+
+            TRACE( "WGL_RENDERER_VERSION_WINE -> %u.%u.%u\n", value[0], value[1], value[2] );
+            break;
+        }
+        case WGL_RENDERER_ACCELERATED_WINE:
+        {
+            const char* egl_extensions = funcs->p_eglQueryDeviceStringEXT( egl_renderer.device, EGL_EXTENSIONS );
+
+            /* Assume that all devices without EGL_MESA_device_software are
+             * accelerated. */
+            *value = !has_extension( egl_extensions, "EGL_MESA_device_software" );
+            TRACE( "WGL_RENDERER_ACCELERATED_WINE -> %u\n", *value );
+            break;
+        }
+        case WGL_RENDERER_DEVICE_ID_WINE:
+        case WGL_RENDERER_VENDOR_ID_WINE:
+        {
+            BOOL is_vendor_id = (attribute == WGL_RENDERER_VENDOR_ID_WINE);
+            const char* drm_device_file;
+            const char* egl_extensions = funcs->p_eglQueryDeviceStringEXT( egl_renderer.device, EGL_EXTENSIONS );
+
+            /* EGL does not provide a convenient way to get device / vendor ID,
+             * so we have to do it manually through DRM.
+             * Otherwise fallback to value as for SoC devices in GLX */
+            if (has_extension( egl_extensions, "EGL_EXT_device_drm" ) &&
+                    (drm_device_file = funcs->p_eglQueryDeviceStringEXT( egl_renderer.device, EGL_DRM_DEVICE_FILE_EXT )))
+                ret = get_drm_device_pci_id( drm_device_file, is_vendor_id  ? "vendor" : "device", value );
+
+            if (!ret) *value = 0xffffffff;
+
+            TRACE( "%s -> 0x%04x\n", (is_vendor_id ? "WGL_RENDERER_VENDOR_ID_WINE" : "WGL_RENDERER_DEVICE_ID_WINE"), *value );
+            break;
+        }
+        case WGL_RENDERER_OPENGL_COMPATIBILITY_PROFILE_VERSION_WINE:
+        {
+            value[0] = egl_renderer.gl_compatibility_version / 10;
+            value[1] = egl_renderer.gl_compatibility_version % 10;
+            TRACE( "WGL_RENDERER_OPENGL_COMPATIBILITY_PROFILE_VERSION_WINE -> %u.%u\n", value[0], value[1] );
+            break;
+        }
+        case WGL_RENDERER_OPENGL_CORE_PROFILE_VERSION_WINE:
+        {
+            value[0] = egl_renderer.gl_core_version / 10;
+            value[1] = egl_renderer.gl_core_version % 10 ;
+            TRACE( "WGL_RENDERER_OPENGL_CORE_PROFILE_VERSION_WINE -> %u.%u\n", value[0], value[1] );
+            break;
+        }
+        case WGL_RENDERER_PREFERRED_PROFILE_WINE:
+        {
+            if (egl_renderer.gl_core_version != 0) {
+                *value = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+                TRACE( "WGL_RENDERER_PREFERRED_PROFILE_WINE -> WGL_CONTEXT_CORE_PROFILE_BIT_ARB (0x%04x)\n", *value );
+            } else {
+                *value = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+                TRACE( "WGL_RENDERER_PREFERRED_PROFILE_WINE -> WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB (0x%04x)\n", *value );
+            }
+            break;
+        }
+
+        case WGL_RENDERER_UNIFIED_MEMORY_ARCHITECTURE_WINE:
+        {
+            /* FIXME: Assume that we always have no UMA memory,
+             * since there is no correct way to check it. */
+            *value = 0;
+            TRACE( "WGL_RENDERER_UNIFIED_MEMORY_ARCHITECTURE_WINE -> %u\n", *value );
+            break;
+        }
+        case WGL_RENDERER_VIDEO_MEMORY_WINE:
+        {
+            GLint memory = 0;
+
+            /* EGL does not provide a platform-independent way to get video
+             * memory size, so we have to do it through the vector-specific GL
+             * extensions. */
+            if (egl_renderer.gl_core_version >= 30 || egl_renderer.gl_compatibility_version >= 30) {
+                GLint extensions_count = 0;
+                funcs->p_glGetIntegerv( GL_NUM_EXTENSIONS, &extensions_count );
+
+                while (extensions_count--) {
+                    const char* extension = (const char*) funcs->p_glGetStringi( GL_EXTENSIONS, extensions_count );
+
+                    if (strcmp( extension, "GL_NVX_gpu_memory_info" ) == 0) {
+                        funcs->p_glGetIntegerv( GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX,  &memory );
+                        break;
+                    }
+                }
+            } else {
+                const char* gl_extensions = (const char*) funcs->p_glGetString( GL_EXTENSIONS );
+                if (has_extension( gl_extensions, "GL_NVX_gpu_memory_info" ))
+                    funcs->p_glGetIntegerv( GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX,  &memory );
+            }
+
+            *value = memory / 1024;
+
+            TRACE( "WGL_RENDERER_VIDEO_MEMORY_WINE -> %uMB\n", *value );
+            break;
+        }
+        default:
+            ret = FALSE;
+            FIXME( "Unrecognized attribute 0x%04x\n", attribute );
+            break;
+    }
+
+    if (egl_renderer.context)
+        funcs->p_eglDestroyContext( egl_renderer.display, egl_renderer.context );
+
+    if (egl_renderer.display && egl_renderer.display != egl->display)
+        funcs->p_eglTerminate( egl_renderer.display );
+
+    if (wgl_context->driver_private)
+        funcs->p_eglMakeCurrent( egl->display, wgl_context ? wgl_context->draw->surface : EGL_NO_SURFACE,
+                                wgl_context ? wgl_context->read->surface : EGL_NO_SURFACE, wgl_context->driver_private );
+
+    return ret;
+}
+
+static BOOL egldrv_wglQueryCurrentRendererIntegerWINE( GLenum attribute, GLuint *value )
+{
+    struct wgl_context *wgl_context = NtCurrentTeb()->glContext;
+
+    TRACE( "context %p/%p/%p attribute 0x%04x value %p\n", wgl_context, (wgl_context ? wgl_context->driver_private : NULL),
+          (wgl_context ? wgl_context->internal_context : NULL), attribute, value );
+
+    return egl_query_integer( -1, attribute, value );
+}
+
 static const char *egldrv_init_wgl_extensions( struct opengl_funcs *funcs )
 {
+    funcs->p_wglQueryCurrentRendererIntegerWINE = egldrv_wglQueryCurrentRendererIntegerWINE;
     return "";
 }
 
@@ -881,7 +1248,9 @@ static BOOL egl_init( const struct opengl_driver_funcs **driver_funcs )
         goto failed;                                            \
     }
     CHECK_EXTENSION( EGL_KHR_client_get_all_proc_addresses );
+    CHECK_EXTENSION( EGL_EXT_device_base );
     CHECK_EXTENSION( EGL_EXT_platform_base );
+    CHECK_EXTENSION( EGL_EXT_platform_device );
 #undef CHECK_EXTENSION
 
 #define USE_GL_FUNC( func )                                                                     \
@@ -891,6 +1260,7 @@ static BOOL egl_init( const struct opengl_driver_funcs **driver_funcs )
         goto failed;                                                                            \
     }
     ALL_EGL_FUNCS
+    ALL_EGL_EXT_FUNCS
 #undef USE_GL_FUNC
 
     *driver_funcs = &egldrv_funcs;
