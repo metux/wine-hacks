@@ -3984,14 +3984,6 @@ DWORD WINAPI GetUIVersion(void)
 
 /***********************************************************************
  *              ShellMessageBoxWrapW [SHLWAPI.388]
- *
- * See shell32.ShellMessageBoxW
- *
- * NOTE:
- * shlwapi.ShellMessageBoxWrapW is a duplicate of shell32.ShellMessageBoxW
- * because we can't forward to it in the .spec file since it's exported by
- * ordinal. If you change the implementation here please update the code in
- * shell32 as well.
  */
 INT WINAPIV ShellMessageBoxWrapW(HINSTANCE hInstance, HWND hWnd, LPCWSTR lpText,
                                  LPCWSTR lpCaption, UINT uType, ...)
