@@ -1489,30 +1489,75 @@ static void macdrv_surface_destroy(struct opengl_drawable *base)
     TRACE("drawable %s\n", debugstr_opengl_drawable(base));
 }
 
+/* Converts a whole window rect to a client rect; the inverse of
+   AdjustWindowRect. */
+static void window_rect_to_client(HWND hwnd, RECT *rect)
+{
+    RECT adjustments = { 0 };
+    DWORD style = NtUserGetWindowLongW(hwnd, GWL_STYLE);
+    DWORD ex_style = NtUserGetWindowLongW(hwnd, GWL_EXSTYLE);
+    UINT dpi = NtUserGetDpiForWindow(hwnd);
+    BOOL has_menu = !(style & WS_CHILD) && NtUserGetWindowLongW(hwnd, GWLP_ID);
+
+    /* Adjust a zero rect, and use those changes as insets. */
+    NtUserAdjustWindowRect(&adjustments, style, has_menu, ex_style, dpi);
+    rect->top -= adjustments.top;
+    rect->left -= adjustments.left;
+    rect->bottom -= adjustments.bottom;
+    rect->right -= adjustments.right;
+}
+
+/* Returns the client rect of the given window (even if it's minimized), or
+   CGRectNull on error. */
+static CGRect get_normal_client_rect(HWND hwnd)
+{
+    RECT rect;
+
+    if (NtUserGetWindowLongW(hwnd, GWL_STYLE) & WS_MINIMIZE)
+    {
+        /* NtUserGetClientRect will return a zero rect for minimized windows, so
+           we have to get creative. */
+        WINDOWPLACEMENT placement;
+        if (!NtUserGetWindowPlacement(hwnd, &placement))
+            return CGRectNull;
+        window_rect_to_client(hwnd, &placement.rcNormalPosition);
+        return cgrect_from_rect(placement.rcNormalPosition);
+    }
+
+    if (NtUserGetClientRect(hwnd, &rect, NtUserGetDpiForWindow(hwnd)))
+        return cgrect_from_rect(rect);
+
+    return CGRectNull;
+}
+
 /**********************************************************************
  *              make_context_current
  */
 static void make_context_current(struct macdrv_context *context, BOOL read)
 {
     macdrv_view view;
-    RECT view_rect;
+    CGRect cg_view_rect = CGRectNull;
     CGLPBufferObj pbuffer;
 
     if (read)
     {
-        if (context->read_hwnd) NtUserGetClientRect(context->read_hwnd, &view_rect, NtUserGetDpiForWindow(context->read_hwnd));
+        if (context->read_hwnd) cg_view_rect = get_normal_client_rect(context->read_hwnd);
         view = context->read_view;
         pbuffer = context->read_pbuffer;
     }
     else
     {
-        if (context->draw_hwnd) NtUserGetClientRect(context->draw_hwnd, &view_rect, NtUserGetDpiForWindow(context->draw_hwnd));
+        if (context->draw_hwnd) cg_view_rect = get_normal_client_rect(context->draw_hwnd);
         view = context->draw_view;
         pbuffer = context->draw_pbuffer;
     }
 
     if (view || !pbuffer)
-        macdrv_make_context_current(context->context, view, cgrect_from_rect(view_rect));
+    {
+        if (CGRectIsEmpty(cg_view_rect))
+            WARN("empty view rect for %s hwnd %p\n", read ? "read" : "draw", read ? context->read_hwnd : context->draw_hwnd);
+        macdrv_make_context_current(context->context, view, cg_view_rect);
+    }
     else
     {
         GLint enabled;
