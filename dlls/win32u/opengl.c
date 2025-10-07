@@ -1046,10 +1046,21 @@ static const char *egldrv_wglQueryCurrentRendererStringWINE( GLenum attribute )
     return egl_query_string( -1, attribute );
 }
 
+static BOOL egldrv_wglQueryRendererIntegerWINE( HDC dc, GLint renderer, GLenum attribute, GLuint *value )
+{
+    struct wgl_context *wgl_context = NtCurrentTeb()->glContext;
+
+    TRACE( "context %p/%p/%p attribute 0x%04x value %p\n", wgl_context, (wgl_context ? wgl_context->driver_private : NULL),
+          (wgl_context ? wgl_context->internal_context : NULL), attribute, value );
+
+    return egl_query_integer( renderer, attribute, value );
+}
+
 static const char *egldrv_init_wgl_extensions( struct opengl_funcs *funcs )
 {
     funcs->p_wglQueryCurrentRendererIntegerWINE = egldrv_wglQueryCurrentRendererIntegerWINE;
     funcs->p_wglQueryCurrentRendererStringWINE = egldrv_wglQueryCurrentRendererStringWINE;
+    funcs->p_wglQueryRendererIntegerWINE = egldrv_wglQueryRendererIntegerWINE;
     return "";
 }
 
