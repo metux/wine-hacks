@@ -323,6 +323,19 @@ static CRITICAL_SECTION_DEBUG loader_cs_debug =
 };
 static CRITICAL_SECTION loader_cs = { &loader_cs_debug, -1, 0, 0, 0, 0 };
 
+static SQLRETURN get_info_win32_w( struct connection *con, SQLUSMALLINT type, SQLPOINTER value, SQLSMALLINT buflen,
+                                   SQLSMALLINT *retlen );
+
+static struct object *find_object_type(SQLSMALLINT type, struct object *object)
+{
+    while (object && object->type != type)
+    {
+        object = object->parent;
+    }
+
+    return object;
+}
+
 static struct
 {
     UINT32 count;
@@ -462,6 +475,7 @@ static struct environment *create_environment( void )
     if (!(ret = calloc( 1, sizeof(*ret) ))) return NULL;
     init_object( &ret->hdr, SQL_HANDLE_ENV, NULL );
     ret->attr_version = SQL_OV_ODBC2;
+    ret->driver_ver = SQL_OV_ODBC2;
     return ret;
 }
 
@@ -1361,6 +1375,20 @@ static void prepare_con( struct connection *con )
         WARN( "failed to set connection timeout\n" );
     if (set_con_attr( con, SQL_ATTR_LOGIN_TIMEOUT, INT_PTR(con->attr_login_timeout), 0 ))
         WARN( "failed to set login timeout\n" );
+
+    if (con->hdr.win32_handle)
+    {
+        WCHAR ver[16];
+        SQLRETURN ret = SQL_ERROR;
+
+        ret = get_info_win32_w( con, SQL_DRIVER_ODBC_VER, &ver, sizeof(ver), NULL);
+        if (SUCCESS( ret ))
+        {
+            struct environment *env = (struct environment *)find_object_type(SQL_HANDLE_ENV, con->hdr.parent);
+            long nMajor = _wtol( ver );
+            env->driver_ver = nMajor == 2 ? SQL_OV_ODBC2 : SQL_OV_ODBC3;
+        }
+    }
 }
 
 static SQLRETURN create_con( struct connection *con )
@@ -2518,7 +2546,21 @@ static SQLRETURN get_data_win32( struct statement *stmt, SQLUSMALLINT column, SQ
                                  SQLLEN buflen, SQLLEN *retlen )
 {
     if (stmt->hdr.win32_funcs->SQLGetData)
+    {
+        struct environment *env = (struct environment *)find_object_type(SQL_HANDLE_ENV, stmt->hdr.parent);
+        if (env && env->driver_ver == SQL_OV_ODBC2)
+        {
+            if (type == SQL_C_TYPE_TIME)
+                type = SQL_C_TIME;
+            else if (type == SQL_C_TYPE_DATE)
+                type = SQL_C_DATE;
+            else if (type == SQL_C_TYPE_TIMESTAMP)
+                type = SQL_C_TIMESTAMP;
+        }
+
         return stmt->hdr.win32_funcs->SQLGetData( stmt->hdr.win32_handle, column, type, value, buflen, retlen );
+    }
+
     return SQL_ERROR;
 }
 
@@ -6313,6 +6355,9 @@ static SQLRETURN col_attribute_win32_w( struct statement *stmt, SQLUSMALLINT col
                                         SQLPOINTER char_attr, SQLSMALLINT buflen, SQLSMALLINT *retlen,
                                         SQLLEN *num_attr )
 {
+    struct environment *env;
+    SQLRETURN ret = SQL_ERROR;
+
     if (stmt->hdr.win32_funcs->SQLColAttributeW)
         return stmt->hdr.win32_funcs->SQLColAttributeW( stmt->hdr.win32_handle, col, field_id, char_attr, buflen,
                                                        retlen, num_attr );
@@ -6373,11 +6418,23 @@ static SQLRETURN col_attribute_win32_w( struct statement *stmt, SQLUSMALLINT col
             return SQL_ERROR;
         }
 
-        return stmt->hdr.win32_funcs->SQLColAttributesW( stmt->hdr.win32_handle, col, field_id, char_attr, buflen,
+        ret = stmt->hdr.win32_funcs->SQLColAttributesW( stmt->hdr.win32_handle, col, field_id, char_attr, buflen,
                                                          retlen, num_attr );
+        /* Convert back for ODBC2 drivers */
+        env = (struct environment *)find_object_type(SQL_HANDLE_ENV, stmt->hdr.parent);
+        if (SQL_SUCCEEDED(ret) && num_attr && field_id == SQL_COLUMN_TYPE &&
+                env && env->attr_version == SQL_OV_ODBC3 && env->driver_ver == SQL_OV_ODBC2)
+        {
+            if (*num_attr == SQL_TIME)
+                *num_attr = SQL_TYPE_TIME;
+            else if (*num_attr == SQL_DATETIME)
+                *num_attr = SQL_TYPE_DATE;
+            else if (*num_attr == SQL_TIMESTAMP)
+                *num_attr = SQL_TYPE_TIMESTAMP;
+        }
     }
 
-    return SQL_ERROR;
+    return ret;
 }
 
 /*************************************************************************
