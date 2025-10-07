@@ -30,11 +30,16 @@
 #include "wine/debug.h"
 #include "resource.h"
 
+#include "cfg.h"
+
 WINE_DEFAULT_DEBUG_CHANNEL(twain);
 
-#define ID_BASE 0x100
-#define ID_EDIT_BASE 0x1000
-#define ID_STATIC_BASE 0x2000
+#define ID_BASE             0x100
+#define ID_EDIT_BASE        0x1000
+#define ID_STATIC_BASE      0x2000
+
+WCHAR path[MAX_PATH];
+int gOptCount;
 
 static INT_PTR CALLBACK DialogProc (HWND , UINT , WPARAM , LPARAM );
 static INT CALLBACK PropSheetProc(HWND, UINT,LPARAM);
@@ -485,6 +490,8 @@ BOOL DoScannerUI(void)
 
     hdc = CreateCompatibleDC(0);
 
+    gOptCount = optcount;
+
     while (index < optcount)
     {
         struct option_descriptor opt;
@@ -508,13 +515,19 @@ BOOL DoScannerUI(void)
             psp[page_count].lParam = (LPARAM)&activeDS;
             page_count ++;
         }
-       
+
         index ++;
     }
- 
+
     len = lstrlenA(activeDS.identity.Manufacturer)
          + lstrlenA(activeDS.identity.ProductName) + 2;
     szCaption = malloc(len *sizeof(WCHAR));
+
+    swprintf(path, MAX_PATH, L"%S\\%S_%S.sc",
+             activeDS.identity.Manufacturer,
+             activeDS.identity.ProductFamily,
+             activeDS.identity.ProductName);
+
     MultiByteToWideChar(CP_ACP,0,activeDS.identity.Manufacturer,-1,
             szCaption,len);
     szCaption[lstrlenA(activeDS.identity.Manufacturer)] = ' ';
@@ -546,6 +559,97 @@ BOOL DoScannerUI(void)
         return TRUE;
     else
         return FALSE;
+}
+
+static BOOL get_option(struct option_descriptor* opt, ScannerOption* option)
+{
+    lstrcpynA(option->name, opt->name, OPTION_NAME_MAX);
+    option->is_enabled = opt->is_active;
+    option->optno = opt->optno;
+
+    if (opt->type ==TYPE_STRING && opt->constraint_type != CONSTRAINT_NONE)
+    {
+        CHAR buffer[255];
+        option->reg_type = REG_SZ;
+        option->opt_type = opt->type;
+        sane_option_get_value(opt->optno, buffer);
+        lstrcpynA((CHAR*)option->value, buffer, OPTION_VALUE_MAX);
+        option->size = (DWORD)(strlen(buffer) + 1);
+    }
+    else if (opt->type == TYPE_BOOL)
+    {
+        BOOL b;
+        option->opt_type = opt->type;
+        option->reg_type = REG_DWORD;
+        sane_option_get_value(opt->optno, &b);
+        memcpy(option->value, &b, sizeof(BOOL));
+        option->size = sizeof(b);
+    }
+    else if (opt->type == TYPE_INT && opt->constraint_type == CONSTRAINT_WORD_LIST)
+    {
+        int val;
+        option->opt_type = opt->type;
+        option->reg_type = REG_DWORD;
+        sane_option_get_value(opt->optno, &val);
+        memcpy(option->value, &val, sizeof(INT));
+        option->size = sizeof(val);
+    }
+    else if (opt->constraint_type == CONSTRAINT_RANGE)
+    {
+        if (opt->type == TYPE_INT)
+        {
+            int si;
+            option->opt_type = opt->type;
+            option->reg_type = REG_DWORD;
+            sane_option_get_value(opt->optno, &si);
+            if (opt->constraint.range.quant)
+            {
+                si = si / opt->constraint.range.quant;
+            }
+            memcpy(option->value, &si, sizeof(INT));
+            option->size = sizeof(si);
+        }
+        else if (opt->type == TYPE_FIXED)
+        {
+            int pos, *sf;
+            option->opt_type = opt->type;
+            option->reg_type = REG_DWORD;
+            sf = calloc( opt->size, sizeof(int) );
+            sane_option_get_value(opt->optno, sf );
+            if (opt->constraint.range.quant)
+                pos = *sf / opt->constraint.range.quant;
+            else
+                pos = MulDiv( *sf, 100, 65536 );
+            memcpy(option->value, &pos, sizeof(INT));
+            option->size = sizeof(pos);
+            free(sf);
+        }
+        else
+        {
+            FIXME("Unhandled option type %d with constraint\n", opt->type);
+            return FALSE;
+        }
+    }
+    else
+    {
+        FIXME("Unhandled option type %d\n", opt->type);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static BOOL save_option(int optno)
+{
+    ScannerOption option;
+    struct option_descriptor opt;
+
+    opt.optno = optno;
+    SANE_CALL(option_get_descriptor, &opt);
+
+    if (!get_option(&opt, &option)) return FALSE;
+
+    return save_to_reg(path, option.reg_type, option.name, option.value, option.size);
 }
 
 static void UpdateRelevantEdit(HWND hwnd, const struct option_descriptor *opt, int position)
@@ -607,6 +711,7 @@ static BOOL UpdateSaneScrollOption(const struct option_descriptor *opt, DWORD po
             si = position;
 
         sane_option_set_value( opt->optno, &si, &result );
+        save_option(opt->optno);
         break;
     }
     case TYPE_FIXED:
@@ -616,6 +721,7 @@ static BOOL UpdateSaneScrollOption(const struct option_descriptor *opt, DWORD po
             si = MulDiv( position, 65536, 100 );
 
         sane_option_set_value( opt->optno, &si, &result );
+        save_option(opt->optno);
         break;
     default:
         break;
@@ -635,19 +741,22 @@ static INT_PTR InitializeDialog(HWND hwnd)
     if (rc != TWCC_SUCCESS)
     {
         ERR("Unable to read number of options\n");
-        return FALSE;
+        optcount = gOptCount;
     }
+    else
+        gOptCount = optcount;
 
     for ( i = 1; i < optcount; i++)
     {
+        CHAR title[256];
         struct option_descriptor opt;
-
         control = GetDlgItem(hwnd,i+ID_BASE);
 
         if (!control)
             continue;
 
         opt.optno = i;
+
         SANE_CALL( option_get_descriptor, &opt );
 
         TRACE("%i %s %i %i\n",i,debugstr_w(opt.title),opt.type,opt.constraint_type);
@@ -655,34 +764,77 @@ static INT_PTR InitializeDialog(HWND hwnd)
 
         SendMessageA(control,CB_RESETCONTENT,0,0);
         /* initialize values */
+
+        lstrcpynA(title, opt.name, ARRAY_SIZE(title));
+
         if (opt.type == TYPE_STRING && opt.constraint_type != CONSTRAINT_NONE)
         {
             CHAR buffer[255];
             WCHAR *p;
 
+            BOOL is_exist = load_from_reg(path, opt.type, title, buffer);
+            BOOL is_correct = FALSE;
+
             for (p = opt.constraint.strings; *p; p += lstrlenW(p) + 1)
+            {
+                CHAR param[256];
                 SendMessageW( control,CB_ADDSTRING,0, (LPARAM)p );
+                WideCharToMultiByte(CP_UTF8, 0, p, -1, param, sizeof(param), NULL, NULL);
+                if (is_exist && !strcmp(param, buffer))
+                {
+                     is_correct = TRUE;
+                }
+            }
+
+            if (is_exist && is_correct)
+            {
+                sane_option_set_value(opt.optno, buffer, NULL);
+            }
+
+            if (is_exist && !is_correct)
+            {
+                ERR("%s=%s is incorrect. The default value is set!", title, buffer);
+            }
+
             sane_option_get_value( i, buffer );
             SendMessageA(control,CB_SELECTSTRING,0,(LPARAM)buffer);
         }
         else if (opt.type == TYPE_BOOL)
         {
             BOOL b;
-            sane_option_get_value( i, &b );
-            if (b)
-                SendMessageA(control,BM_SETCHECK,BST_CHECKED,0);
+            BOOL is_exist = load_from_reg(path, opt.type, title, &b);
 
+            if (is_exist)
+            {
+                sane_option_set_value( i, &b, NULL );
+            }
+
+            sane_option_get_value( i, &b );
+            SendMessageA(control,BM_SETCHECK, b ? BST_CHECKED : BST_UNCHECKED,0);
         }
         else if (opt.type == TYPE_INT && opt.constraint_type == CONSTRAINT_WORD_LIST)
         {
             int j, count = opt.constraint.word_list[0];
             CHAR buffer[16];
             int val;
+            BOOL is_exist = load_from_reg(path, opt.type, title, &val);
+            BOOL is_correct = FALSE;
+
             for (j=1; j<=count; j++)
             {
+                if (opt.constraint.word_list[j] == val)
+                {
+                    is_correct = TRUE;
+                }
                 sprintf(buffer, "%d", opt.constraint.word_list[j]);
                 SendMessageA(control, CB_ADDSTRING, 0, (LPARAM)buffer);
             }
+            if (is_exist && is_correct)
+                sane_option_set_value( i, &val, NULL );
+
+            if (is_exist && !is_correct)
+                ERR("%s=%d is incorrect. The default value is set!\n", title, val);
+
             sane_option_get_value( i, &val );
             sprintf(buffer, "%d", val);
             SendMessageA(control,CB_SELECTSTRING,0,(LPARAM)buffer);
@@ -693,6 +845,8 @@ static INT_PTR InitializeDialog(HWND hwnd)
             {
                 int si;
                 int min,max;
+                BOOL is_exist = load_from_reg(path, opt.type, title, &si);
+                BOOL is_correct = FALSE;
 
                 min = opt.constraint.range.min /
                     (opt.constraint.range.quant ? opt.constraint.range.quant : 1);
@@ -702,7 +856,16 @@ static INT_PTR InitializeDialog(HWND hwnd)
 
                 SendMessageA(control,SBM_SETRANGE,min,max);
 
+                if (is_exist && si >= min && si <= max)
+                    is_correct = TRUE;
+                else if (is_exist)
+                    ERR("%s=%d is out of range [%d..%d]. The default value is used!\n", title, si, min, max);
+
+                if (is_correct && is_exist)
+                    sane_option_set_value( i, &si, NULL);
+
                 sane_option_get_value( i, &si );
+
                 if (opt.constraint.range.quant)
                     si = si / opt.constraint.range.quant;
 
@@ -711,8 +874,8 @@ static INT_PTR InitializeDialog(HWND hwnd)
             }
             else if (opt.type == TYPE_FIXED)
             {
-                int pos, min, max, *sf;
-
+                int pos, min, max, *sf, val;
+                BOOL is_exist, is_correct = FALSE;
                 if (opt.constraint.range.quant)
                 {
                     min = opt.constraint.range.min / opt.constraint.range.quant;
@@ -725,6 +888,23 @@ static INT_PTR InitializeDialog(HWND hwnd)
                 }
 
                 SendMessageA(control,SBM_SETRANGE,min,max);
+
+                is_exist = load_from_reg(path, opt.type, title, &val);
+
+                if (is_exist && val >= min && val <= max)
+                    is_correct = TRUE;
+                else if (is_exist)
+                    ERR("%s = %d is out of range [%d..%d]. The default value is used!\n", title, val, min, max);
+
+                if (is_exist && is_correct)
+                {
+                     int valSet;
+                     if (opt.constraint.range.quant)
+                          valSet = val * opt.constraint.range.quant;
+                     else
+                          valSet = MulDiv(val, 65536, 100);
+                     sane_option_set_value(i, &valSet, NULL);
+                }
 
 
                 sf = calloc( opt.size, sizeof(int) );
@@ -817,7 +997,12 @@ static void ButtonClicked(HWND hwnd, INT id, HWND control)
     {
         BOOL r = SendMessageW(control,BM_GETCHECK,0,0)==BST_CHECKED;
         sane_option_set_value( opt.optno, &r, &changed );
-        if (changed) InitializeDialog(hwnd);
+
+        if (changed)
+        {
+            save_option(opt.optno);
+            InitializeDialog(hwnd);
+        }
     }
 }
 
@@ -851,10 +1036,14 @@ static void ComboChanged(HWND hwnd, INT id, HWND control)
         int val = atoi( value );
         sane_option_set_value( opt.optno, &val, &changed );
     }
-    if (changed) InitializeDialog(hwnd);
+
+    if (changed)
+    {
+        save_option(opt.optno);
+        InitializeDialog(hwnd);
+    }
     free( value );
 }
-
 
 static INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
