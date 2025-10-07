@@ -3858,9 +3858,31 @@ static HRESULT STDMETHODCALLTYPE d2d_path_geometry_Outline(ID2D1PathGeometry1 *i
 static HRESULT STDMETHODCALLTYPE d2d_path_geometry_ComputeArea(ID2D1PathGeometry1 *iface,
         const D2D1_MATRIX_3X2_F *transform, float tolerance, float *area)
 {
-    FIXME("iface %p, transform %p, tolerance %.8e, area %p stub!\n", iface, transform, tolerance, area);
+    struct d2d_geometry *geometry = impl_from_ID2D1PathGeometry1(iface);
+    float result = 0.0f;
+    UINT32 i;
 
-    return E_NOTIMPL;
+    TRACE("iface %p, transform %p, tolerance %.8e, area %p.\n", iface, transform, tolerance, area);
+
+    for (i = 0; i < geometry->fill.face_count; ++i)
+    {
+        const struct d2d_face *face = &geometry->fill.faces[i];
+        D2D1_POINT_2F a = geometry->fill.vertices[face->v[0]],
+                      b = geometry->fill.vertices[face->v[1]],
+                      c = geometry->fill.vertices[face->v[2]];
+
+        if (transform)
+        {
+            d2d_point_transform(&a, transform, a.x, a.y);
+            d2d_point_transform(&b, transform, b.x, b.y);
+            d2d_point_transform(&c, transform, c.x, c.y);
+        }
+
+        result += fabs((a.x - c.x) * (b.y - a.y) - (a.x - b.x) * (c.y - a.y));
+    }
+
+    *area = result * .5f;
+    return S_OK;
 }
 
 static HRESULT STDMETHODCALLTYPE d2d_path_geometry_ComputeLength(ID2D1PathGeometry1 *iface,

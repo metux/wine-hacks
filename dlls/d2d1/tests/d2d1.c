@@ -15476,12 +15476,32 @@ static void test_effect_vertex_buffer(BOOL d3d11)
 
 static void test_compute_geometry_area(BOOL d3d11)
 {
+    const D2D1_POINT_2F points_arrow[] = 
+    {
+        { -200.0f,  50.0f   },
+        { -200.0f,  100.0f  },
+        {  200.0f,  100.0f  },
+        {  200.0f,  150.0f  },
+        {  300.0f,  75.0f   },
+        {  200.0f,  0.0f    },
+        {  200.0f,  50.0f   },
+    };
+    const D2D1_POINT_2F points_square[] = 
+    {
+        { -1.0f, -1.0f  },
+        {  1.0f, -1.0f  },
+        {  1.0f,  1.0f  },
+        { -1.0f,  1.0f  },
+    };
     ID2D1TransformedGeometry *transformed_geometry;
     ID2D1RectangleGeometry *rectangle_geometry;
     ID2D1EllipseGeometry *ellipse_geometry;
+    ID2D1PathGeometry *path_geometry;
     struct d2d1_test_context ctx;
     D2D1_MATRIX_3X2_F matrix;
+    ID2D1GeometrySink *sink;
     D2D1_ELLIPSE ellipse;
+    D2D1_POINT_2F point;
     D2D1_RECT_F rect;
     HRESULT hr;
     float area;
@@ -15595,6 +15615,81 @@ static void test_compute_geometry_area(BOOL d3d11)
 
     ID2D1TransformedGeometry_Release(transformed_geometry);
     ID2D1RectangleGeometry_Release(rectangle_geometry);
+
+    hr = ID2D1Factory_CreatePathGeometry(ctx.factory, &path_geometry);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    hr = ID2D1PathGeometry_Open(path_geometry, &sink);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+
+    set_point(&point, -1.0f, -1.0f);
+    ID2D1GeometrySink_BeginFigure(sink, point, D2D1_FIGURE_BEGIN_FILLED);
+    ID2D1GeometrySink_AddLines(sink, points_square, ARRAY_SIZE(points_square));
+    ID2D1GeometrySink_EndFigure(sink, D2D1_FIGURE_END_CLOSED);
+
+    hr = ID2D1GeometrySink_Close(sink);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    ID2D1GeometrySink_Release(sink);
+
+    hr = ID2D1PathGeometry_ComputeArea(path_geometry, NULL, 1.5f, &area);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    ok(area == 4.0f, "Got area %f.\n", area);
+
+    D2D1MakeSkewMatrix(45.0f , 45.0f, point, &matrix);
+    hr = ID2D1PathGeometry_ComputeArea(path_geometry, &matrix, 1.5f, &area);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    ok(area == 0.0f, "Got area %f.\n", area);
+
+    D2D1MakeSkewMatrix(30.0f , 30.0f, point, &matrix);
+    hr = ID2D1PathGeometry_ComputeArea(path_geometry, &matrix, 1.5f, &area);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    ok(compare_float(area, 2.666667f, 3), "Got area %f.\n", area);
+
+    ID2D1PathGeometry_Release(path_geometry);
+
+    hr = ID2D1Factory_CreatePathGeometry(ctx.factory, &path_geometry);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    hr = ID2D1PathGeometry_Open(path_geometry, &sink);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+
+    set_point(&point, -200.0f, 50.0f);
+    ID2D1GeometrySink_BeginFigure(sink, point, D2D1_FIGURE_BEGIN_FILLED);
+    ID2D1GeometrySink_AddLines(sink, points_arrow, ARRAY_SIZE(points_arrow));
+    ID2D1GeometrySink_EndFigure(sink, D2D1_FIGURE_END_CLOSED);
+
+    hr = ID2D1GeometrySink_Close(sink);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    ID2D1GeometrySink_Release(sink);
+
+    hr = ID2D1PathGeometry_ComputeArea(path_geometry, NULL, 1.5f, &area);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    ok(area == 27500.0f, "Got area %f.\n", area);
+
+    D2D1MakeRotateMatrix(90.0f, point, &matrix);
+    hr = ID2D1PathGeometry_ComputeArea(path_geometry, NULL, 1.5f, &area);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    ok(area == 27500.0f, "Got area %f.\n", area);
+
+    ID2D1PathGeometry_Release(path_geometry);
+
+    hr = ID2D1Factory_CreatePathGeometry(ctx.factory, &path_geometry);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    hr = ID2D1PathGeometry_Open(path_geometry, &sink);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+
+    set_point(&point, -200.0f, 50.0f);
+    ID2D1GeometrySink_BeginFigure(sink, point, D2D1_FIGURE_BEGIN_HOLLOW);
+    ID2D1GeometrySink_AddLines(sink, points_arrow, ARRAY_SIZE(points_arrow));
+    ID2D1GeometrySink_EndFigure(sink, D2D1_FIGURE_END_CLOSED);
+
+    hr = ID2D1GeometrySink_Close(sink);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    ID2D1GeometrySink_Release(sink);
+
+    hr = ID2D1PathGeometry_ComputeArea(path_geometry, NULL, 1.5f, &area);
+    ok(hr == S_OK, "Got unexpected hr %#lx.\n", hr);
+    ok(area == 0.0f, "Got area %f.\n", area);
+
+    ID2D1PathGeometry_Release(path_geometry);
 
     release_test_context(&ctx);
 }
