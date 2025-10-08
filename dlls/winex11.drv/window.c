@@ -631,11 +631,6 @@ static void sync_window_text( Display *display, Window win, const WCHAR *text )
     }
     RtlUnicodeToUTF8N( utf8_buffer, count, &count, text, len * sizeof(WCHAR) );
 
-//    fprintf(stderr, "sync_window_text(): utf8_buffer=%s\n", utf8_buffer);
-//    fprintf(stderr, "sync_window_text(): => buffer=%s\n", buffer);
-    fprintf(stderr, "sync_window_text(): => XID=0x%lX\n", win);
-    fflush(stderr);
-
     if (XmbTextListToTextProperty( display, &buffer, 1, XStdICCTextStyle, &prop ) == Success)
     {
         XSetWMName( display, win, &prop );
