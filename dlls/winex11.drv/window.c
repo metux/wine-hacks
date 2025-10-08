@@ -516,7 +516,7 @@ static void sync_window_style( struct x11drv_win_data *data )
         XSetWindowAttributes attr;
         int mask = get_window_attributes( data, &attr );
 
-        TRACE( "window %p/%lx changing attributes mask %#x, serial %lu\n", data->hwnd,
+        fprintf(stderr, "window %p/%lx changing attributes mask %#x, serial %lu\n", data->hwnd,
                data->whole_window, mask, NextRequest( data->display ) );
         XChangeWindowAttributes( data->display, data->whole_window, mask, &attr );
         x11drv_xinput2_enable( data->display, data->whole_window );
