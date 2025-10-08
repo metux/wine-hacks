@@ -3512,10 +3512,14 @@ static unsigned int virtual_map_section( HANDLE handle, PVOID *addr_ptr, ULONG_P
     res = get_mapping_info( handle, access, &sec_flags, &full_size, &shared_file, &image_info );
     if (res) return res;
 
+    offset.QuadPart = offset_ptr ? offset_ptr->QuadPart : 0;
+
     if (image_info)
     {
         SECTION_IMAGE_INFORMATION info;
         ULONG64 prev = 0;
+        void *image_ptr;
+        SIZE_T image_size;
 
         if (NtCurrentTeb64())
         {
@@ -3525,10 +3529,15 @@ static unsigned int virtual_map_section( HANDLE handle, PVOID *addr_ptr, ULONG_P
         filename = (WCHAR *)(image_info + 1);
         /* check if we can replace that mapping with the builtin */
         res = load_builtin( image_info, filename, machine, &info,
-                            addr_ptr, size_ptr, limit_low, limit_high );
+                            &image_ptr, &image_size, limit_low, limit_high );
         if (res == STATUS_IMAGE_ALREADY_LOADED)
-            res = virtual_map_image( handle, addr_ptr, size_ptr, shared_file, limit_low, limit_high,
+            res = virtual_map_image( handle, &image_ptr, &image_size, shared_file, limit_low, limit_high,
                                      alloc_type, machine, image_info, filename, FALSE );
+        if (NT_SUCCESS(res))
+        {
+            *addr_ptr = (char *)image_ptr + offset.QuadPart;
+            *size_ptr = image_size - offset.QuadPart;
+        }
         if (shared_file) NtClose( shared_file );
         free( image_info );
         if (NtCurrentTeb64()) NtCurrentTeb64()->Tib.ArbitraryUserPointer = prev;
@@ -3536,7 +3545,6 @@ static unsigned int virtual_map_section( HANDLE handle, PVOID *addr_ptr, ULONG_P
     }
 
     base = *addr_ptr;
-    offset.QuadPart = offset_ptr ? offset_ptr->QuadPart : 0;
     if (offset.QuadPart >= full_size) return STATUS_INVALID_PARAMETER;
     if (*size_ptr)
     {
