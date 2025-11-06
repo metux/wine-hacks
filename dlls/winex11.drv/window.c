@@ -2355,6 +2355,7 @@ static void create_whole_window( struct x11drv_win_data *data )
     {
         /* specially flagged w/ WS_NATIVE - enforce creating an actual X11 window */
         struct x11drv_win_data *parent_data = get_win_data(parent);
+        fprintf(stderr, "create_whole_window() GWL_STYLE=0x%X\n", NtUserGetWindowLongW(data->hwnd, GWL_STYLE));
         if ((parent_data) && (NtUserGetWindowLongW(data->hwnd, GWL_STYLE) & WS_NATIVE))
             parent_xwin = parent_data->whole_window;
     }
