@@ -2329,6 +2329,21 @@ Window create_client_window( HWND hwnd, const XVisualInfo *visual, Colormap colo
     return ret;
 }
 
+static char *get_window_classname(HWND hwnd)
+{
+    WCHAR buf[4096];
+    UNICODE_STRING bufrec = { .Buffer = buf, .MaximumLength = sizeof(buf) };
+    NtUserGetClassName(hwnd, FALSE, &bufrec);
+
+    int len = lstrlenW(buf);
+    int count = len * 3 + 1;
+    char *name = calloc(count, 1);
+    if (!name)
+        return NULL;
+
+    ntdll_wcstoumbs(buf, len + 1, name, count, FALSE );
+    return name;
+}
 
 /**********************************************************************
  *		create_whole_window
@@ -2353,11 +2368,15 @@ static void create_whole_window( struct x11drv_win_data *data )
 
     if (parent != NtUserGetDesktopWindow())
     {
-        /* specially flagged w/ WS_NATIVE - enforce creating an actual X11 window */
-        struct x11drv_win_data *parent_data = get_win_data(parent);
-        fprintf(stderr, "create_whole_window() GWL_STYLE=0x%X\n", NtUserGetWindowLongW(data->hwnd, GWL_STYLE));
-        if ((parent_data) && (NtUserGetWindowLongW(data->hwnd, GWL_STYLE) & WS_NATIVE))
-            parent_xwin = parent_data->whole_window;
+        char *classname = get_window_classname(data->hwnd);
+        fprintf(stderr, "ClassName: \"%s\"\n", classname);
+        if (classname && (strncmp(classname, "_X11_NATIVE_", 12)==0)) {
+            fprintf(stderr, "==> native window requested\n");
+            struct x11drv_win_data *parent_data = get_win_data(parent);
+            if (parent_data)
+                parent_xwin = parent_data->whole_window;
+        }
+        free(classname);
     }
 
     if ((win_rgn = NtGdiCreateRectRgn( 0, 0, 0, 0 )) &&
