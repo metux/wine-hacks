@@ -2773,7 +2773,6 @@ void set_window_parent( struct x11drv_win_data *data, Window parent )
     data->parent_invalid = 0;
 }
 
-
 /***********************************************************************
  *		X11DRV_create_win_data
  *
@@ -2807,7 +2806,10 @@ static struct x11drv_win_data *X11DRV_create_win_data( HWND hwnd, const struct w
                wine_dbgstr_rect( &data->rects.visible ), wine_dbgstr_rect( &data->rects.client ));
     } else {
         /* enforce creating X11 window specially flagged NT windows */
-        if (NtUserGetWindowLongW(data->hwnd, GWL_STYLE) & WS_NATIVE) {
+        char *classname = get_window_classname(data->hwnd);
+        fprintf(stderr, "[X11DRV] ClassName: \"%s\"\n", classname);
+        if (classname && (strncmp(classname, "_X11_NATIVE_", 12)==0)) {
+            fprintf(stderr, "[X11DRV] ==> native window requested\n");
             create_whole_window( data );
         }
     }
