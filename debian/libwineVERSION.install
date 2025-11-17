@@ -1,24 +1,27 @@
-# PE libraries
-debian/tmp/usr/lib/*/*/*/*.dll
+# unix host libraries
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-unix/*.so
 
-# other PE files
-debian/tmp/usr/lib/*/*/*/*.ax
-debian/tmp/usr/lib/*/*/*/*.ds
-debian/tmp/usr/lib/*/*/*/*.drv
-debian/tmp/usr/lib/*/*/*/*.acm
-debian/tmp/usr/lib/*/*/*/*.com
-debian/tmp/usr/lib/*/*/*/*.cpl
-debian/tmp/usr/lib/*/*/*/*.exe
-debian/tmp/usr/lib/*/*/*/*.ocx
-debian/tmp/usr/lib/*/*/*/*.sys
-debian/tmp/usr/lib/*/*/*/*.tlb
-debian/tmp/usr/lib/*/*/*/*.msstyles
+# win32 libraries
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.dll*
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.drv*
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.ds*
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.exe*
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.sys*
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.ocx*
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.msstyles*
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.acm*
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.mod*
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.tlb
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.ax
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.com
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.cpl
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/i386-windows/*.vxd
 
-# ELF libraries
-debian/tmp/usr/lib/*/*/*/*.so
-
-# wine server
-debian/tmp/wineserver usr/lib/wineVERSION
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/wine
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/wine-preloader
+debian/tmp/usr/lib/*/wineVERSION/bin/*
 
 # configuration files
-debian/tmp/usr/share/*/*.inf
+debian/tmp/usr/share/*/*/*.inf
+
+debian/tmp/usr/share/wineVERSION/wine/winmd/*.winmd

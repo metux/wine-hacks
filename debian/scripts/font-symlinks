@@ -1,6 +1,0 @@
-#!/bin/sh -e
-# Copyright: 2024 Michael Gilbert <mgilbert@debian.org>
-# License: LGPL-2.1+
-
-cd fonts
-for f in *.ttf; do ln -s ../../../wine/fonts/$f ../debian/fonts-wine/usr/share/fonts/truetype/wine/$f; done

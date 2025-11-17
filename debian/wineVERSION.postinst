@@ -7,16 +7,7 @@ case "$1" in
         dpkg-trigger wineVERSION
         ;;
     triggered)
-        # debian alternatives system
-        case DEBSUFFIX in
-            -stable)
-                PRIORITY=70;;
-            -development)
-                PRIORITY=50;;
-            *)
-                echo "DEBSUFFIX unknown"; exit 1;;
-        esac
-
+        PRIORITY=70
         apps="wineserver
               msiexec
               regedit
@@ -27,7 +18,7 @@ case "$1" in
               winepath
               regsvr32
               wineconsole
-
+              notepad
               wmc
               wrc
               widl

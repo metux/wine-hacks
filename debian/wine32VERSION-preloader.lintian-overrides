@@ -1,4 +1,0 @@
-# wine's preloader is intentionally statically linked
-shared-library-lacks-prerequisites
-# incorrectly flagged
-debian-news-entry-has-unknown-version

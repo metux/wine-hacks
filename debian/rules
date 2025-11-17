@@ -1,25 +1,33 @@
 #!/usr/bin/make -f
 
+VERSION := -10.19
+
 # add DEB_* variables to the environment
 include /usr/share/dpkg/architecture.mk
 include /usr/share/dpkg/pkg-info.mk
 include /usr/share/dpkg/vendor.mk
 
-# determine whether this is a stable or development build
-VERSION=$(shell echo $(DEB_SOURCE) | sed s/wine//g)
-ifeq (x$(VERSION), x)
-DEBSUFFIX=-stable
-else
 DEBSUFFIX=$(VERSION)
+export DEB_SOURCE = wine$(VERSION)
+export DEB_BUILD_OPTIONS=parallel=$(shell nproc)
+
+# Detect 32-bit vs 64-bit
+ifeq ($(DEB_HOST_ARCH),i386)
+    ARCHDEP_GCC_ARGS := -m32
+else ifeq ($(DEB_HOST_ARCH),amd64)
+    ARCHDEP_GCC_ARGS := -m32
 endif
+
+export ARCHDEP_GCC_ARGS
 export DEBSUFFIX
 
 # installation paths
-MANDIR=usr/share/man
-BINDIR=usr/lib/wine$(VERSION)
-DATDIR=usr/share/wine$(VERSION)
-INCDIR=usr/include/wine$(VERSION)
-LIBDIR=usr/lib/$(DEB_HOST_MULTIARCH)/wine$(VERSION)
+BINDIR=/usr/lib/wine$(VERSION)
+DATADIR=/usr/share/wine$(VERSION)
+MANDIR=$(DATADIR)/man
+INCLUDEDIR=/usr/include/wine$(VERSION)
+PREFIX=/usr/lib/$(DEB_HOST_MULTIARCH)/wine$(VERSION)
+LIBDIR=/usr/lib/$(DEB_HOST_MULTIARCH)/lib/wine$(VERSION)
 
 # enable verbose build log
 export DH_VERBOSE=1
@@ -33,28 +41,12 @@ CONFLAGS=--with-gnutls \
          --without-sane \
          --without-netapi \
          --disable-tests \
-         --enable-werror \
-         --enable-maintainer-mode \
-         --libdir=/$(LIBDIR) \
-         --bindir=/$(BINDIR) \
-         --mandir=/$(MANDIR) \
-         --includedir=/$(INCDIR) \
-         --datarootdir=/$(DATDIR) \
+         --prefix=$(PREFIX) \
+         --includedir=$(INCLUDEDIR) \
+         --datarootdir=$(DATADIR) \
+         --mandir=/deleteme \
          LDFLAGS="" \
          CFLAGS="$(shell dpkg-buildflags --get CFLAGS)" \
-
-# enable wine64 on 64-bit architectures
-ifeq ($(DEB_HOST_ARCH_BITS), 64)
-CONFLAGS+=--enable-win64
-# set "-Wno-format" (many format strings are not yet updated for 64-bit)
-export DEB_CFLAGS_MAINT_APPEND+=-Wno-format
-export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-fortify,-stackprotector,-format optimize=-lto
-endif
-
-# build with mingw on intel architectures
-ifneq (,$(filter $(DEB_HOST_ARCH),i386 amd64))
-CONFLAGS+=--with-mingw ZLIB_PE_LIBS=z
-endif
 
 # ignore -fstack-clash-protection on arm64
 ifeq ($(DEB_HOST_ARCH), arm64)
@@ -79,21 +71,15 @@ export WIDL_TIME_OVERRIDE=$(SOURCE_DATE_EPOCH)
 INSTALLS=$(shell ls debian/*VERSION* | sed s/VERSION/$(VERSION)/) \
          debian/bug-control \
 
-debian/control: debian/control.in debian/control.stable.in
+debian/control: debian/control.in
 	sed "s/VERSION/$(VERSION)/g;s/DEBSUFFIX/$(DEBSUFFIX)/g" < $< > $@
-ifeq (x$(DEBSUFFIX),x-stable)
 	echo >> $@
-	cat debian/control.stable.in >> $@
-endif
 
 debian/wine$(VERSION)%: debian/wineVERSION%
-	sed "s/VERSION/$(VERSION)/g;s/DEBSUFFIX/$(DEBSUFFIX)/g" < $< > $@
+	sed "s/VERSION/$(VERSION)/g;s/DEBSUFFIX/$(DEBSUFFIX)/g;s/DEB_HOST_MULTIARCH/$(DEB_HOST_MULTIARCH)/g;" < $< > $@
 
-debian/wine32$(VERSION)%: debian/wine32VERSION%
-	sed "s/VERSION/$(VERSION)/g;s/DEBSUFFIX/$(DEBSUFFIX)/g" < $< > $@
-
-debian/wine64$(VERSION)%: debian/wine64VERSION%
-	sed "s/VERSION/$(VERSION)/g;s/DEBSUFFIX/$(DEBSUFFIX)/g" < $< > $@
+debian/wine$(VERSION)-common%: debian/wineVERSION-common%
+	sed "s/VERSION/$(VERSION)/g;s/DEBSUFFIX/$(DEBSUFFIX)/g;s/DEB_HOST_MULTIARCH/$(DEB_HOST_MULTIARCH)/g;" < $< > $@
 
 debian/libwine$(VERSION)%: debian/libwineVERSION%
 	sed "s/VERSION/$(VERSION)/g;s/DEB_HOST_MULTIARCH/$(DEB_HOST_MULTIARCH)/g;s/WINE_CPU/$(WINE_CPU)/g" < $< > $@
@@ -109,54 +95,27 @@ override_dh_auto_configure:
 	$(CC) --version
 	# mingw version
 	$(DEB_HOST_GNU_CPU)-w64-mingw32-gcc --version || echo ""
-	# automatically generated files
-	./tools/make_unicode
-	./tools/make_requests
-	./tools/make_specfiles
-	cd dlls/dsound && ./make_fir
-	cd dlls/opengl32 && ./make_opengl
-	cd dlls/winevulkan && ./make_vulkan -x /usr/share/vulkan/registry/vk.xml -X /usr/share/vulkan/registry/video.xml
 	# autotools files
 	ln -sf /usr/share/misc/config.sub tools
 	ln -sf /usr/share/misc/config.guess tools
 	# image files used to generate icons for parts of wine
-	ln -sf ../../dlls/user32/resources/oic_hand.svg dlls/display.drv16/oic_hand.svg
-	ln -sf ../../dlls/user32/resources/oic_note.svg dlls/comctl32/idi_tt_info_md.svg
-	ln -sf ../../dlls/user32/resources/oic_note.svg dlls/comctl32/idi_tt_info_sm.svg
-	ln -sf ../../dlls/user32/resources/oic_bang.svg dlls/comctl32/idi_tt_warn_md.svg
-	ln -sf ../../dlls/user32/resources/oic_bang.svg dlls/comctl32/idi_tt_warn_sm.svg
-	ln -sf ../../dlls/user32/resources/oic_hand.svg dlls/comctl32/idi_tt_error_md.svg
-	ln -sf ../../dlls/user32/resources/oic_hand.svg dlls/comctl32/idi_tt_error_sm.svg
-	ln -sf ../../dlls/shell32/resources/move.svg dlls/comctl32/idi_dragarrow.svg
-	ln -sf ../../dlls/shell32/resources/image.svg programs/regedit/bin.svg
-	ln -sf ../../dlls/shell32/resources/folder.svg programs/regedit/folder.svg
-	ln -sf ../../dlls/shell32/resources/document.svg programs/regedit/string.svg
-	ln -sf ../../dlls/shell32/resources/mycomputer.svg programs/regedit/computer.svg
-	ln -sf ../../dlls/shell32/resources/folder_open.svg programs/regedit/folderopen.svg
-	ln -sf ../../dlls/shell32/resources/window.svg programs/taskmgr/window.svg
-	ln -sf ../../dlls/shell32/resources/window.svg programs/taskmgr/windowsm.svg
-	ln -sf ../../dlls/shell32/resources/drive.svg dlls/comdlg32/hdisk.svg
-	ln -sf ../../dlls/shell32/resources/folder.svg dlls/comdlg32/folder.svg
-	ln -sf ../../dlls/shell32/resources/network.svg dlls/comdlg32/network.svg
-	ln -sf ../../dlls/shell32/resources/folder_open.svg dlls/comdlg32/folder2.svg
-	ln -sf ../../dlls/shell32/resources/disk_drive.svg dlls/comdlg32/floppy.svg
-	ln -sf ../../dlls/shell32/resources/optical_drive.svg dlls/comdlg32/cdrom.svg
-ifneq (,$(filter $(DEB_HOST_ARCH),i386 amd64))
-	# ensure system zlib files are used for i386 and amd64
-	rm -rf libs/zlib
-endif
 	# execute wine's configure script
+	autoreconf -fi
 	./configure $(CONFLAGS)
 
-override_dh_auto_build-indep:
-	# only build fonts for the architecture-independent packages
-	make -C tools/sfnt2fon
-	make -C fonts
-
-override_dh_auto_build-arch:
+override_dh_auto_build:
 	# build wine's headers upfront to avoid incompatible mingw versions
 	make -C include
+	make -C tools/sfnt2fon
+	make -C fonts
 	dh_auto_build
+	# copy over zlib1.dll
+	mkdir -p debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/wine$(VERSION)/lib/wine/i386-windows/
+	cp /usr/i686-w64-mingw32/lib/zlib*.dll   debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/wine$(VERSION)/lib/wine/i386-windows/
+ifeq ($(DEB_HOST_ARCH),amd64)
+	mkdir -p debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/wine$(VERSION)/lib/wine/x86_64-windows/
+	cp /usr/x86_64-w64-mingw32/lib/zlib*.dll debian/tmp//usr/lib/$(DEB_HOST_MULTIARCH)/wine$(VERSION)/lib/wine/x86_64-windows/
+endif
 
 override_dh_auto_test:
 	# disabled, there are currently too many failing tests
@@ -164,23 +123,22 @@ override_dh_auto_test:
 override_dh_install-indep:
 	dh_install
 	# create font symlinks
-	./debian/scripts/font-symlinks
+	( cd fonts ; \
+          for f in *.ttf; do \
+            ln -s ../../../wine$(DEBSUFFIX)/wine/fonts/$$f ../debian/fonts-wine/usr/share/fonts/truetype/wine/$$f; \
+          done )
 
 override_dh_auto_install-indep: $(INSTALLS)
 	mkdir -p debian/tmp
 	cp ANNOUNCE.md debian/tmp/NEWS
 	cp programs/winedbg/README debian/tmp/README.winedbg
-	sed "s|DEBSUFFIX|$(DEBSUFFIX)|g" debian/scripts/wineapploader.in > debian/tmp/wineapploader
-	chmod 755 debian/tmp/wineapploader
-	sed "s|BINDIR|$(BINDIR)|g;s|VERSION|$(VERSION)|g" debian/scripts/wine.in > debian/tmp/wine$(DEBSUFFIX)
 	make $(shell find . ! -path "./.pc/*" -name *\\.man\\.in | sed s/\\.in//)
 	for file in $$(find . ! -path "./debian/*" -name \*.man); do \
-	    rename=$$(basename $$file | sed "s/\\./$(DEBSUFFIX)./;s/UTF-8\\.//"); \
-	    mv $$file debian/tmp/$$rename || true; \
-	    done
-	# files to exclude from the architecture-independent packages
-	rm -f debian/tmp/usr/lib/*/wineserver
-	rm -f debian/tmp/notepad*.man debian/tmp/winemine*.man
+           rename=$$(basename $$file | sed "s/\\./$(DEBSUFFIX)./;s/UTF-8\\.//"); \
+           mv $$file debian/tmp/$$rename || true; \
+           done
+	rm -Rf debian/tmp/deleteme
+	mkdir -p debian/tmp/$(BINDIR)
 	# extract hicolor icon from logo.svg
 	sed '/image\/png/d;s|width="611"|width="209"|' programs/winecfg/logo.svg > debian/tmp/wine$(DEBSUFFIX).svg
 
@@ -188,45 +146,12 @@ override_dh_auto_install-arch: $(INSTALLS)
 	mkdir -p debian/tmp
 	cp ANNOUNCE.md debian/tmp/NEWS
 	cp tools/winedump/README debian/tmp/README.winedump
-	mv server/wineserver debian/tmp/wineserver$(DEB_HOST_ARCH_BITS)
-	sed "s|BINDIR|$(BINDIR)|g" debian/scripts/winegcc.in > debian/tmp/winegcc$(DEBSUFFIX)
-	sed "s|BINDIR|$(BINDIR)|g;s|VERSION|$(VERSION)|g" debian/scripts/wineserver.in > debian/tmp/wineserver
-	chmod 755 debian/tmp/wineserver
-ifeq ($(DEB_HOST_ARCH), i386)
-	echo >> debian/libwine$(VERSION).install
-	echo "# 16-bit windows PE files" >> debian/libwine$(VERSION).install
-	echo "debian/tmp/usr/lib/*/*/*/*.vxd" >> debian/libwine$(VERSION).install
-	echo "debian/tmp/usr/lib/*/*/*/*.dll16" >> debian/libwine$(VERSION).install
-	echo "debian/tmp/usr/lib/*/*/*/*.drv16" >> debian/libwine$(VERSION).install
-	echo "debian/tmp/usr/lib/*/*/*/*.exe16" >> debian/libwine$(VERSION).install
-	echo "debian/tmp/usr/lib/*/*/*/*.mod16" >> debian/libwine$(VERSION).install
-endif
 ifeq (,$(filter $(DEB_HOST_ARCH),i386 amd64))
 	rm -f debian/libwine$(VERSION).prerm debian/libwine$(VERSION).postinst
 endif
 	dh_installdirs
 	dh_auto_install
-	for file in $$(find . ! -path "./debian/*" -name \*.man); do \
-	    rename=$$(basename $$file | sed "s/\\./$(DEBSUFFIX)./;s/UTF-8\\.//"); \
-	    mv $$file debian/tmp/$$rename || true; \
-	    done
-ifeq ($(DEB_HOST_ARCH_BITS), 64)
-	# copy 64 bit wine-preloader
-	test -f debian/tmp/$(BINDIR)/wine64-preloader && \
-	    mv debian/tmp/$(BINDIR)/wine64-preloader debian/tmp/$(BINDIR)/wine64-preloader.static || \
-	    cp debian/scripts/wine-preloader.static debian/tmp/$(BINDIR)/wine64-preloader.static
-else
-	# copy 32 bit wine-preloader
-	test -f debian/tmp/$(BINDIR)/wine-preloader && \
-	    mv debian/tmp/$(BINDIR)/wine-preloader debian/tmp/$(BINDIR)/wine-preloader.static || \
-	    cp debian/scripts/wine-preloader.static debian/tmp/$(BINDIR)/wine-preloader.static
-endif
-	# files to exclude from the architecture-dependent packages
-	rm -rf debian/tmp/usr/share/man
-	rm -f debian/tmp/usr/lib/*/wineserver
-	rm -f debian/tmp/usr/share/*/fonts/*.fon
-	rm -f debian/tmp/usr/share/*/fonts/*.ttf
-	rm -f debian/tmp/notepad*.man debian/tmp/winemine*.man
+	mkdir -p debian/tmp/$(BINDIR)
 
 # do not try to strip archive files on arm, they currently cause dh_strip to fail
 ifneq (,$(filter $(DEB_HOST_ARCH),armhf arm64))
@@ -246,22 +171,10 @@ override_dh_shlibdeps:
 	    -dDepends -edebian/tmp/elf.depends \
 	    -dRecommends -edebian/tmp/elf.recommends \
 	    -Tdebian/libwine$(VERSION).substvars 2>/dev/null
-	dh_shlibdeps -- -v -l/$(LIBDIR)/$(WINE_CPU)-unix
+	dh_shlibdeps -- -v -l$(LIBDIR)/$(WINE_CPU)-unix
 
 override_dh_bugfiles:
 	dh_bugfiles -A
 
 override_dh_missing:
 	dh_missing -X elf.depends -X elf.recommends -X wine.desktop
-
-override_dh_clean:
-	dh_clean -- $(INSTALLS)
-
-override_dh_auto_clean:
-ifeq (,$(filter $(DEB_HOST_ARCH),i386 amd64))
-	# remove zlib patch on non x86 architectures
-	QUILT_PATCHES=debian/patches quilt pop -af || true
-	QUILT_PATCHES=debian/patches quilt delete system/zlib.patch || true
-endif
-	QUILT_PATCHES=debian/patches quilt push -af || true
-	dh_auto_clean

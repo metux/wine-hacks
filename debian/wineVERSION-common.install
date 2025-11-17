@@ -1,0 +1,4 @@
+debian/tmp/usr/share/wineVERSION/wine/nls/*.nls
+debian/tmp/usr/share/wineVERSION/wine/fonts/*.fon
+debian/tmp/usr/share/wineVERSION/wine/fonts/*.ttf
+#debian/tmp/usr/share/wineVERSION/man/*

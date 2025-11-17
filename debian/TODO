@@ -1,3 +1,5 @@
+- move commands into wineVERSION package
+- add "wine" metapackage
 - completely build PIE
   From the Wine 3.0 ANNOUNCE:
   Position Independent Executables are supported, both for the Wine binary

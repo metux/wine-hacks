@@ -1,2 +1,3 @@
 debian/tmp/NEWS
 debian/tmp/README.winedbg
+debian/tmp/README.winedump
