@@ -1,0 +1,15 @@
+description: pass CFLAGS to gcc-mingw-w64
+author: Michael Gilbert <mgilbert@debian.org>
+forwarded: not-needed
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -830,7 +830,7 @@ do
+         esac])
+ 
+     CPPFLAGS=""
+-    AS_VAR_SET_IF([${wine_arch}_CFLAGS],[],[AS_VAR_SET([${wine_arch}_CFLAGS],[${CROSSCFLAGS:-"-g -O2"}])])
++    AS_VAR_SET_IF([${wine_arch}_CFLAGS],[],[AS_VAR_SET([${wine_arch}_CFLAGS],[${CROSSCFLAGS:-"$(dpkg-buildflags --get CFLAGS)"}])])
+     AS_VAR_SET_IF([${wine_arch}_LDFLAGS],[],[AS_VAR_SET([${wine_arch}_LDFLAGS],[$CROSSLDFLAGS])])
+     AS_VAR_COPY([CC],[${wine_arch}_CC])
+     AS_VAR_COPY([CFLAGS],[${wine_arch}_CFLAGS])

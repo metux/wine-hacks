@@ -1,0 +1,31 @@
+commit 4a026d7aa67aae84a733303b605f98ef1ea366ca
+Author: Alexandre Julliard <julliard@winehq.org>
+Date:   Thu Feb 27 11:01:48 2025 +0100
+
+    makefiles: Add support for optionally installing external libs.
+
+diff --git a/tools/makedep.c b/tools/makedep.c
+index 5610f85c93f..a423bfd0d6f 100644
+--- a/tools/makedep.c
++++ b/tools/makedep.c
+@@ -3635,9 +3635,8 @@ static void output_static_lib( struct makefile *make, unsigned int arch )
+     if (hybrid_arch) output_filenames_obj_dir( make, make->object_files[hybrid_arch] );
+     if (!arch) output_filenames_obj_dir( make, make->unixobj_files );
+     output( "\n" );
+-    if (!make->extlib)
+-        add_install_rule( make, make->staticlib, arch, name,
+-                          strmake( "d%s%s", arch_install_dirs[arch], make->staticlib ));
++    add_install_rule( make, make->staticlib, arch, name,
++                      strmake( "d%s%s", arch_install_dirs[arch], make->staticlib ));
+ }
+ 
+ 
+@@ -4492,7 +4491,7 @@ static void load_sources( struct makefile *make )
+     {
+         /* add default install rules if nothing was specified */
+         for (i = 0; i < NB_INSTALL_RULES; i++) if (make->install[i].count) break;
+-        if (i == NB_INSTALL_RULES)
++        if (i == NB_INSTALL_RULES && !make->extlib)
+         {
+             if (make->importlib) strarray_add( &make->install[INSTALL_DEV], make->importlib );
+             if (make->staticlib) strarray_add( &make->install[INSTALL_DEV], make->staticlib );

@@ -1,0 +1,39 @@
+description: disable gecko/mono installer download
+forwarded: not-needed
+author: Michael Gilbert <mgilbert@debian.org>
+author: Jens Reyer <jre.winesim@gmail.com>
+
+--- a/dlls/appwiz.cpl/addons.c
++++ b/dlls/appwiz.cpl/addons.c
+@@ -597,6 +597,7 @@ static const IInternetBindInfoVtbl Insta
+ 
+ static IInternetBindInfo InstallCallbackBindInfo = { &InstallCallbackBindInfoVtbl };
+ 
++/*
+ static void append_url_params( WCHAR *url )
+ {
+     DWORD size = INTERNET_MAX_URL_LENGTH * sizeof(WCHAR);
+@@ -743,6 +744,7 @@ static INT_PTR CALLBACK installer_proc(H
+ 
+     return FALSE;
+ }
++*/
+ 
+ BOOL install_addon(addon_t addon_type)
+ {
+@@ -761,13 +763,11 @@ BOOL install_addon(addon_t addon_type)
+      * - $INSTALL_DATADIR/wine/$addon_subdir/
+      * - /usr/share/wine/$addon_subdir/
+      * - /opt/wine/$addon_subdir/
+-     * - download from URL stored in $url_config_key value of HKCU/Software/Wine/$config_key key
+      */
+     if (install_from_registered_dir() == INSTALL_NEXT
+         && install_from_default_dir() == INSTALL_NEXT
+-        && install_from_cache() == INSTALL_NEXT
+-        && (url = get_url()))
+-        DialogBoxW(hInst, addon->dialog_template, 0, installer_proc);
++        && install_from_cache() == INSTALL_NEXT)
++        {};
+ 
+     free(url);
+     url = NULL;

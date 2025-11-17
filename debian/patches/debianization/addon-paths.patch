@@ -1,0 +1,25 @@
+description: adjust search paths for addon installers
+author: Michael Gilbert <mgilbert@debian.org>
+author: Jens Reyer <jre.winesim@gmail.com>
+forwarded: not-needed
+
+--- a/dlls/appwiz.cpl/addons.c
++++ b/dlls/appwiz.cpl/addons.c
+@@ -306,12 +306,14 @@ static enum install_res install_from_def
+         free(dir_buf);
+     }
+ 
++    /* debian's DATADIR already defines the wine subdir */
+     if (ret == INSTALL_NEXT)
+-        ret = install_from_unix_file(INSTALL_DATADIR "/wine/", addon->subdir_name, addon->file_name);
++        ret = install_from_unix_file(INSTALL_DATADIR "/", addon->subdir_name, addon->file_name);
++
++    /* also, always search /usr/share/wine/ */
+     if (ret == INSTALL_NEXT && strcmp(INSTALL_DATADIR, "/usr/share") != 0)
+         ret = install_from_unix_file("/usr/share/wine/", addon->subdir_name, addon->file_name);
+-    if (ret == INSTALL_NEXT)
+-        ret = install_from_unix_file("/opt/wine/", addon->subdir_name, addon->file_name);
++
+     return ret;
+ }
+ 

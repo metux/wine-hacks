@@ -1,0 +1,3561 @@
+commit 45a2ae766241720320cef65ffec305aefc3b374b
+Author: Alexandre Julliard <julliard@winehq.org>
+Date:   Thu Feb 27 11:02:49 2025 +0100
+
+    libs: Import code from upstream compiler-rt version 8.0.1.
+    
+    Based on a patch by Martin Storsjö.
+
+diff --git a/aclocal.m4 b/aclocal.m4
+index 440c5319aa8..8e37e2e494e 100644
+--- a/aclocal.m4
++++ b/aclocal.m4
+@@ -149,14 +149,16 @@ dnl
+ AC_DEFUN([WINE_EXTLIB_FLAGS],
+ [AS_VAR_PUSHDEF([ac_cflags],[[$1]_PE_CFLAGS])dnl
+ AS_VAR_PUSHDEF([ac_libs],[[$1]_PE_LIBS])dnl
++AS_VAR_PUSHDEF([ac_enable],[enable_[$2]])dnl
+ AC_ARG_VAR(ac_cflags, [C compiler flags for the PE $2, overriding the bundled version])dnl
+ AC_ARG_VAR(ac_libs, [Linker flags for the PE $2, overriding the bundled version])dnl
+ AS_VAR_IF([ac_libs],[],
+   [ac_libs=$3
+-   AS_VAR_IF([ac_cflags],[],[ac_cflags=$4],[enable_$2=no])],
+-  [enable_$2=no])
++   AS_VAR_IF([ac_cflags],[],[ac_cflags=$4],[ac_enable=no])],
++  [ac_enable=no])
+ AS_ECHO(["$as_me:${as_lineno-$LINENO}: $2 cflags: $ac_cflags"]) >&AS_MESSAGE_LOG_FD
+ AS_ECHO(["$as_me:${as_lineno-$LINENO}: $2 libs: $ac_libs"]) >&AS_MESSAGE_LOG_FD
++AS_VAR_POPDEF([ac_enable])dnl
+ AS_VAR_POPDEF([ac_libs])dnl
+ AS_VAR_POPDEF([ac_cflags])])dnl
+ 
+diff --git a/configure.ac b/configure.ac
+index e5b88e0eaa3..0adbdbd7f73 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -947,6 +947,10 @@ This is an error since --enable-archs=$wine_arch was requested.])])
+ 
+     AS_VAR_IF([wine_arch],[$extra_arch],[],[AS_VAR_APPEND([PE_ARCHS],[" $wine_arch"])])
+ 
++    case "$target" in
++      *-windows) wine_compiler_rt_libs="compiler-rt" ;;
++    esac
++
+     WINE_TRY_PE_CFLAGS([-fno-strict-aliasing])
+     dnl clang needs to be told to fail on unknown options
+     WINE_TRY_PE_CFLAGS([-Werror=unknown-warning-option],[CFLAGS="$CFLAGS -Werror=unknown-warning-option"])
+@@ -1173,6 +1177,7 @@ then
+ fi
+ 
+ WINE_EXTLIB_FLAGS(CAPSTONE, capstone, capstone, "-I\$(top_srcdir)/libs/capstone/include")
++WINE_EXTLIB_FLAGS(COMPILER_RT, compiler-rt, "$wine_compiler_rt_libs")
+ WINE_EXTLIB_FLAGS(FAUDIO, faudio, "faudio mfplat mfreadwrite mfuuid propsys", "-I\$(top_srcdir)/libs/faudio/include")
+ WINE_EXTLIB_FLAGS(FLUIDSYNTH, fluidsynth, "fluidsynth", "-I\$(top_srcdir)/libs/fluidsynth/include")
+ WINE_EXTLIB_FLAGS(GSM, gsm, gsm, "-I\$(top_srcdir)/libs/gsm/inc")
+@@ -2353,6 +2358,7 @@ else
+     enable_wow64win=${enable_wow64win:-no}
+     enable_wow64cpu=${enable_wow64cpu:-no}
+     enable_xtajit64=${enable_xtajit64:-no}
++    enable_compiler_rt=${enable_compiler_rt:-no}
+ fi
+ 
+ dnl Explicitly enable some programs for arm64ec
+@@ -3403,6 +3409,7 @@ WINE_CONFIG_MAKEFILE(fonts)
+ WINE_CONFIG_MAKEFILE(include)
+ WINE_CONFIG_MAKEFILE(libs/adsiid)
+ WINE_CONFIG_MAKEFILE(libs/capstone)
++WINE_CONFIG_MAKEFILE(libs/compiler-rt)
+ WINE_CONFIG_MAKEFILE(libs/dmoguids)
+ WINE_CONFIG_MAKEFILE(libs/dxerr8)
+ WINE_CONFIG_MAKEFILE(libs/dxerr9)
+diff --git a/libs/compiler-rt/LICENSE.TXT b/libs/compiler-rt/LICENSE.TXT
+new file mode 100644
+index 00000000000..bd69bafaf23
+--- /dev/null
++++ b/libs/compiler-rt/LICENSE.TXT
+@@ -0,0 +1,90 @@
++==============================================================================
++compiler_rt License
++==============================================================================
++
++The compiler_rt library is dual licensed under both the University of Illinois
++"BSD-Like" license and the MIT license.  As a user of this code you may choose
++to use it under either license.  As a contributor, you agree to allow your code
++to be used under both.
++
++Full text of the relevant licenses is included below.
++
++==============================================================================
++
++University of Illinois/NCSA
++Open Source License
++
++Copyright (c) 2009-2019 by the contributors listed in CREDITS.TXT
++
++All rights reserved.
++
++Developed by:
++
++    LLVM Team
++
++    University of Illinois at Urbana-Champaign
++
++    http://llvm.org
++
++Permission is hereby granted, free of charge, to any person obtaining a copy of
++this software and associated documentation files (the "Software"), to deal with
++the Software without restriction, including without limitation the rights to
++use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
++of the Software, and to permit persons to whom the Software is furnished to do
++so, subject to the following conditions:
++
++    * Redistributions of source code must retain the above copyright notice,
++      this list of conditions and the following disclaimers.
++
++    * Redistributions in binary form must reproduce the above copyright notice,
++      this list of conditions and the following disclaimers in the
++      documentation and/or other materials provided with the distribution.
++
++    * Neither the names of the LLVM Team, University of Illinois at
++      Urbana-Champaign, nor the names of its contributors may be used to
++      endorse or promote products derived from this Software without specific
++      prior written permission.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
++FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
++SOFTWARE.
++
++==============================================================================
++
++Copyright (c) 2009-2015 by the contributors listed in CREDITS.TXT
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++THE SOFTWARE.
++
++==============================================================================
++Copyrights and Licenses for Third Party Software Distributed with LLVM:
++==============================================================================
++The LLVM software contains code written by third parties.  Such software will
++have its own individual LICENSE.TXT file in the directory in which it appears.
++This file will describe the copyrights, license, and restrictions which apply
++to that code.
++
++The disclaimer of warranty in the University of Illinois Open Source License
++applies to all code in the LLVM Distribution, and nothing in any of the
++other licenses gives permission to use the names of the LLVM Team or the
++University of Illinois to endorse or promote products derived from this
++Software.
+diff --git a/libs/compiler-rt/Makefile.in b/libs/compiler-rt/Makefile.in
+new file mode 100644
+index 00000000000..11be92d1dbf
+--- /dev/null
++++ b/libs/compiler-rt/Makefile.in
+@@ -0,0 +1,34 @@
++EXTLIB    = libcompiler-rt.a
++
++SOURCES = \
++	lib/builtins/arm/aeabi_idivmod.S \
++	lib/builtins/arm/aeabi_ldivmod.S \
++	lib/builtins/arm/aeabi_uidivmod.S \
++	lib/builtins/arm/aeabi_uldivmod.S \
++	lib/builtins/arm/divmodsi4.S \
++	lib/builtins/arm/udivmodsi4.S \
++	lib/builtins/divdi3.c \
++	lib/builtins/divmoddi4.c \
++	lib/builtins/divmodsi4.c \
++	lib/builtins/divsi3.c \
++	lib/builtins/divti3.c \
++	lib/builtins/fixdfdi.c \
++	lib/builtins/fixsfdi.c \
++	lib/builtins/fixunsdfdi.c \
++	lib/builtins/fixunssfdi.c \
++	lib/builtins/floatdidf.c \
++	lib/builtins/floatdisf.c \
++	lib/builtins/floatundidf.c \
++	lib/builtins/floatundisf.c \
++	lib/builtins/mingw_fixfloat.c \
++	lib/builtins/udivdi3.c \
++	lib/builtins/udivmoddi4.c \
++	lib/builtins/udivmodsi4.c \
++	lib/builtins/udivmodti4.c \
++	lib/builtins/udivsi3.c \
++	lib/builtins/udivti3.c \
++	lib/builtins/umoddi3.c \
++	lib/builtins/umodsi3.c \
++	lib/builtins/umodti3.c
++
++INSTALL_DEV = $(EXTLIB)
+diff --git a/libs/compiler-rt/lib/builtins/arm/aeabi_idivmod.S b/libs/compiler-rt/lib/builtins/arm/aeabi_idivmod.S
+new file mode 100644
+index 00000000000..033b1cd5317
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/arm/aeabi_idivmod.S
+@@ -0,0 +1,50 @@
++//===-- aeabi_idivmod.S - EABI idivmod implementation ---------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is dual licensed under the MIT and the University of Illinois Open
++// Source Licenses. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++
++#include "../assembly.h"
++
++// struct { int quot, int rem} __aeabi_idivmod(int numerator, int denominator) {
++//   int rem, quot;
++//   quot = __divmodsi4(numerator, denominator, &rem);
++//   return {quot, rem};
++// }
++
++#if defined(_WIN32)
++#define __aeabi_idivmod __rt_sdiv
++#endif
++
++        .syntax unified
++        .text
++        DEFINE_CODE_STATE
++        .p2align 2
++DEFINE_COMPILERRT_FUNCTION(__aeabi_idivmod)
++#if defined(USE_THUMB_1)
++        push    {r0, r1, lr}
++        bl      SYMBOL_NAME(__divsi3)
++        pop     {r1, r2, r3} // now r0 = quot, r1 = num, r2 = denom
++        muls    r2, r0, r2   // r2 = quot * denom
++        subs    r1, r1, r2
++        JMP     (r3)
++#else  // defined(USE_THUMB_1)
++        push    { lr }
++        sub     sp, sp, #4
++        mov     r2, sp
++#if defined(_WIN32)
++        mov     r3, r0
++        mov     r0, r1
++        mov     r1, r3
++#endif
++        bl      SYMBOL_NAME(__divmodsi4)
++        ldr     r1, [sp]
++        add     sp, sp, #4
++        pop     { pc }
++#endif //  defined(USE_THUMB_1)
++END_COMPILERRT_FUNCTION(__aeabi_idivmod)
++
++NO_EXEC_STACK_DIRECTIVE
+diff --git a/libs/compiler-rt/lib/builtins/arm/aeabi_ldivmod.S b/libs/compiler-rt/lib/builtins/arm/aeabi_ldivmod.S
+new file mode 100644
+index 00000000000..d3ccfd4c227
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/arm/aeabi_ldivmod.S
+@@ -0,0 +1,45 @@
++//===-- aeabi_ldivmod.S - EABI ldivmod implementation ---------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is dual licensed under the MIT and the University of Illinois Open
++// Source Licenses. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++
++#include "../assembly.h"
++
++// struct { int64_t quot, int64_t rem}
++//        __aeabi_ldivmod(int64_t numerator, int64_t denominator) {
++//   int64_t rem, quot;
++//   quot = __divmoddi4(numerator, denominator, &rem);
++//   return {quot, rem};
++// }
++
++#if defined(_WIN32)
++#define __aeabi_ldivmod __rt_sdiv64
++#endif
++
++        .syntax unified
++        .p2align 2
++DEFINE_COMPILERRT_FUNCTION(__aeabi_ldivmod)
++        push    {r6, lr}
++        sub     sp, sp, #16
++        add     r6, sp, #8
++        str     r6, [sp]
++#if defined(_WIN32)
++        movs    r6, r0
++        movs    r0, r2
++        movs    r2, r6
++        movs    r6, r1
++        movs    r1, r3
++        movs    r3, r6
++#endif
++        bl      SYMBOL_NAME(__divmoddi4)
++        ldr     r2, [sp, #8]
++        ldr     r3, [sp, #12]
++        add     sp, sp, #16
++        pop     {r6, pc}
++END_COMPILERRT_FUNCTION(__aeabi_ldivmod)
++
++NO_EXEC_STACK_DIRECTIVE
+diff --git a/libs/compiler-rt/lib/builtins/arm/aeabi_uidivmod.S b/libs/compiler-rt/lib/builtins/arm/aeabi_uidivmod.S
+new file mode 100644
+index 00000000000..a0df70d8251
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/arm/aeabi_uidivmod.S
+@@ -0,0 +1,57 @@
++//===-- aeabi_uidivmod.S - EABI uidivmod implementation -------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is dual licensed under the MIT and the University of Illinois Open
++// Source Licenses. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++
++#include "../assembly.h"
++
++// struct { unsigned quot, unsigned rem}
++//        __aeabi_uidivmod(unsigned numerator, unsigned denominator) {
++//   unsigned rem, quot;
++//   quot = __udivmodsi4(numerator, denominator, &rem);
++//   return {quot, rem};
++// }
++
++#if defined(_WIN32)
++#define __aeabi_uidivmod __rt_udiv
++#endif
++
++        .syntax unified
++        .text
++        DEFINE_CODE_STATE
++        .p2align 2
++DEFINE_COMPILERRT_FUNCTION(__aeabi_uidivmod)
++#if defined(USE_THUMB_1)
++        cmp     r0, r1
++        bcc     LOCAL_LABEL(case_denom_larger)
++        push    {r0, r1, lr}
++        bl      SYMBOL_NAME(__aeabi_uidiv)
++        pop     {r1, r2, r3}
++        muls    r2, r0, r2 // r2 = quot * denom
++        subs    r1, r1, r2
++        JMP     (r3)
++LOCAL_LABEL(case_denom_larger):
++        movs    r1, r0
++        movs    r0, #0
++        JMP     (lr)
++#else // defined(USE_THUMB_1)
++        push    { lr }
++        sub     sp, sp, #4
++        mov     r2, sp
++#if defined(_WIN32)
++        mov     r3, r0
++        mov     r0, r1
++        mov     r1, r3
++#endif
++        bl      SYMBOL_NAME(__udivmodsi4)
++        ldr     r1, [sp]
++        add     sp, sp, #4
++        pop     { pc }
++#endif
++END_COMPILERRT_FUNCTION(__aeabi_uidivmod)
++
++NO_EXEC_STACK_DIRECTIVE
+diff --git a/libs/compiler-rt/lib/builtins/arm/aeabi_uldivmod.S b/libs/compiler-rt/lib/builtins/arm/aeabi_uldivmod.S
+new file mode 100644
+index 00000000000..8970e00aa8f
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/arm/aeabi_uldivmod.S
+@@ -0,0 +1,45 @@
++//===-- aeabi_uldivmod.S - EABI uldivmod implementation -------------------===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is dual licensed under the MIT and the University of Illinois Open
++// Source Licenses. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++
++#include "../assembly.h"
++
++// struct { uint64_t quot, uint64_t rem}
++//        __aeabi_uldivmod(uint64_t numerator, uint64_t denominator) {
++//   uint64_t rem, quot;
++//   quot = __udivmoddi4(numerator, denominator, &rem);
++//   return {quot, rem};
++// }
++
++#if defined(_WIN32)
++#define __aeabi_uldivmod __rt_udiv64
++#endif
++
++        .syntax unified
++        .p2align 2
++DEFINE_COMPILERRT_FUNCTION(__aeabi_uldivmod)
++        push	{r6, lr}
++        sub	sp, sp, #16
++        add	r6, sp, #8
++        str	r6, [sp]
++#if defined(_WIN32)
++        movs    r6, r0
++        movs    r0, r2
++        movs    r2, r6
++        movs    r6, r1
++        movs    r1, r3
++        movs    r3, r6
++#endif
++        bl	SYMBOL_NAME(__udivmoddi4)
++        ldr	r2, [sp, #8]
++        ldr	r3, [sp, #12]
++        add	sp, sp, #16
++        pop	{r6, pc}
++END_COMPILERRT_FUNCTION(__aeabi_uldivmod)
++
++NO_EXEC_STACK_DIRECTIVE
+diff --git a/libs/compiler-rt/lib/builtins/arm/divmodsi4.S b/libs/compiler-rt/lib/builtins/arm/divmodsi4.S
+new file mode 100644
+index 00000000000..400faf084e4
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/arm/divmodsi4.S
+@@ -0,0 +1,70 @@
++/*===-- divmodsi4.S - 32-bit signed integer divide and modulus ------------===//
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ *===----------------------------------------------------------------------===//
++ *
++ * This file implements the __divmodsi4 (32-bit signed integer divide and
++ * modulus) function for the ARM architecture.  A naive digit-by-digit
++ * computation is employed for simplicity.
++ *
++ *===----------------------------------------------------------------------===*/
++
++#include "../assembly.h"
++
++#define ESTABLISH_FRAME    \
++    push   {r4-r7, lr}   ;\
++    add     r7,     sp, #12
++#define CLEAR_FRAME_AND_RETURN \
++    pop    {r4-r7, pc}
++
++	.syntax unified
++	.text
++  DEFINE_CODE_STATE
++
++@ int __divmodsi4(int divident, int divisor, int *remainder)
++@   Calculate the quotient and remainder of the (signed) division.  The return
++@   value is the quotient, the remainder is placed in the variable.
++
++	.p2align 3
++DEFINE_COMPILERRT_FUNCTION(__divmodsi4)
++#if __ARM_ARCH_EXT_IDIV__
++	tst     r1, r1
++	beq     LOCAL_LABEL(divzero)
++	mov 	r3, r0
++	sdiv	r0, r3, r1
++	mls 	r1, r0, r1, r3
++	str 	r1, [r2]
++	bx  	lr
++LOCAL_LABEL(divzero):
++	mov     r0, #0
++	bx      lr
++#else
++    ESTABLISH_FRAME
++//  Set aside the sign of the quotient and modulus, and the address for the
++//  modulus.
++    eor     r4,     r0, r1
++    mov     r5,     r0
++    mov     r6,     r2
++//  Take the absolute value of a and b via abs(x) = (x^(x >> 31)) - (x >> 31).
++    eor     ip,     r0, r0, asr #31
++    eor     lr,     r1, r1, asr #31
++    sub     r0,     ip, r0, asr #31
++    sub     r1,     lr, r1, asr #31
++//  Unsigned divmod:
++    bl      SYMBOL_NAME(__udivmodsi4)
++//  Apply the sign of quotient and modulus
++    ldr     r1,    [r6]
++    eor     r0,     r0, r4, asr #31
++    eor     r1,     r1, r5, asr #31
++    sub     r0,     r0, r4, asr #31
++    sub     r1,     r1, r5, asr #31
++    str     r1,    [r6]
++    CLEAR_FRAME_AND_RETURN
++#endif
++END_COMPILERRT_FUNCTION(__divmodsi4)
++
++NO_EXEC_STACK_DIRECTIVE
+diff --git a/libs/compiler-rt/lib/builtins/arm/udivmodsi4.S b/libs/compiler-rt/lib/builtins/arm/udivmodsi4.S
+new file mode 100644
+index 00000000000..e7acf16dc76
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/arm/udivmodsi4.S
+@@ -0,0 +1,179 @@
++/*===-- udivmodsi4.S - 32-bit unsigned integer divide and modulus ---------===//
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ *===----------------------------------------------------------------------===//
++ *
++ * This file implements the __udivmodsi4 (32-bit unsigned integer divide and
++ * modulus) function for the ARM 32-bit architecture.
++ *
++ *===----------------------------------------------------------------------===*/
++
++#include "../assembly.h"
++
++	.syntax unified
++	.text
++	DEFINE_CODE_STATE
++
++@ unsigned int __udivmodsi4(unsigned int divident, unsigned int divisor,
++@                           unsigned int *remainder)
++@   Calculate the quotient and remainder of the (unsigned) division.  The return
++@   value is the quotient, the remainder is placed in the variable.
++
++	.p2align 2
++DEFINE_COMPILERRT_FUNCTION(__udivmodsi4)
++#if __ARM_ARCH_EXT_IDIV__
++	tst     r1, r1
++	beq     LOCAL_LABEL(divby0)
++	mov 	r3, r0
++	udiv	r0, r3, r1
++	mls 	r1, r0, r1, r3
++	str 	r1, [r2]
++	bx  	lr
++#else
++	cmp	r1, #1
++	bcc	LOCAL_LABEL(divby0)
++	beq	LOCAL_LABEL(divby1)
++	cmp	r0, r1
++	bcc	LOCAL_LABEL(quotient0)
++	/*
++	 * Implement division using binary long division algorithm.
++	 *
++	 * r0 is the numerator, r1 the denominator.
++	 *
++	 * The code before JMP computes the correct shift I, so that
++	 * r0 and (r1 << I) have the highest bit set in the same position.
++	 * At the time of JMP, ip := .Ldiv0block - 12 * I.
++	 * This depends on the fixed instruction size of block.
++	 * For ARM mode, this is 12 Bytes, for THUMB mode 14 Bytes.
++	 *
++	 * block(shift) implements the test-and-update-quotient core.
++	 * It assumes (r0 << shift) can be computed without overflow and
++	 * that (r0 << shift) < 2 * r1. The quotient is stored in r3.
++	 */
++
++#  ifdef __ARM_FEATURE_CLZ
++	clz	ip, r0
++	clz	r3, r1
++	/* r0 >= r1 implies clz(r0) <= clz(r1), so ip <= r3. */
++	sub	r3, r3, ip
++#    if defined(USE_THUMB_2)
++	adr	ip, LOCAL_LABEL(div0block) + 1
++	sub	ip, ip, r3, lsl #1
++#    else
++	adr	ip, LOCAL_LABEL(div0block)
++#    endif
++	sub	ip, ip, r3, lsl #2
++	sub	ip, ip, r3, lsl #3
++	mov	r3, #0
++	bx	ip
++#  else
++#    if defined(USE_THUMB_2)
++#    error THUMB mode requires CLZ or UDIV
++#    endif
++	str	r4, [sp, #-8]!
++
++	mov	r4, r0
++	adr	ip, LOCAL_LABEL(div0block)
++
++	lsr	r3, r4, #16
++	cmp	r3, r1
++	movhs	r4, r3
++	subhs	ip, ip, #(16 * 12)
++
++	lsr	r3, r4, #8
++	cmp	r3, r1
++	movhs	r4, r3
++	subhs	ip, ip, #(8 * 12)
++
++	lsr	r3, r4, #4
++	cmp	r3, r1
++	movhs	r4, r3
++	subhs	ip, #(4 * 12)
++
++	lsr	r3, r4, #2
++	cmp	r3, r1
++	movhs	r4, r3
++	subhs	ip, ip, #(2 * 12)
++
++	/* Last block, no need to update r3 or r4. */
++	cmp	r1, r4, lsr #1
++	subls	ip, ip, #(1 * 12)
++
++	ldr	r4, [sp], #8	/* restore r4, we are done with it. */
++	mov	r3, #0
++
++	JMP(ip)
++#  endif
++
++#define	IMM	#
++
++#define block(shift)                                                           \
++	cmp	r0, r1, lsl IMM shift;                                         \
++	ITT(hs);                                                               \
++	WIDE(addhs)	r3, r3, IMM (1 << shift);                              \
++	WIDE(subhs)	r0, r0, r1, lsl IMM shift
++
++	block(31)
++	block(30)
++	block(29)
++	block(28)
++	block(27)
++	block(26)
++	block(25)
++	block(24)
++	block(23)
++	block(22)
++	block(21)
++	block(20)
++	block(19)
++	block(18)
++	block(17)
++	block(16)
++	block(15)
++	block(14)
++	block(13)
++	block(12)
++	block(11)
++	block(10)
++	block(9)
++	block(8)
++	block(7)
++	block(6)
++	block(5)
++	block(4)
++	block(3)
++	block(2)
++	block(1)
++LOCAL_LABEL(div0block):
++	block(0)
++
++	str	r0, [r2]
++	mov	r0, r3
++	JMP(lr)
++
++LOCAL_LABEL(quotient0):
++	str	r0, [r2]
++	mov	r0, #0
++	JMP(lr)
++
++LOCAL_LABEL(divby1):
++	mov	r3, #0
++	str	r3, [r2]
++	JMP(lr)
++#endif /* __ARM_ARCH_EXT_IDIV__ */
++
++LOCAL_LABEL(divby0):
++	mov	r0, #0
++#ifdef __ARM_EABI__
++	b	__aeabi_idiv0
++#else
++	JMP(lr)
++#endif
++
++END_COMPILERRT_FUNCTION(__udivmodsi4)
++
++NO_EXEC_STACK_DIRECTIVE
+diff --git a/libs/compiler-rt/lib/builtins/assembly.h b/libs/compiler-rt/lib/builtins/assembly.h
+new file mode 100644
+index 00000000000..3f5e59b2544
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/assembly.h
+@@ -0,0 +1,204 @@
++/* ===-- assembly.h - compiler-rt assembler support macros -----------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file defines macros for use in compiler-rt assembler source.
++ * This file is not part of the interface of this library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#ifndef COMPILERRT_ASSEMBLY_H
++#define COMPILERRT_ASSEMBLY_H
++
++#if defined(__POWERPC__) || defined(__powerpc__) || defined(__ppc__)
++#define SEPARATOR @
++#else
++#define SEPARATOR ;
++#endif
++
++#if defined(__APPLE__)
++#define HIDDEN(name) .private_extern name
++#define LOCAL_LABEL(name) L_##name
++// tell linker it can break up file at label boundaries
++#define FILE_LEVEL_DIRECTIVE .subsections_via_symbols
++#define SYMBOL_IS_FUNC(name)
++#define CONST_SECTION .const
++
++#define NO_EXEC_STACK_DIRECTIVE
++
++#elif defined(__ELF__)
++
++#define HIDDEN(name) .hidden name
++#define LOCAL_LABEL(name) .L_##name
++#define FILE_LEVEL_DIRECTIVE
++#if defined(__arm__)
++#define SYMBOL_IS_FUNC(name) .type name,%function
++#else
++#define SYMBOL_IS_FUNC(name) .type name,@function
++#endif
++#define CONST_SECTION .section .rodata
++
++#if defined(__GNU__) || defined(__FreeBSD__) || defined(__Fuchsia__) || \
++    defined(__linux__)
++#define NO_EXEC_STACK_DIRECTIVE .section .note.GNU-stack,"",%progbits
++#else
++#define NO_EXEC_STACK_DIRECTIVE
++#endif
++
++#else // !__APPLE__ && !__ELF__
++
++#define HIDDEN(name)
++#define LOCAL_LABEL(name) .L ## name
++#define FILE_LEVEL_DIRECTIVE
++#define SYMBOL_IS_FUNC(name)                                                   \
++  .def name SEPARATOR                                                          \
++    .scl 2 SEPARATOR                                                           \
++    .type 32 SEPARATOR                                                         \
++  .endef
++#define CONST_SECTION .section .rdata,"rd"
++
++#define NO_EXEC_STACK_DIRECTIVE
++
++#endif
++
++#if defined(__arm__)
++
++/*
++ * Determine actual [ARM][THUMB[1][2]] ISA using compiler predefined macros:
++ * - for '-mthumb -march=armv6' compiler defines '__thumb__'
++ * - for '-mthumb -march=armv7' compiler defines '__thumb__' and '__thumb2__'
++ */
++#if defined(__thumb2__) || defined(__thumb__)
++#define DEFINE_CODE_STATE .thumb SEPARATOR
++#define DECLARE_FUNC_ENCODING    .thumb_func SEPARATOR
++#if defined(__thumb2__)
++#define USE_THUMB_2
++#define IT(cond)  it cond
++#define ITT(cond) itt cond
++#define ITE(cond) ite cond
++#else
++#define USE_THUMB_1
++#define IT(cond)
++#define ITT(cond)
++#define ITE(cond)
++#endif // defined(__thumb__2)
++#else // !defined(__thumb2__) && !defined(__thumb__)
++#define DEFINE_CODE_STATE .arm SEPARATOR
++#define DECLARE_FUNC_ENCODING
++#define IT(cond)
++#define ITT(cond)
++#define ITE(cond)
++#endif
++
++#if defined(USE_THUMB_1) && defined(USE_THUMB_2)
++#error "USE_THUMB_1 and USE_THUMB_2 can't be defined together."
++#endif
++
++#if defined(__ARM_ARCH_4T__) || __ARM_ARCH >= 5
++#define ARM_HAS_BX
++#endif
++#if !defined(__ARM_FEATURE_CLZ) && !defined(USE_THUMB_1) &&  \
++    (__ARM_ARCH >= 6 || (__ARM_ARCH == 5 && !defined(__ARM_ARCH_5__)))
++#define __ARM_FEATURE_CLZ
++#endif
++
++#ifdef ARM_HAS_BX
++#define JMP(r) bx r
++#define JMPc(r, c) bx##c r
++#else
++#define JMP(r) mov pc, r
++#define JMPc(r, c) mov##c pc, r
++#endif
++
++// pop {pc} can't switch Thumb mode on ARMv4T
++#if __ARM_ARCH >= 5
++#define POP_PC() pop {pc}
++#else
++#define POP_PC()                                                               \
++  pop {ip};                                                                    \
++  JMP(ip)
++#endif
++
++#if defined(USE_THUMB_2)
++#define WIDE(op) op.w
++#else
++#define WIDE(op) op
++#endif
++#else // !defined(__arm)
++#define DECLARE_FUNC_ENCODING
++#define DEFINE_CODE_STATE
++#endif
++
++#define GLUE2(a, b) a##b
++#define GLUE(a, b) GLUE2(a, b)
++#define SYMBOL_NAME(name) GLUE(__USER_LABEL_PREFIX__, name)
++
++#ifdef VISIBILITY_HIDDEN
++#define DECLARE_SYMBOL_VISIBILITY(name)                                        \
++  HIDDEN(SYMBOL_NAME(name)) SEPARATOR
++#else
++#define DECLARE_SYMBOL_VISIBILITY(name)
++#endif
++
++#define DEFINE_COMPILERRT_FUNCTION(name)                                       \
++  DEFINE_CODE_STATE                                                            \
++  FILE_LEVEL_DIRECTIVE SEPARATOR                                               \
++  .globl SYMBOL_NAME(name) SEPARATOR                                           \
++  SYMBOL_IS_FUNC(SYMBOL_NAME(name)) SEPARATOR                                  \
++  DECLARE_SYMBOL_VISIBILITY(name)                                              \
++  DECLARE_FUNC_ENCODING                                                        \
++  SYMBOL_NAME(name):
++
++#define DEFINE_COMPILERRT_THUMB_FUNCTION(name)                                 \
++  DEFINE_CODE_STATE                                                            \
++  FILE_LEVEL_DIRECTIVE SEPARATOR                                               \
++  .globl SYMBOL_NAME(name) SEPARATOR                                           \
++  SYMBOL_IS_FUNC(SYMBOL_NAME(name)) SEPARATOR                                  \
++  DECLARE_SYMBOL_VISIBILITY(name) SEPARATOR                                    \
++  .thumb_func SEPARATOR                                                        \
++  SYMBOL_NAME(name):
++
++#define DEFINE_COMPILERRT_PRIVATE_FUNCTION(name)                               \
++  DEFINE_CODE_STATE                                                            \
++  FILE_LEVEL_DIRECTIVE SEPARATOR                                               \
++  .globl SYMBOL_NAME(name) SEPARATOR                                           \
++  SYMBOL_IS_FUNC(SYMBOL_NAME(name)) SEPARATOR                                  \
++  HIDDEN(SYMBOL_NAME(name)) SEPARATOR                                          \
++  DECLARE_FUNC_ENCODING                                                        \
++  SYMBOL_NAME(name):
++
++#define DEFINE_COMPILERRT_PRIVATE_FUNCTION_UNMANGLED(name)                     \
++  DEFINE_CODE_STATE                                                            \
++  .globl name SEPARATOR                                                        \
++  SYMBOL_IS_FUNC(name) SEPARATOR                                               \
++  HIDDEN(name) SEPARATOR                                                       \
++  DECLARE_FUNC_ENCODING                                                        \
++  name:
++
++#define DEFINE_COMPILERRT_FUNCTION_ALIAS(name, target)                         \
++  .globl SYMBOL_NAME(name) SEPARATOR                                           \
++  SYMBOL_IS_FUNC(SYMBOL_NAME(name)) SEPARATOR                                  \
++  DECLARE_SYMBOL_VISIBILITY(SYMBOL_NAME(name)) SEPARATOR                       \
++  .set SYMBOL_NAME(name), SYMBOL_NAME(target) SEPARATOR
++
++#if defined(__ARM_EABI__)
++#define DEFINE_AEABI_FUNCTION_ALIAS(aeabi_name, name)                          \
++  DEFINE_COMPILERRT_FUNCTION_ALIAS(aeabi_name, name)
++#else
++#define DEFINE_AEABI_FUNCTION_ALIAS(aeabi_name, name)
++#endif
++
++#ifdef __ELF__
++#define END_COMPILERRT_FUNCTION(name)                                          \
++  .size SYMBOL_NAME(name), . - SYMBOL_NAME(name)
++#else
++#define END_COMPILERRT_FUNCTION(name)
++#endif
++
++#endif /* COMPILERRT_ASSEMBLY_H */
+diff --git a/libs/compiler-rt/lib/builtins/divdi3.c b/libs/compiler-rt/lib/builtins/divdi3.c
+new file mode 100644
+index 00000000000..b8eebcb2046
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/divdi3.c
+@@ -0,0 +1,29 @@
++/* ===-- divdi3.c - Implement __divdi3 -------------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __divdi3 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Returns: a / b */
++
++COMPILER_RT_ABI di_int
++__divdi3(di_int a, di_int b)
++{
++    const int bits_in_dword_m1 = (int)(sizeof(di_int) * CHAR_BIT) - 1;
++    di_int s_a = a >> bits_in_dword_m1;           /* s_a = a < 0 ? -1 : 0 */
++    di_int s_b = b >> bits_in_dword_m1;           /* s_b = b < 0 ? -1 : 0 */
++    a = (a ^ s_a) - s_a;                         /* negate if s_a == -1 */
++    b = (b ^ s_b) - s_b;                         /* negate if s_b == -1 */
++    s_a ^= s_b;                                  /*sign of quotient */
++    return (__udivmoddi4(a, b, (du_int*)0) ^ s_a) - s_a;  /* negate if s_a == -1 */
++}
+diff --git a/libs/compiler-rt/lib/builtins/divmoddi4.c b/libs/compiler-rt/lib/builtins/divmoddi4.c
+new file mode 100644
+index 00000000000..0d4df67a63e
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/divmoddi4.c
+@@ -0,0 +1,25 @@
++/*===-- divmoddi4.c - Implement __divmoddi4 --------------------------------===
++ *
++ *                    The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __divmoddi4 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Returns: a / b, *rem = a % b  */
++
++COMPILER_RT_ABI di_int
++__divmoddi4(di_int a, di_int b, di_int* rem)
++{
++  di_int d = __divdi3(a,b);
++  *rem = a - (d*b);
++  return d;
++}
+diff --git a/libs/compiler-rt/lib/builtins/divmodsi4.c b/libs/compiler-rt/lib/builtins/divmodsi4.c
+new file mode 100644
+index 00000000000..05adcf4ebac
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/divmodsi4.c
+@@ -0,0 +1,25 @@
++/*===-- divmodsi4.c - Implement __divmodsi4 --------------------------------===
++ *
++ *                    The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __divmodsi4 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Returns: a / b, *rem = a % b  */
++
++COMPILER_RT_ABI si_int
++__divmodsi4(si_int a, si_int b, si_int* rem)
++{
++  si_int d = __divsi3(a,b);
++  *rem = a - (d*b);
++  return d;
++}
+diff --git a/libs/compiler-rt/lib/builtins/divsi3.c b/libs/compiler-rt/lib/builtins/divsi3.c
+new file mode 100644
+index 00000000000..75aea008ddc
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/divsi3.c
+@@ -0,0 +1,39 @@
++/* ===-- divsi3.c - Implement __divsi3 -------------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __divsi3 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Returns: a / b */
++
++COMPILER_RT_ABI si_int
++__divsi3(si_int a, si_int b)
++{
++    const int bits_in_word_m1 = (int)(sizeof(si_int) * CHAR_BIT) - 1;
++    si_int s_a = a >> bits_in_word_m1;           /* s_a = a < 0 ? -1 : 0 */
++    si_int s_b = b >> bits_in_word_m1;           /* s_b = b < 0 ? -1 : 0 */
++    a = (a ^ s_a) - s_a;                         /* negate if s_a == -1 */
++    b = (b ^ s_b) - s_b;                         /* negate if s_b == -1 */
++    s_a ^= s_b;                                  /* sign of quotient */
++    /*
++     * On CPUs without unsigned hardware division support,
++     *  this calls __udivsi3 (notice the cast to su_int).
++     * On CPUs with unsigned hardware division support,
++     *  this uses the unsigned division instruction.
++     */
++    return ((su_int)a/(su_int)b ^ s_a) - s_a;    /* negate if s_a == -1 */
++}
++
++#if defined(__ARM_EABI__)
++AEABI_RTABI si_int __aeabi_idiv(si_int a, si_int b) COMPILER_RT_ALIAS(__divsi3);
++#endif
+diff --git a/libs/compiler-rt/lib/builtins/divti3.c b/libs/compiler-rt/lib/builtins/divti3.c
+new file mode 100644
+index 00000000000..c73eae28fe0
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/divti3.c
+@@ -0,0 +1,33 @@
++/* ===-- divti3.c - Implement __divti3 -------------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __divti3 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++#ifdef CRT_HAS_128BIT
++
++/* Returns: a / b */
++
++COMPILER_RT_ABI ti_int
++__divti3(ti_int a, ti_int b)
++{
++    const int bits_in_tword_m1 = (int)(sizeof(ti_int) * CHAR_BIT) - 1;
++    ti_int s_a = a >> bits_in_tword_m1;           /* s_a = a < 0 ? -1 : 0 */
++    ti_int s_b = b >> bits_in_tword_m1;           /* s_b = b < 0 ? -1 : 0 */
++    a = (a ^ s_a) - s_a;                         /* negate if s_a == -1 */
++    b = (b ^ s_b) - s_b;                         /* negate if s_b == -1 */
++    s_a ^= s_b;                                  /* sign of quotient */
++    return (__udivmodti4(a, b, (tu_int*)0) ^ s_a) - s_a;  /* negate if s_a == -1 */
++}
++
++#endif /* CRT_HAS_128BIT */
+diff --git a/libs/compiler-rt/lib/builtins/fixdfdi.c b/libs/compiler-rt/lib/builtins/fixdfdi.c
+new file mode 100644
+index 00000000000..54e312d3c8f
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/fixdfdi.c
+@@ -0,0 +1,55 @@
++/* ===-- fixdfdi.c - Implement __fixdfdi -----------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#define DOUBLE_PRECISION
++#include "fp_lib.h"
++
++#ifndef __SOFT_FP__
++/* Support for systems that have hardware floating-point; can set the invalid
++ * flag as a side-effect of computation.
++ */
++
++COMPILER_RT_ABI du_int __fixunsdfdi(double a);
++
++COMPILER_RT_ABI di_int
++__fixdfdi(double a)
++{
++    if (a < 0.0) {
++        return -__fixunsdfdi(-a);
++    }
++    return __fixunsdfdi(a);
++}
++
++#else
++/* Support for systems that don't have hardware floating-point; there are no
++ * flags to set, and we don't want to code-gen to an unknown soft-float
++ * implementation.
++ */
++
++typedef di_int fixint_t;
++typedef du_int fixuint_t;
++#include "fp_fixint_impl.inc"
++
++COMPILER_RT_ABI di_int
++__fixdfdi(fp_t a) {
++    return __fixint(a);
++}
++
++#endif
++
++#if defined(__ARM_EABI__)
++#if defined(COMPILER_RT_ARMHF_TARGET)
++AEABI_RTABI di_int __aeabi_d2lz(fp_t a) {
++  return __fixdfdi(a);
++}
++#else
++AEABI_RTABI di_int __aeabi_d2lz(fp_t a) COMPILER_RT_ALIAS(__fixdfdi);
++#endif
++#endif
+diff --git a/libs/compiler-rt/lib/builtins/fixsfdi.c b/libs/compiler-rt/lib/builtins/fixsfdi.c
+new file mode 100644
+index 00000000000..32e87c60889
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/fixsfdi.c
+@@ -0,0 +1,55 @@
++/* ===-- fixsfdi.c - Implement __fixsfdi -----------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#define SINGLE_PRECISION
++#include "fp_lib.h"
++
++#ifndef __SOFT_FP__
++/* Support for systems that have hardware floating-point; can set the invalid
++ * flag as a side-effect of computation.
++ */
++
++COMPILER_RT_ABI du_int __fixunssfdi(float a);
++
++COMPILER_RT_ABI di_int
++__fixsfdi(float a)
++{
++    if (a < 0.0f) {
++        return -__fixunssfdi(-a);
++    }
++    return __fixunssfdi(a);
++}
++
++#else
++/* Support for systems that don't have hardware floating-point; there are no
++ * flags to set, and we don't want to code-gen to an unknown soft-float
++ * implementation.
++ */
++
++typedef di_int fixint_t;
++typedef du_int fixuint_t;
++#include "fp_fixint_impl.inc"
++
++COMPILER_RT_ABI di_int
++__fixsfdi(fp_t a) {
++    return __fixint(a);
++}
++
++#endif
++
++#if defined(__ARM_EABI__)
++#if defined(COMPILER_RT_ARMHF_TARGET)
++AEABI_RTABI di_int __aeabi_f2lz(fp_t a) {
++  return __fixsfdi(a);
++}
++#else
++AEABI_RTABI di_int __aeabi_f2lz(fp_t a) COMPILER_RT_ALIAS(__fixsfdi);
++#endif
++#endif
+diff --git a/libs/compiler-rt/lib/builtins/fixunsdfdi.c b/libs/compiler-rt/lib/builtins/fixunsdfdi.c
+new file mode 100644
+index 00000000000..bfe4dbb2565
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/fixunsdfdi.c
+@@ -0,0 +1,52 @@
++/* ===-- fixunsdfdi.c - Implement __fixunsdfdi -----------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#define DOUBLE_PRECISION
++#include "fp_lib.h"
++
++#ifndef __SOFT_FP__
++/* Support for systems that have hardware floating-point; can set the invalid
++ * flag as a side-effect of computation.
++ */
++
++COMPILER_RT_ABI du_int
++__fixunsdfdi(double a)
++{
++    if (a <= 0.0) return 0;
++    su_int high = a / 4294967296.f;               /* a / 0x1p32f; */
++    su_int low = a - (double)high * 4294967296.f; /* high * 0x1p32f; */
++    return ((du_int)high << 32) | low;
++}
++
++#else
++/* Support for systems that don't have hardware floating-point; there are no
++ * flags to set, and we don't want to code-gen to an unknown soft-float
++ * implementation.
++ */
++
++typedef du_int fixuint_t;
++#include "fp_fixuint_impl.inc"
++
++COMPILER_RT_ABI du_int
++__fixunsdfdi(fp_t a) {
++    return __fixuint(a);
++}
++
++#endif
++
++#if defined(__ARM_EABI__)
++#if defined(COMPILER_RT_ARMHF_TARGET)
++AEABI_RTABI du_int __aeabi_d2ulz(fp_t a) {
++  return __fixunsdfdi(a);
++}
++#else
++AEABI_RTABI du_int __aeabi_d2ulz(fp_t a) COMPILER_RT_ALIAS(__fixunsdfdi);
++#endif
++#endif
+diff --git a/libs/compiler-rt/lib/builtins/fixunssfdi.c b/libs/compiler-rt/lib/builtins/fixunssfdi.c
+new file mode 100644
+index 00000000000..080a25bb1e9
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/fixunssfdi.c
+@@ -0,0 +1,53 @@
++/* ===-- fixunssfdi.c - Implement __fixunssfdi -----------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#define SINGLE_PRECISION
++#include "fp_lib.h"
++
++#ifndef __SOFT_FP__
++/* Support for systems that have hardware floating-point; can set the invalid
++ * flag as a side-effect of computation.
++ */
++
++COMPILER_RT_ABI du_int
++__fixunssfdi(float a)
++{
++    if (a <= 0.0f) return 0;
++    double da = a;
++    su_int high = da / 4294967296.f;               /* da / 0x1p32f; */
++    su_int low = da - (double)high * 4294967296.f; /* high * 0x1p32f; */
++    return ((du_int)high << 32) | low;
++}
++
++#else
++/* Support for systems that don't have hardware floating-point; there are no
++ * flags to set, and we don't want to code-gen to an unknown soft-float
++ * implementation.
++ */
++
++typedef du_int fixuint_t;
++#include "fp_fixuint_impl.inc"
++
++COMPILER_RT_ABI du_int
++__fixunssfdi(fp_t a) {
++    return __fixuint(a);
++}
++
++#endif
++
++#if defined(__ARM_EABI__)
++#if defined(COMPILER_RT_ARMHF_TARGET)
++AEABI_RTABI du_int __aeabi_f2ulz(fp_t a) {
++  return __fixunssfdi(a);
++}
++#else
++AEABI_RTABI du_int __aeabi_f2ulz(fp_t a) COMPILER_RT_ALIAS(__fixunssfdi);
++#endif
++#endif
+diff --git a/libs/compiler-rt/lib/builtins/floatdidf.c b/libs/compiler-rt/lib/builtins/floatdidf.c
+new file mode 100644
+index 00000000000..36b856e078d
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/floatdidf.c
+@@ -0,0 +1,115 @@
++/*===-- floatdidf.c - Implement __floatdidf -------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ *===----------------------------------------------------------------------===
++ *
++ * This file implements __floatdidf for the compiler_rt library.
++ *
++ *===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Returns: convert a to a double, rounding toward even. */
++
++/* Assumption: double is a IEEE 64 bit floating point type
++ *             di_int is a 64 bit integral type
++ */
++
++/* seee eeee eeee mmmm mmmm mmmm mmmm mmmm | mmmm mmmm mmmm mmmm mmmm mmmm mmmm mmmm */
++
++#ifndef __SOFT_FP__
++/* Support for systems that have hardware floating-point; we'll set the inexact flag
++ * as a side-effect of this computation.
++ */
++
++COMPILER_RT_ABI double
++__floatdidf(di_int a)
++{
++    static const double twop52 = 4503599627370496.0; // 0x1.0p52
++    static const double twop32 = 4294967296.0; // 0x1.0p32
++
++    union { int64_t x; double d; } low = { .d = twop52 };
++
++    const double high = (int32_t)(a >> 32) * twop32;
++    low.x |= a & INT64_C(0x00000000ffffffff);
++
++    const double result = (high - twop52) + low.d;
++    return result;
++}
++
++#else
++/* Support for systems that don't have hardware floating-point; there are no flags to
++ * set, and we don't want to code-gen to an unknown soft-float implementation.
++ */
++
++COMPILER_RT_ABI double
++__floatdidf(di_int a)
++{
++    if (a == 0)
++        return 0.0;
++    const unsigned N = sizeof(di_int) * CHAR_BIT;
++    const di_int s = a >> (N-1);
++    a = (a ^ s) - s;
++    int sd = N - __builtin_clzll(a);  /* number of significant digits */
++    int e = sd - 1;             /* exponent */
++    if (sd > DBL_MANT_DIG)
++    {
++        /*  start:  0000000000000000000001xxxxxxxxxxxxxxxxxxxxxxPQxxxxxxxxxxxxxxxxxx
++         *  finish: 000000000000000000000000000000000000001xxxxxxxxxxxxxxxxxxxxxxPQR
++         *                                                12345678901234567890123456
++         *  1 = msb 1 bit
++         *  P = bit DBL_MANT_DIG-1 bits to the right of 1
++         * Q = bit DBL_MANT_DIG bits to the right of 1
++         *  R = "or" of all bits to the right of Q
++        */
++        switch (sd)
++        {
++        case DBL_MANT_DIG + 1:
++            a <<= 1;
++            break;
++        case DBL_MANT_DIG + 2:
++            break;
++        default:
++            a = ((du_int)a >> (sd - (DBL_MANT_DIG+2))) |
++                ((a & ((du_int)(-1) >> ((N + DBL_MANT_DIG+2) - sd))) != 0);
++        };
++        /* finish: */
++        a |= (a & 4) != 0;  /* Or P into R */
++        ++a;  /* round - this step may add a significant bit */
++        a >>= 2;  /* dump Q and R */
++        /* a is now rounded to DBL_MANT_DIG or DBL_MANT_DIG+1 bits */
++        if (a & ((du_int)1 << DBL_MANT_DIG))
++        {
++            a >>= 1;
++            ++e;
++        }
++        /* a is now rounded to DBL_MANT_DIG bits */
++    }
++    else
++    {
++        a <<= (DBL_MANT_DIG - sd);
++        /* a is now rounded to DBL_MANT_DIG bits */
++    }
++    double_bits fb;
++    fb.u.s.high = ((su_int)s & 0x80000000) |        /* sign */
++                  ((e + 1023) << 20)       |        /* exponent */
++                  ((su_int)(a >> 32) & 0x000FFFFF); /* mantissa-high */
++    fb.u.s.low = (su_int)a;                         /* mantissa-low */
++    return fb.f;
++}
++#endif
++
++#if defined(__ARM_EABI__)
++#if defined(COMPILER_RT_ARMHF_TARGET)
++AEABI_RTABI double __aeabi_l2d(di_int a) {
++  return __floatdidf(a);
++}
++#else
++AEABI_RTABI double __aeabi_l2d(di_int a) COMPILER_RT_ALIAS(__floatdidf);
++#endif
++#endif
+diff --git a/libs/compiler-rt/lib/builtins/floatdisf.c b/libs/compiler-rt/lib/builtins/floatdisf.c
+new file mode 100644
+index 00000000000..9446ebaab20
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/floatdisf.c
+@@ -0,0 +1,88 @@
++/*===-- floatdisf.c - Implement __floatdisf -------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ *===----------------------------------------------------------------------===
++ *
++ * This file implements __floatdisf for the compiler_rt library.
++ *
++ *===----------------------------------------------------------------------===
++ */
++
++/* Returns: convert a to a float, rounding toward even.*/
++
++/* Assumption: float is a IEEE 32 bit floating point type
++ *             di_int is a 64 bit integral type
++ */
++
++/* seee eeee emmm mmmm mmmm mmmm mmmm mmmm */
++
++#include "int_lib.h"
++
++COMPILER_RT_ABI float
++__floatdisf(di_int a)
++{
++    if (a == 0)
++        return 0.0F;
++    const unsigned N = sizeof(di_int) * CHAR_BIT;
++    const di_int s = a >> (N-1);
++    a = (a ^ s) - s;
++    int sd = N - __builtin_clzll(a);  /* number of significant digits */
++    int e = sd - 1;             /* exponent */
++    if (sd > FLT_MANT_DIG)
++    {
++        /*  start:  0000000000000000000001xxxxxxxxxxxxxxxxxxxxxxPQxxxxxxxxxxxxxxxxxx
++         *  finish: 000000000000000000000000000000000000001xxxxxxxxxxxxxxxxxxxxxxPQR
++         *                                                12345678901234567890123456
++         *  1 = msb 1 bit
++         *  P = bit FLT_MANT_DIG-1 bits to the right of 1
++         *  Q = bit FLT_MANT_DIG bits to the right of 1
++         *  R = "or" of all bits to the right of Q
++         */
++        switch (sd)
++        {
++        case FLT_MANT_DIG + 1:
++            a <<= 1;
++            break;
++        case FLT_MANT_DIG + 2:
++            break;
++        default:
++            a = ((du_int)a >> (sd - (FLT_MANT_DIG+2))) |
++                ((a & ((du_int)(-1) >> ((N + FLT_MANT_DIG+2) - sd))) != 0);
++        };
++        /* finish: */
++        a |= (a & 4) != 0;  /* Or P into R */
++        ++a;  /* round - this step may add a significant bit */
++        a >>= 2;  /* dump Q and R */
++        /* a is now rounded to FLT_MANT_DIG or FLT_MANT_DIG+1 bits */
++        if (a & ((du_int)1 << FLT_MANT_DIG))
++        {
++            a >>= 1;
++            ++e;
++        }
++        /* a is now rounded to FLT_MANT_DIG bits */
++    }
++    else
++    {
++        a <<= (FLT_MANT_DIG - sd);
++        /* a is now rounded to FLT_MANT_DIG bits */
++    }
++    float_bits fb;
++    fb.u = ((su_int)s & 0x80000000) |  /* sign */
++           ((e + 127) << 23)       |  /* exponent */
++           ((su_int)a & 0x007FFFFF);   /* mantissa */
++    return fb.f;
++}
++
++#if defined(__ARM_EABI__)
++#if defined(COMPILER_RT_ARMHF_TARGET)
++AEABI_RTABI float __aeabi_l2f(di_int a) {
++  return __floatdisf(a);
++}
++#else
++AEABI_RTABI float __aeabi_l2f(di_int a) COMPILER_RT_ALIAS(__floatdisf);
++#endif
++#endif
+diff --git a/libs/compiler-rt/lib/builtins/floatundidf.c b/libs/compiler-rt/lib/builtins/floatundidf.c
+new file mode 100644
+index 00000000000..8bc2a096324
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/floatundidf.c
+@@ -0,0 +1,114 @@
++/* ===-- floatundidf.c - Implement __floatundidf ---------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __floatundidf for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++/* Returns: convert a to a double, rounding toward even. */
++
++/* Assumption: double is a IEEE 64 bit floating point type
++ *             du_int is a 64 bit integral type
++ */
++
++/* seee eeee eeee mmmm mmmm mmmm mmmm mmmm | mmmm mmmm mmmm mmmm mmmm mmmm mmmm mmmm */
++
++#include "int_lib.h"
++
++#ifndef __SOFT_FP__
++/* Support for systems that have hardware floating-point; we'll set the inexact flag
++ * as a side-effect of this computation.
++ */
++
++COMPILER_RT_ABI double
++__floatundidf(du_int a)
++{
++    static const double twop52 = 4503599627370496.0; // 0x1.0p52
++    static const double twop84 = 19342813113834066795298816.0; // 0x1.0p84
++    static const double twop84_plus_twop52 = 19342813118337666422669312.0; // 0x1.00000001p84
++
++    union { uint64_t x; double d; } high = { .d = twop84 };
++    union { uint64_t x; double d; } low = { .d = twop52 };
++
++    high.x |= a >> 32;
++    low.x |= a & UINT64_C(0x00000000ffffffff);
++
++    const double result = (high.d - twop84_plus_twop52) + low.d;
++    return result;
++}
++
++#else
++/* Support for systems that don't have hardware floating-point; there are no flags to
++ * set, and we don't want to code-gen to an unknown soft-float implementation.
++ */
++
++COMPILER_RT_ABI double
++__floatundidf(du_int a)
++{
++    if (a == 0)
++        return 0.0;
++    const unsigned N = sizeof(du_int) * CHAR_BIT;
++    int sd = N - __builtin_clzll(a);  /* number of significant digits */
++    int e = sd - 1;             /* exponent */
++    if (sd > DBL_MANT_DIG)
++    {
++        /*  start:  0000000000000000000001xxxxxxxxxxxxxxxxxxxxxxPQxxxxxxxxxxxxxxxxxx
++         *  finish: 000000000000000000000000000000000000001xxxxxxxxxxxxxxxxxxxxxxPQR
++         *                                                12345678901234567890123456
++         *  1 = msb 1 bit
++         *  P = bit DBL_MANT_DIG-1 bits to the right of 1
++         *  Q = bit DBL_MANT_DIG bits to the right of 1
++         *  R = "or" of all bits to the right of Q
++         */
++        switch (sd)
++        {
++        case DBL_MANT_DIG + 1:
++            a <<= 1;
++            break;
++        case DBL_MANT_DIG + 2:
++            break;
++        default:
++            a = (a >> (sd - (DBL_MANT_DIG+2))) |
++                ((a & ((du_int)(-1) >> ((N + DBL_MANT_DIG+2) - sd))) != 0);
++        };
++        /* finish: */
++        a |= (a & 4) != 0;  /* Or P into R */
++        ++a;  /* round - this step may add a significant bit */
++        a >>= 2;  /* dump Q and R */
++        /* a is now rounded to DBL_MANT_DIG or DBL_MANT_DIG+1 bits */
++        if (a & ((du_int)1 << DBL_MANT_DIG))
++        {
++            a >>= 1;
++            ++e;
++        }
++        /* a is now rounded to DBL_MANT_DIG bits */
++    }
++    else
++    {
++        a <<= (DBL_MANT_DIG - sd);
++        /* a is now rounded to DBL_MANT_DIG bits */
++    }
++    double_bits fb;
++    fb.u.s.high = ((e + 1023) << 20)       |        /* exponent */
++                  ((su_int)(a >> 32) & 0x000FFFFF); /* mantissa-high */
++    fb.u.s.low = (su_int)a;                         /* mantissa-low  */
++    return fb.f;
++}
++#endif
++
++#if defined(__ARM_EABI__)
++#if defined(COMPILER_RT_ARMHF_TARGET)
++AEABI_RTABI double __aeabi_ul2d(du_int a) {
++  return __floatundidf(a);
++}
++#else
++AEABI_RTABI double __aeabi_ul2d(du_int a) COMPILER_RT_ALIAS(__floatundidf);
++#endif
++#endif
+diff --git a/libs/compiler-rt/lib/builtins/floatundisf.c b/libs/compiler-rt/lib/builtins/floatundisf.c
+new file mode 100644
+index 00000000000..85378c2a3fb
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/floatundisf.c
+@@ -0,0 +1,85 @@
++/*===-- floatundisf.c - Implement __floatundisf ---------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __floatundisf for the compiler_rt library.
++ *
++ *===----------------------------------------------------------------------===
++ */
++
++/* Returns: convert a to a float, rounding toward even. */
++
++/* Assumption: float is a IEEE 32 bit floating point type
++ *            du_int is a 64 bit integral type
++ */
++
++/* seee eeee emmm mmmm mmmm mmmm mmmm mmmm */
++
++#include "int_lib.h"
++
++COMPILER_RT_ABI float
++__floatundisf(du_int a)
++{
++    if (a == 0)
++        return 0.0F;
++    const unsigned N = sizeof(du_int) * CHAR_BIT;
++    int sd = N - __builtin_clzll(a);  /* number of significant digits */
++    int e = sd - 1;             /* 8 exponent */
++    if (sd > FLT_MANT_DIG)
++    {
++        /*  start:  0000000000000000000001xxxxxxxxxxxxxxxxxxxxxxPQxxxxxxxxxxxxxxxxxx
++         *  finish: 000000000000000000000000000000000000001xxxxxxxxxxxxxxxxxxxxxxPQR
++         *                                                12345678901234567890123456
++         *  1 = msb 1 bit
++         *  P = bit FLT_MANT_DIG-1 bits to the right of 1
++         *  Q = bit FLT_MANT_DIG bits to the right of 1
++         *  R = "or" of all bits to the right of Q
++         */
++        switch (sd)
++        {
++        case FLT_MANT_DIG + 1:
++            a <<= 1;
++            break;
++        case FLT_MANT_DIG + 2:
++            break;
++        default:
++            a = (a >> (sd - (FLT_MANT_DIG+2))) |
++                ((a & ((du_int)(-1) >> ((N + FLT_MANT_DIG+2) - sd))) != 0);
++        };
++        /* finish: */
++        a |= (a & 4) != 0;  /* Or P into R */
++        ++a;  /* round - this step may add a significant bit */
++        a >>= 2;  /* dump Q and R */
++        /* a is now rounded to FLT_MANT_DIG or FLT_MANT_DIG+1 bits */
++        if (a & ((du_int)1 << FLT_MANT_DIG))
++        {
++            a >>= 1;
++            ++e;
++        }
++        /* a is now rounded to FLT_MANT_DIG bits */
++    }
++    else
++    {
++        a <<= (FLT_MANT_DIG - sd);
++        /* a is now rounded to FLT_MANT_DIG bits */
++    }
++    float_bits fb;
++    fb.u = ((e + 127) << 23)       |  /* exponent */
++           ((su_int)a & 0x007FFFFF);  /* mantissa */
++    return fb.f;
++}
++
++#if defined(__ARM_EABI__)
++#if defined(COMPILER_RT_ARMHF_TARGET)
++AEABI_RTABI float __aeabi_ul2f(du_int a) {
++  return __floatundisf(a);
++}
++#else
++AEABI_RTABI float __aeabi_ul2f(du_int a) COMPILER_RT_ALIAS(__floatundisf);
++#endif
++#endif
+diff --git a/libs/compiler-rt/lib/builtins/fp_fixint_impl.inc b/libs/compiler-rt/lib/builtins/fp_fixint_impl.inc
+new file mode 100644
+index 00000000000..da70d4d3930
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/fp_fixint_impl.inc
+@@ -0,0 +1,41 @@
++//===-- lib/fixdfsi.c - Double-precision -> integer conversion ----*- C -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is dual licensed under the MIT and the University of Illinois Open
++// Source Licenses. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file implements float to integer conversion for the
++// compiler-rt library.
++//
++//===----------------------------------------------------------------------===//
++
++#include "fp_lib.h"
++
++static __inline fixint_t __fixint(fp_t a) {
++    const fixint_t fixint_max = (fixint_t)((~(fixuint_t)0) / 2);
++    const fixint_t fixint_min = -fixint_max - 1;
++    // Break a into sign, exponent, significand
++    const rep_t aRep = toRep(a);
++    const rep_t aAbs = aRep & absMask;
++    const fixint_t sign = aRep & signBit ? -1 : 1;
++    const int exponent = (aAbs >> significandBits) - exponentBias;
++    const rep_t significand = (aAbs & significandMask) | implicitBit;
++
++    // If exponent is negative, the result is zero.
++    if (exponent < 0)
++        return 0;
++
++    // If the value is too large for the integer type, saturate.
++    if ((unsigned)exponent >= sizeof(fixint_t) * CHAR_BIT)
++        return sign == 1 ? fixint_max : fixint_min;
++
++    // If 0 <= exponent < significandBits, right shift to get the result.
++    // Otherwise, shift left.
++    if (exponent < significandBits)
++        return sign * (significand >> (significandBits - exponent));
++    else
++        return sign * ((fixint_t)significand << (exponent - significandBits));
++}
+diff --git a/libs/compiler-rt/lib/builtins/fp_fixuint_impl.inc b/libs/compiler-rt/lib/builtins/fp_fixuint_impl.inc
+new file mode 100644
+index 00000000000..d68ccf27a79
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/fp_fixuint_impl.inc
+@@ -0,0 +1,39 @@
++//===-- lib/fixdfsi.c - Double-precision -> integer conversion ----*- C -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is dual licensed under the MIT and the University of Illinois Open
++// Source Licenses. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file implements float to unsigned integer conversion for the
++// compiler-rt library.
++//
++//===----------------------------------------------------------------------===//
++
++#include "fp_lib.h"
++
++static __inline fixuint_t __fixuint(fp_t a) {
++    // Break a into sign, exponent, significand
++    const rep_t aRep = toRep(a);
++    const rep_t aAbs = aRep & absMask;
++    const int sign = aRep & signBit ? -1 : 1;
++    const int exponent = (aAbs >> significandBits) - exponentBias;
++    const rep_t significand = (aAbs & significandMask) | implicitBit;
++
++    // If either the value or the exponent is negative, the result is zero.
++    if (sign == -1 || exponent < 0)
++        return 0;
++
++    // If the value is too large for the integer type, saturate.
++    if ((unsigned)exponent >= sizeof(fixuint_t) * CHAR_BIT)
++        return ~(fixuint_t)0;
++
++    // If 0 <= exponent < significandBits, right shift to get the result.
++    // Otherwise, shift left.
++    if (exponent < significandBits)
++        return significand >> (significandBits - exponent);
++    else
++        return (fixuint_t)significand << (exponent - significandBits);
++}
+diff --git a/libs/compiler-rt/lib/builtins/fp_lib.h b/libs/compiler-rt/lib/builtins/fp_lib.h
+new file mode 100644
+index 00000000000..a0e19ab6a8f
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/fp_lib.h
+@@ -0,0 +1,327 @@
++//===-- lib/fp_lib.h - Floating-point utilities -------------------*- C -*-===//
++//
++//                     The LLVM Compiler Infrastructure
++//
++// This file is dual licensed under the MIT and the University of Illinois Open
++// Source Licenses. See LICENSE.TXT for details.
++//
++//===----------------------------------------------------------------------===//
++//
++// This file is a configuration header for soft-float routines in compiler-rt.
++// This file does not provide any part of the compiler-rt interface, but defines
++// many useful constants and utility routines that are used in the
++// implementation of the soft-float routines in compiler-rt.
++//
++// Assumes that float, double and long double correspond to the IEEE-754
++// binary32, binary64 and binary 128 types, respectively, and that integer
++// endianness matches floating point endianness on the target platform.
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef FP_LIB_HEADER
++#define FP_LIB_HEADER
++
++#include <stdint.h>
++#include <stdbool.h>
++#include <limits.h>
++#include "int_lib.h"
++#include "int_math.h"
++
++// x86_64 FreeBSD prior v9.3 define fixed-width types incorrectly in
++// 32-bit mode.
++#if defined(__FreeBSD__) && defined(__i386__)
++# include <sys/param.h>
++# if __FreeBSD_version < 903000  // v9.3
++#  define uint64_t unsigned long long
++#  define int64_t long long
++#  undef UINT64_C
++#  define UINT64_C(c) (c ## ULL)
++# endif
++#endif
++
++#if defined SINGLE_PRECISION
++
++typedef uint32_t rep_t;
++typedef int32_t srep_t;
++typedef float fp_t;
++#define REP_C UINT32_C
++#define significandBits 23
++
++static __inline int rep_clz(rep_t a) {
++    return __builtin_clz(a);
++}
++
++// 32x32 --> 64 bit multiply
++static __inline void wideMultiply(rep_t a, rep_t b, rep_t *hi, rep_t *lo) {
++    const uint64_t product = (uint64_t)a*b;
++    *hi = product >> 32;
++    *lo = product;
++}
++COMPILER_RT_ABI fp_t __addsf3(fp_t a, fp_t b);
++
++#elif defined DOUBLE_PRECISION
++
++typedef uint64_t rep_t;
++typedef int64_t srep_t;
++typedef double fp_t;
++#define REP_C UINT64_C
++#define significandBits 52
++
++static __inline int rep_clz(rep_t a) {
++#if defined __LP64__
++    return __builtin_clzl(a);
++#else
++    if (a & REP_C(0xffffffff00000000))
++        return __builtin_clz(a >> 32);
++    else
++        return 32 + __builtin_clz(a & REP_C(0xffffffff));
++#endif
++}
++
++#define loWord(a) (a & 0xffffffffU)
++#define hiWord(a) (a >> 32)
++
++// 64x64 -> 128 wide multiply for platforms that don't have such an operation;
++// many 64-bit platforms have this operation, but they tend to have hardware
++// floating-point, so we don't bother with a special case for them here.
++static __inline void wideMultiply(rep_t a, rep_t b, rep_t *hi, rep_t *lo) {
++    // Each of the component 32x32 -> 64 products
++    const uint64_t plolo = loWord(a) * loWord(b);
++    const uint64_t plohi = loWord(a) * hiWord(b);
++    const uint64_t philo = hiWord(a) * loWord(b);
++    const uint64_t phihi = hiWord(a) * hiWord(b);
++    // Sum terms that contribute to lo in a way that allows us to get the carry
++    const uint64_t r0 = loWord(plolo);
++    const uint64_t r1 = hiWord(plolo) + loWord(plohi) + loWord(philo);
++    *lo = r0 + (r1 << 32);
++    // Sum terms contributing to hi with the carry from lo
++    *hi = hiWord(plohi) + hiWord(philo) + hiWord(r1) + phihi;
++}
++#undef loWord
++#undef hiWord
++
++COMPILER_RT_ABI fp_t __adddf3(fp_t a, fp_t b);
++
++#elif defined QUAD_PRECISION
++#if __LDBL_MANT_DIG__ == 113
++#define CRT_LDBL_128BIT
++typedef __uint128_t rep_t;
++typedef __int128_t srep_t;
++typedef long double fp_t;
++#define REP_C (__uint128_t)
++// Note: Since there is no explicit way to tell compiler the constant is a
++// 128-bit integer, we let the constant be casted to 128-bit integer
++#define significandBits 112
++
++static __inline int rep_clz(rep_t a) {
++    const union
++        {
++             __uint128_t ll;
++#if _YUGA_BIG_ENDIAN
++             struct { uint64_t high, low; } s;
++#else
++             struct { uint64_t low, high; } s;
++#endif
++        } uu = { .ll = a };
++
++    uint64_t word;
++    uint64_t add;
++
++    if (uu.s.high){
++        word = uu.s.high;
++        add = 0;
++    }
++    else{
++        word = uu.s.low;
++        add = 64;
++    }
++    return __builtin_clzll(word) + add;
++}
++
++#define Word_LoMask   UINT64_C(0x00000000ffffffff)
++#define Word_HiMask   UINT64_C(0xffffffff00000000)
++#define Word_FullMask UINT64_C(0xffffffffffffffff)
++#define Word_1(a) (uint64_t)((a >> 96) & Word_LoMask)
++#define Word_2(a) (uint64_t)((a >> 64) & Word_LoMask)
++#define Word_3(a) (uint64_t)((a >> 32) & Word_LoMask)
++#define Word_4(a) (uint64_t)(a & Word_LoMask)
++
++// 128x128 -> 256 wide multiply for platforms that don't have such an operation;
++// many 64-bit platforms have this operation, but they tend to have hardware
++// floating-point, so we don't bother with a special case for them here.
++static __inline void wideMultiply(rep_t a, rep_t b, rep_t *hi, rep_t *lo) {
++
++    const uint64_t product11 = Word_1(a) * Word_1(b);
++    const uint64_t product12 = Word_1(a) * Word_2(b);
++    const uint64_t product13 = Word_1(a) * Word_3(b);
++    const uint64_t product14 = Word_1(a) * Word_4(b);
++    const uint64_t product21 = Word_2(a) * Word_1(b);
++    const uint64_t product22 = Word_2(a) * Word_2(b);
++    const uint64_t product23 = Word_2(a) * Word_3(b);
++    const uint64_t product24 = Word_2(a) * Word_4(b);
++    const uint64_t product31 = Word_3(a) * Word_1(b);
++    const uint64_t product32 = Word_3(a) * Word_2(b);
++    const uint64_t product33 = Word_3(a) * Word_3(b);
++    const uint64_t product34 = Word_3(a) * Word_4(b);
++    const uint64_t product41 = Word_4(a) * Word_1(b);
++    const uint64_t product42 = Word_4(a) * Word_2(b);
++    const uint64_t product43 = Word_4(a) * Word_3(b);
++    const uint64_t product44 = Word_4(a) * Word_4(b);
++
++    const __uint128_t sum0 = (__uint128_t)product44;
++    const __uint128_t sum1 = (__uint128_t)product34 +
++                             (__uint128_t)product43;
++    const __uint128_t sum2 = (__uint128_t)product24 +
++                             (__uint128_t)product33 +
++                             (__uint128_t)product42;
++    const __uint128_t sum3 = (__uint128_t)product14 +
++                             (__uint128_t)product23 +
++                             (__uint128_t)product32 +
++                             (__uint128_t)product41;
++    const __uint128_t sum4 = (__uint128_t)product13 +
++                             (__uint128_t)product22 +
++                             (__uint128_t)product31;
++    const __uint128_t sum5 = (__uint128_t)product12 +
++                             (__uint128_t)product21;
++    const __uint128_t sum6 = (__uint128_t)product11;
++
++    const __uint128_t r0 = (sum0 & Word_FullMask) +
++                           ((sum1 & Word_LoMask) << 32);
++    const __uint128_t r1 = (sum0 >> 64) +
++                           ((sum1 >> 32) & Word_FullMask) +
++                           (sum2 & Word_FullMask) +
++                           ((sum3 << 32) & Word_HiMask);
++
++    *lo = r0 + (r1 << 64);
++    *hi = (r1 >> 64) +
++          (sum1 >> 96) +
++          (sum2 >> 64) +
++          (sum3 >> 32) +
++          sum4 +
++          (sum5 << 32) +
++          (sum6 << 64);
++}
++#undef Word_1
++#undef Word_2
++#undef Word_3
++#undef Word_4
++#undef Word_HiMask
++#undef Word_LoMask
++#undef Word_FullMask
++#endif // __LDBL_MANT_DIG__ == 113
++#else
++#error SINGLE_PRECISION, DOUBLE_PRECISION or QUAD_PRECISION must be defined.
++#endif
++
++#if defined(SINGLE_PRECISION) || defined(DOUBLE_PRECISION) || defined(CRT_LDBL_128BIT)
++#define typeWidth       (sizeof(rep_t)*CHAR_BIT)
++#define exponentBits    (typeWidth - significandBits - 1)
++#define maxExponent     ((1 << exponentBits) - 1)
++#define exponentBias    (maxExponent >> 1)
++
++#define implicitBit     (REP_C(1) << significandBits)
++#define significandMask (implicitBit - 1U)
++#define signBit         (REP_C(1) << (significandBits + exponentBits))
++#define absMask         (signBit - 1U)
++#define exponentMask    (absMask ^ significandMask)
++#define oneRep          ((rep_t)exponentBias << significandBits)
++#define infRep          exponentMask
++#define quietBit        (implicitBit >> 1)
++#define qnanRep         (exponentMask | quietBit)
++
++static __inline rep_t toRep(fp_t x) {
++    const union { fp_t f; rep_t i; } rep = {.f = x};
++    return rep.i;
++}
++
++static __inline fp_t fromRep(rep_t x) {
++    const union { fp_t f; rep_t i; } rep = {.i = x};
++    return rep.f;
++}
++
++static __inline int normalize(rep_t *significand) {
++    const int shift = rep_clz(*significand) - rep_clz(implicitBit);
++    *significand <<= shift;
++    return 1 - shift;
++}
++
++static __inline void wideLeftShift(rep_t *hi, rep_t *lo, int count) {
++    *hi = *hi << count | *lo >> (typeWidth - count);
++    *lo = *lo << count;
++}
++
++static __inline void wideRightShiftWithSticky(rep_t *hi, rep_t *lo, unsigned int count) {
++    if (count < typeWidth) {
++        const bool sticky = *lo << (typeWidth - count);
++        *lo = *hi << (typeWidth - count) | *lo >> count | sticky;
++        *hi = *hi >> count;
++    }
++    else if (count < 2*typeWidth) {
++        const bool sticky = *hi << (2*typeWidth - count) | *lo;
++        *lo = *hi >> (count - typeWidth) | sticky;
++        *hi = 0;
++    } else {
++        const bool sticky = *hi | *lo;
++        *lo = sticky;
++        *hi = 0;
++    }
++}
++
++// Implements logb methods (logb, logbf, logbl) for IEEE-754. This avoids
++// pulling in a libm dependency from compiler-rt, but is not meant to replace
++// it (i.e. code calling logb() should get the one from libm, not this), hence
++// the __compiler_rt prefix.
++static __inline fp_t __compiler_rt_logbX(fp_t x) {
++  rep_t rep = toRep(x);
++  int exp = (rep & exponentMask) >> significandBits;
++
++  // Abnormal cases:
++  // 1) +/- inf returns +inf; NaN returns NaN
++  // 2) 0.0 returns -inf
++  if (exp == maxExponent) {
++    if (((rep & signBit) == 0) || (x != x)) {
++      return x;  // NaN or +inf: return x
++    } else {
++      return -x;  // -inf: return -x
++    }
++  } else if (x == 0.0) {
++    // 0.0: return -inf
++    return fromRep(infRep | signBit);
++  }
++
++  if (exp != 0) {
++    // Normal number
++    return exp - exponentBias;  // Unbias exponent
++  } else {
++    // Subnormal number; normalize and repeat
++    rep &= absMask;
++    const int shift = 1 - normalize(&rep);
++    exp = (rep & exponentMask) >> significandBits;
++    return exp - exponentBias - shift;  // Unbias exponent
++  }
++}
++#endif
++
++#if defined(SINGLE_PRECISION)
++static __inline fp_t __compiler_rt_logbf(fp_t x) {
++  return __compiler_rt_logbX(x);
++}
++#elif defined(DOUBLE_PRECISION)
++static __inline fp_t __compiler_rt_logb(fp_t x) {
++  return __compiler_rt_logbX(x);
++}
++#elif defined(QUAD_PRECISION)
++  #if defined(CRT_LDBL_128BIT)
++static __inline fp_t __compiler_rt_logbl(fp_t x) {
++  return __compiler_rt_logbX(x);
++}
++  #else
++// The generic implementation only works for ieee754 floating point. For other
++// floating point types, continue to rely on the libm implementation for now.
++static __inline long double __compiler_rt_logbl(long double x) {
++  return crt_logbl(x);
++}
++  #endif
++#endif
++
++#endif // FP_LIB_HEADER
+diff --git a/libs/compiler-rt/lib/builtins/int_endianness.h b/libs/compiler-rt/lib/builtins/int_endianness.h
+new file mode 100644
+index 00000000000..e2586c56bac
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/int_endianness.h
+@@ -0,0 +1,116 @@
++/* ===-- int_endianness.h - configuration header for compiler-rt ------------===
++ *
++ *		       The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file is a configuration header for compiler-rt.
++ * This file is not part of the interface of this library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#ifndef INT_ENDIANNESS_H
++#define INT_ENDIANNESS_H
++
++#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && \
++    defined(__ORDER_LITTLE_ENDIAN__)
++
++/* Clang and GCC provide built-in endianness definitions. */
++#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
++#define _YUGA_LITTLE_ENDIAN 0
++#define _YUGA_BIG_ENDIAN    1
++#elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
++#define _YUGA_LITTLE_ENDIAN 1
++#define _YUGA_BIG_ENDIAN    0
++#endif /* __BYTE_ORDER__ */
++
++#else /* Compilers other than Clang or GCC. */
++
++#if defined(__SVR4) && defined(__sun)
++#include <sys/byteorder.h>
++
++#if defined(_BIG_ENDIAN)
++#define _YUGA_LITTLE_ENDIAN 0
++#define _YUGA_BIG_ENDIAN    1
++#elif defined(_LITTLE_ENDIAN)
++#define _YUGA_LITTLE_ENDIAN 1
++#define _YUGA_BIG_ENDIAN    0
++#else /* !_LITTLE_ENDIAN */
++#error "unknown endianness"
++#endif /* !_LITTLE_ENDIAN */
++
++#endif /* Solaris and AuroraUX. */
++
++/* .. */
++
++#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__) ||   \
++    defined(__minix)
++#include <sys/endian.h>
++
++#if _BYTE_ORDER == _BIG_ENDIAN
++#define _YUGA_LITTLE_ENDIAN 0
++#define _YUGA_BIG_ENDIAN    1
++#elif _BYTE_ORDER == _LITTLE_ENDIAN
++#define _YUGA_LITTLE_ENDIAN 1
++#define _YUGA_BIG_ENDIAN    0
++#endif /* _BYTE_ORDER */
++
++#endif /* *BSD */
++
++#if defined(__OpenBSD__)
++#include <machine/endian.h>
++
++#if _BYTE_ORDER == _BIG_ENDIAN
++#define _YUGA_LITTLE_ENDIAN 0
++#define _YUGA_BIG_ENDIAN    1
++#elif _BYTE_ORDER == _LITTLE_ENDIAN
++#define _YUGA_LITTLE_ENDIAN 1
++#define _YUGA_BIG_ENDIAN    0
++#endif /* _BYTE_ORDER */
++
++#endif /* OpenBSD */
++
++/* .. */
++
++/* Mac OSX has __BIG_ENDIAN__ or __LITTLE_ENDIAN__ automatically set by the
++ * compiler (at least with GCC) */
++#if defined(__APPLE__) || defined(__ellcc__ )
++
++#ifdef __BIG_ENDIAN__
++#if __BIG_ENDIAN__
++#define _YUGA_LITTLE_ENDIAN 0
++#define _YUGA_BIG_ENDIAN    1
++#endif
++#endif /* __BIG_ENDIAN__ */
++
++#ifdef __LITTLE_ENDIAN__
++#if __LITTLE_ENDIAN__
++#define _YUGA_LITTLE_ENDIAN 1
++#define _YUGA_BIG_ENDIAN    0
++#endif
++#endif /* __LITTLE_ENDIAN__ */
++
++#endif /* Mac OSX */
++
++/* .. */
++
++#if defined(_WIN32)
++
++#define _YUGA_LITTLE_ENDIAN 1
++#define _YUGA_BIG_ENDIAN    0
++
++#endif /* Windows */
++
++#endif /* Clang or GCC. */
++
++/* . */
++
++#if !defined(_YUGA_LITTLE_ENDIAN) || !defined(_YUGA_BIG_ENDIAN)
++#error Unable to determine endian
++#endif /* Check we found an endianness correctly. */
++
++#endif /* INT_ENDIANNESS_H */
+diff --git a/libs/compiler-rt/lib/builtins/int_lib.h b/libs/compiler-rt/lib/builtins/int_lib.h
+new file mode 100644
+index 00000000000..fe8a3bdedc0
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/int_lib.h
+@@ -0,0 +1,134 @@
++/* ===-- int_lib.h - configuration header for compiler-rt  -----------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file is a configuration header for compiler-rt.
++ * This file is not part of the interface of this library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#ifndef INT_LIB_H
++#define INT_LIB_H
++
++/* Assumption: Signed integral is 2's complement. */
++/* Assumption: Right shift of signed negative is arithmetic shift. */
++/* Assumption: Endianness is little or big (not mixed). */
++
++#if defined(__ELF__)
++#define FNALIAS(alias_name, original_name) \
++  void alias_name() __attribute__((__alias__(#original_name)))
++#define COMPILER_RT_ALIAS(aliasee) __attribute__((__alias__(#aliasee)))
++#else
++#define FNALIAS(alias, name) _Pragma("GCC error(\"alias unsupported on this file format\")")
++#define COMPILER_RT_ALIAS(aliasee) _Pragma("GCC error(\"alias unsupported on this file format\")")
++#endif
++
++/* ABI macro definitions */
++
++#if __ARM_EABI__
++# ifdef COMPILER_RT_ARMHF_TARGET
++#   define COMPILER_RT_ABI
++# else
++#   define COMPILER_RT_ABI __attribute__((__pcs__("aapcs")))
++# endif
++#else
++# define COMPILER_RT_ABI
++#endif
++
++#define AEABI_RTABI __attribute__((__pcs__("aapcs")))
++
++#if defined(_MSC_VER) && !defined(__clang__)
++#define ALWAYS_INLINE __forceinline
++#define NOINLINE __declspec(noinline)
++#define NORETURN __declspec(noreturn)
++#define UNUSED
++#else
++#define ALWAYS_INLINE __attribute__((always_inline))
++#define NOINLINE __attribute__((noinline))
++#define NORETURN __attribute__((noreturn))
++#define UNUSED __attribute__((unused))
++#endif
++
++#if defined(__NetBSD__) && (defined(_KERNEL) || defined(_STANDALONE))
++/*
++ * Kernel and boot environment can't use normal headers,
++ * so use the equivalent system headers.
++ */
++#  include <machine/limits.h>
++#  include <sys/stdint.h>
++#  include <sys/types.h>
++#else
++/* Include the standard compiler builtin headers we use functionality from. */
++#  include <limits.h>
++#  include <stdint.h>
++#  include <stdbool.h>
++#  include <float.h>
++#endif
++
++/* Include the commonly used internal type definitions. */
++#include "int_types.h"
++
++/* Include internal utility function declarations. */
++#include "int_util.h"
++
++COMPILER_RT_ABI si_int __paritysi2(si_int a);
++COMPILER_RT_ABI si_int __paritydi2(di_int a);
++
++COMPILER_RT_ABI di_int __divdi3(di_int a, di_int b);
++COMPILER_RT_ABI si_int __divsi3(si_int a, si_int b);
++COMPILER_RT_ABI su_int __udivsi3(su_int n, su_int d);
++
++COMPILER_RT_ABI su_int __udivmodsi4(su_int a, su_int b, su_int* rem);
++COMPILER_RT_ABI du_int __udivmoddi4(du_int a, du_int b, du_int* rem);
++#ifdef CRT_HAS_128BIT
++COMPILER_RT_ABI si_int __clzti2(ti_int a);
++COMPILER_RT_ABI tu_int __udivmodti4(tu_int a, tu_int b, tu_int* rem);
++#endif
++
++/* Definitions for builtins unavailable on MSVC */
++#if defined(_MSC_VER) && !defined(__clang__)
++#include <intrin.h>
++
++uint32_t __inline __builtin_ctz(uint32_t value) {
++  unsigned long trailing_zero = 0;
++  if (_BitScanForward(&trailing_zero, value))
++    return trailing_zero;
++  return 32;
++}
++
++uint32_t __inline __builtin_clz(uint32_t value) {
++  unsigned long leading_zero = 0;
++  if (_BitScanReverse(&leading_zero, value))
++    return 31 - leading_zero;
++  return 32;
++}
++
++#if defined(_M_ARM) || defined(_M_X64)
++uint32_t __inline __builtin_clzll(uint64_t value) {
++  unsigned long leading_zero = 0;
++  if (_BitScanReverse64(&leading_zero, value))
++    return 63 - leading_zero;
++  return 64;
++}
++#else
++uint32_t __inline __builtin_clzll(uint64_t value) {
++  if (value == 0)
++    return 64;
++  uint32_t msh = (uint32_t)(value >> 32);
++  uint32_t lsh = (uint32_t)(value & 0xFFFFFFFF);
++  if (msh != 0)
++    return __builtin_clz(msh);
++  return 32 + __builtin_clz(lsh);
++}
++#endif
++
++#define __builtin_clzl __builtin_clzll
++#endif /* defined(_MSC_VER) && !defined(__clang__) */
++
++#endif /* INT_LIB_H */
+diff --git a/libs/compiler-rt/lib/builtins/int_math.h b/libs/compiler-rt/lib/builtins/int_math.h
+new file mode 100644
+index 00000000000..aa3d0721a8a
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/int_math.h
+@@ -0,0 +1,110 @@
++/* ===-- int_math.h - internal math inlines ---------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===-----------------------------------------------------------------------===
++ *
++ * This file is not part of the interface of this library.
++ *
++ * This file defines substitutes for the libm functions used in some of the
++ * compiler-rt implementations, defined in such a way that there is not a direct
++ * dependency on libm or math.h. Instead, we use the compiler builtin versions
++ * where available. This reduces our dependencies on the system SDK by foisting
++ * the responsibility onto the compiler.
++ *
++ * ===-----------------------------------------------------------------------===
++ */
++
++#ifndef INT_MATH_H
++#define INT_MATH_H
++
++#ifndef __has_builtin
++#  define  __has_builtin(x) 0
++#endif
++
++#if defined(_MSC_VER) && !defined(__clang__)
++#include <math.h>
++#include <stdlib.h>
++#include <ymath.h>
++#endif
++
++#if defined(_MSC_VER) && !defined(__clang__)
++#define CRT_INFINITY INFINITY
++#else
++#define CRT_INFINITY __builtin_huge_valf()
++#endif
++
++#if defined(_MSC_VER) && !defined(__clang__)
++#define crt_isfinite(x) _finite((x))
++#define crt_isinf(x) !_finite((x))
++#define crt_isnan(x) _isnan((x))
++#else
++/* Define crt_isfinite in terms of the builtin if available, otherwise provide
++ * an alternate version in terms of our other functions. This supports some
++ * versions of GCC which didn't have __builtin_isfinite.
++ */
++#if __has_builtin(__builtin_isfinite)
++#  define crt_isfinite(x) __builtin_isfinite((x))
++#elif defined(__GNUC__)
++#  define crt_isfinite(x) \
++  __extension__(({ \
++      __typeof((x)) x_ = (x); \
++      !crt_isinf(x_) && !crt_isnan(x_); \
++    }))
++#else
++#  error "Do not know how to check for infinity"
++#endif /* __has_builtin(__builtin_isfinite) */
++#define crt_isinf(x) __builtin_isinf((x))
++#define crt_isnan(x) __builtin_isnan((x))
++#endif /* _MSC_VER */
++
++#if defined(_MSC_VER) && !defined(__clang__)
++#define crt_copysign(x, y) copysign((x), (y))
++#define crt_copysignf(x, y) copysignf((x), (y))
++#define crt_copysignl(x, y) copysignl((x), (y))
++#else
++#define crt_copysign(x, y) __builtin_copysign((x), (y))
++#define crt_copysignf(x, y) __builtin_copysignf((x), (y))
++#define crt_copysignl(x, y) __builtin_copysignl((x), (y))
++#endif
++
++#if defined(_MSC_VER) && !defined(__clang__)
++#define crt_fabs(x) fabs((x))
++#define crt_fabsf(x) fabsf((x))
++#define crt_fabsl(x) fabs((x))
++#else
++#define crt_fabs(x) __builtin_fabs((x))
++#define crt_fabsf(x) __builtin_fabsf((x))
++#define crt_fabsl(x) __builtin_fabsl((x))
++#endif
++
++#if defined(_MSC_VER) && !defined(__clang__)
++#define crt_fmax(x, y) __max((x), (y))
++#define crt_fmaxf(x, y) __max((x), (y))
++#define crt_fmaxl(x, y) __max((x), (y))
++#else
++#define crt_fmax(x, y) __builtin_fmax((x), (y))
++#define crt_fmaxf(x, y) __builtin_fmaxf((x), (y))
++#define crt_fmaxl(x, y) __builtin_fmaxl((x), (y))
++#endif
++
++#if defined(_MSC_VER) && !defined(__clang__)
++#define crt_logbl(x) logbl((x))
++#else
++#define crt_logbl(x) __builtin_logbl((x))
++#endif
++
++#if defined(_MSC_VER) && !defined(__clang__)
++#define crt_scalbn(x, y) scalbn((x), (y))
++#define crt_scalbnf(x, y) scalbnf((x), (y))
++#define crt_scalbnl(x, y) scalbnl((x), (y))
++#else
++#define crt_scalbn(x, y) __builtin_scalbn((x), (y))
++#define crt_scalbnf(x, y) __builtin_scalbnf((x), (y))
++#define crt_scalbnl(x, y) __builtin_scalbnl((x), (y))
++#endif
++
++#endif /* INT_MATH_H */
+diff --git a/libs/compiler-rt/lib/builtins/int_types.h b/libs/compiler-rt/lib/builtins/int_types.h
+new file mode 100644
+index 00000000000..640fb50423b
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/int_types.h
+@@ -0,0 +1,184 @@
++/* ===-- int_lib.h - configuration header for compiler-rt  -----------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file is not part of the interface of this library.
++ *
++ * This file defines various standard types, most importantly a number of unions
++ * used to access parts of larger types.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#ifndef INT_TYPES_H
++#define INT_TYPES_H
++
++#include "int_endianness.h"
++
++/* si_int is defined in Linux sysroot's asm-generic/siginfo.h */
++#ifdef si_int
++#undef si_int
++#endif
++typedef      int si_int;
++typedef unsigned su_int;
++
++typedef          long long di_int;
++typedef unsigned long long du_int;
++
++typedef union
++{
++    di_int all;
++    struct
++    {
++#if _YUGA_LITTLE_ENDIAN
++        su_int low;
++        si_int high;
++#else
++        si_int high;
++        su_int low;
++#endif /* _YUGA_LITTLE_ENDIAN */
++    }s;
++} dwords;
++
++typedef union
++{
++    du_int all;
++    struct
++    {
++#if _YUGA_LITTLE_ENDIAN
++        su_int low;
++        su_int high;
++#else
++        su_int high;
++        su_int low;
++#endif /* _YUGA_LITTLE_ENDIAN */
++    }s;
++} udwords;
++
++#if defined(__LP64__) || defined(__wasm__) || defined(__mips64) ||             \
++    defined(__riscv) || defined(_WIN64)
++#define CRT_HAS_128BIT
++#endif
++
++/* MSVC doesn't have a working 128bit integer type. Users should really compile
++ * compiler-rt with clang, but if they happen to be doing a standalone build for
++ * asan or something else, disable the 128 bit parts so things sort of work.
++ */
++#if defined(_MSC_VER) && !defined(__clang__)
++#undef CRT_HAS_128BIT
++#endif
++
++#ifdef CRT_HAS_128BIT
++typedef int      ti_int __attribute__ ((mode (TI)));
++typedef unsigned tu_int __attribute__ ((mode (TI)));
++
++typedef union
++{
++    ti_int all;
++    struct
++    {
++#if _YUGA_LITTLE_ENDIAN
++        du_int low;
++        di_int high;
++#else
++        di_int high;
++        du_int low;
++#endif /* _YUGA_LITTLE_ENDIAN */
++    }s;
++} twords;
++
++typedef union
++{
++    tu_int all;
++    struct
++    {
++#if _YUGA_LITTLE_ENDIAN
++        du_int low;
++        du_int high;
++#else
++        du_int high;
++        du_int low;
++#endif /* _YUGA_LITTLE_ENDIAN */
++    }s;
++} utwords;
++
++static __inline ti_int make_ti(di_int h, di_int l) {
++    twords r;
++    r.s.high = h;
++    r.s.low = l;
++    return r.all;
++}
++
++static __inline tu_int make_tu(du_int h, du_int l) {
++    utwords r;
++    r.s.high = h;
++    r.s.low = l;
++    return r.all;
++}
++
++#endif /* CRT_HAS_128BIT */
++
++typedef union
++{
++    su_int u;
++    float f;
++} float_bits;
++
++typedef union
++{
++    udwords u;
++    double  f;
++} double_bits;
++
++typedef struct
++{
++#if _YUGA_LITTLE_ENDIAN
++    udwords low;
++    udwords high;
++#else
++    udwords high;
++    udwords low;
++#endif /* _YUGA_LITTLE_ENDIAN */
++} uqwords;
++
++/* Check if the target supports 80 bit extended precision long doubles.
++ * Notably, on x86 Windows, MSVC only provides a 64-bit long double, but GCC
++ * still makes it 80 bits. Clang will match whatever compiler it is trying to
++ * be compatible with.
++ */
++#if ((defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)) || \
++    defined(__m68k__) || defined(__ia64__)
++#define HAS_80_BIT_LONG_DOUBLE 1
++#else
++#define HAS_80_BIT_LONG_DOUBLE 0
++#endif
++
++typedef union
++{
++    uqwords     u;
++    long double f;
++} long_double_bits;
++
++#if __STDC_VERSION__ >= 199901L
++typedef float _Complex Fcomplex;
++typedef double _Complex Dcomplex;
++typedef long double _Complex Lcomplex;
++
++#define COMPLEX_REAL(x) __real__(x)
++#define COMPLEX_IMAGINARY(x) __imag__(x)
++#else
++typedef struct { float real, imaginary; } Fcomplex;
++
++typedef struct { double real, imaginary; } Dcomplex;
++
++typedef struct { long double real, imaginary; } Lcomplex;
++
++#define COMPLEX_REAL(x) (x).real
++#define COMPLEX_IMAGINARY(x) (x).imaginary
++#endif
++#endif /* INT_TYPES_H */
+diff --git a/libs/compiler-rt/lib/builtins/int_util.h b/libs/compiler-rt/lib/builtins/int_util.h
+new file mode 100644
+index 00000000000..c3c87381ad8
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/int_util.h
+@@ -0,0 +1,33 @@
++/* ===-- int_util.h - internal utility functions ----------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===-----------------------------------------------------------------------===
++ *
++ * This file is not part of the interface of this library.
++ *
++ * This file defines non-inline utilities which are available for use in the
++ * library. The function definitions themselves are all contained in int_util.c
++ * which will always be compiled into any compiler-rt library.
++ *
++ * ===-----------------------------------------------------------------------===
++ */
++
++#ifndef INT_UTIL_H
++#define INT_UTIL_H
++
++/** \brief Trigger a program abort (or panic for kernel code). */
++#define compilerrt_abort() __compilerrt_abort_impl(__FILE__, __LINE__, __func__)
++
++NORETURN void __compilerrt_abort_impl(const char *file, int line,
++                                      const char *function);
++
++#define COMPILE_TIME_ASSERT(expr) COMPILE_TIME_ASSERT1(expr, __COUNTER__)
++#define COMPILE_TIME_ASSERT1(expr, cnt) COMPILE_TIME_ASSERT2(expr, cnt)
++#define COMPILE_TIME_ASSERT2(expr, cnt)                                        \
++  typedef char ct_assert_##cnt[(expr) ? 1 : -1] UNUSED
++
++#endif /* INT_UTIL_H */
+diff --git a/libs/compiler-rt/lib/builtins/mingw_fixfloat.c b/libs/compiler-rt/lib/builtins/mingw_fixfloat.c
+new file mode 100644
+index 00000000000..c462e0dbf65
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/mingw_fixfloat.c
+@@ -0,0 +1,36 @@
++/* ===-- mingw_fixfloat.c - Wrap int/float conversions for arm/windows -----===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++COMPILER_RT_ABI di_int __fixdfdi(double a);
++COMPILER_RT_ABI di_int __fixsfdi(float a);
++COMPILER_RT_ABI du_int __fixunsdfdi(double a);
++COMPILER_RT_ABI du_int __fixunssfdi(float a);
++COMPILER_RT_ABI double __floatdidf(di_int a);
++COMPILER_RT_ABI float __floatdisf(di_int a);
++COMPILER_RT_ABI double __floatundidf(du_int a);
++COMPILER_RT_ABI float __floatundisf(du_int a);
++
++COMPILER_RT_ABI di_int __dtoi64(double a) { return __fixdfdi(a); }
++
++COMPILER_RT_ABI di_int __stoi64(float a) { return __fixsfdi(a); }
++
++COMPILER_RT_ABI du_int __dtou64(double a) { return __fixunsdfdi(a); }
++
++COMPILER_RT_ABI du_int __stou64(float a) { return __fixunssfdi(a); }
++
++COMPILER_RT_ABI double __i64tod(di_int a) { return __floatdidf(a); }
++
++COMPILER_RT_ABI float __i64tos(di_int a) { return __floatdisf(a); }
++
++COMPILER_RT_ABI double __u64tod(du_int a) { return __floatundidf(a); }
++
++COMPILER_RT_ABI float __u64tos(du_int a) { return __floatundisf(a); }
+diff --git a/libs/compiler-rt/lib/builtins/udivdi3.c b/libs/compiler-rt/lib/builtins/udivdi3.c
+new file mode 100644
+index 00000000000..dc68e154b10
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/udivdi3.c
+@@ -0,0 +1,23 @@
++/* ===-- udivdi3.c - Implement __udivdi3 -----------------------------------===
++ *
++ *                    The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __udivdi3 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Returns: a / b */
++
++COMPILER_RT_ABI du_int
++__udivdi3(du_int a, du_int b)
++{
++    return __udivmoddi4(a, b, 0);
++}
+diff --git a/libs/compiler-rt/lib/builtins/udivmoddi4.c b/libs/compiler-rt/lib/builtins/udivmoddi4.c
+new file mode 100644
+index 00000000000..5288f4dfb13
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/udivmoddi4.c
+@@ -0,0 +1,231 @@
++/* ===-- udivmoddi4.c - Implement __udivmoddi4 -----------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __udivmoddi4 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Effects: if rem != 0, *rem = a % b
++ * Returns: a / b
++ */
++
++/* Translated from Figure 3-40 of The PowerPC Compiler Writer's Guide */
++
++COMPILER_RT_ABI du_int
++__udivmoddi4(du_int a, du_int b, du_int* rem)
++{
++    const unsigned n_uword_bits = sizeof(su_int) * CHAR_BIT;
++    const unsigned n_udword_bits = sizeof(du_int) * CHAR_BIT;
++    udwords n;
++    n.all = a;
++    udwords d;
++    d.all = b;
++    udwords q;
++    udwords r;
++    unsigned sr;
++    /* special cases, X is unknown, K != 0 */
++    if (n.s.high == 0)
++    {
++        if (d.s.high == 0)
++        {
++            /* 0 X
++             * ---
++             * 0 X
++             */
++            if (rem)
++                *rem = n.s.low % d.s.low;
++            return n.s.low / d.s.low;
++        }
++        /* 0 X
++         * ---
++         * K X
++         */
++        if (rem)
++            *rem = n.s.low;
++        return 0;
++    }
++    /* n.s.high != 0 */
++    if (d.s.low == 0)
++    {
++        if (d.s.high == 0)
++        {
++            /* K X
++             * ---
++             * 0 0
++             */
++            if (rem)
++                *rem = n.s.high % d.s.low;
++            return n.s.high / d.s.low;
++        }
++        /* d.s.high != 0 */
++        if (n.s.low == 0)
++        {
++            /* K 0
++             * ---
++             * K 0
++             */
++            if (rem)
++            {
++                r.s.high = n.s.high % d.s.high;
++                r.s.low = 0;
++                *rem = r.all;
++            }
++            return n.s.high / d.s.high;
++        }
++        /* K K
++         * ---
++         * K 0
++         */
++        if ((d.s.high & (d.s.high - 1)) == 0)     /* if d is a power of 2 */
++        {
++            if (rem)
++            {
++                r.s.low = n.s.low;
++                r.s.high = n.s.high & (d.s.high - 1);
++                *rem = r.all;
++            }
++            return n.s.high >> __builtin_ctz(d.s.high);
++        }
++        /* K K
++         * ---
++         * K 0
++         */
++        sr = __builtin_clz(d.s.high) - __builtin_clz(n.s.high);
++        /* 0 <= sr <= n_uword_bits - 2 or sr large */
++        if (sr > n_uword_bits - 2)
++        {
++           if (rem)
++                *rem = n.all;
++            return 0;
++        }
++        ++sr;
++        /* 1 <= sr <= n_uword_bits - 1 */
++        /* q.all = n.all << (n_udword_bits - sr); */
++        q.s.low = 0;
++        q.s.high = n.s.low << (n_uword_bits - sr);
++        /* r.all = n.all >> sr; */
++        r.s.high = n.s.high >> sr;
++        r.s.low = (n.s.high << (n_uword_bits - sr)) | (n.s.low >> sr);
++    }
++    else  /* d.s.low != 0 */
++    {
++        if (d.s.high == 0)
++        {
++            /* K X
++             * ---
++             * 0 K
++             */
++            if ((d.s.low & (d.s.low - 1)) == 0)     /* if d is a power of 2 */
++            {
++                if (rem)
++                    *rem = n.s.low & (d.s.low - 1);
++                if (d.s.low == 1)
++                    return n.all;
++                sr = __builtin_ctz(d.s.low);
++                q.s.high = n.s.high >> sr;
++                q.s.low = (n.s.high << (n_uword_bits - sr)) | (n.s.low >> sr);
++                return q.all;
++            }
++            /* K X
++             * ---
++             * 0 K
++             */
++            sr = 1 + n_uword_bits + __builtin_clz(d.s.low) - __builtin_clz(n.s.high);
++            /* 2 <= sr <= n_udword_bits - 1
++             * q.all = n.all << (n_udword_bits - sr);
++             * r.all = n.all >> sr;
++             */
++            if (sr == n_uword_bits)
++            {
++                q.s.low = 0;
++                q.s.high = n.s.low;
++                r.s.high = 0;
++                r.s.low = n.s.high;
++            }
++            else if (sr < n_uword_bits)  // 2 <= sr <= n_uword_bits - 1
++            {
++                q.s.low = 0;
++                q.s.high = n.s.low << (n_uword_bits - sr);
++                r.s.high = n.s.high >> sr;
++                r.s.low = (n.s.high << (n_uword_bits - sr)) | (n.s.low >> sr);
++            }
++            else              // n_uword_bits + 1 <= sr <= n_udword_bits - 1
++            {
++                q.s.low = n.s.low << (n_udword_bits - sr);
++                q.s.high = (n.s.high << (n_udword_bits - sr)) |
++                           (n.s.low >> (sr - n_uword_bits));
++                r.s.high = 0;
++                r.s.low = n.s.high >> (sr - n_uword_bits);
++            }
++        }
++        else
++        {
++            /* K X
++             * ---
++             * K K
++             */
++            sr = __builtin_clz(d.s.high) - __builtin_clz(n.s.high);
++            /* 0 <= sr <= n_uword_bits - 1 or sr large */
++            if (sr > n_uword_bits - 1)
++            {
++                if (rem)
++                    *rem = n.all;
++                return 0;
++            }
++            ++sr;
++            /* 1 <= sr <= n_uword_bits */
++            /*  q.all = n.all << (n_udword_bits - sr); */
++            q.s.low = 0;
++            if (sr == n_uword_bits)
++            {
++                q.s.high = n.s.low;
++                r.s.high = 0;
++                r.s.low = n.s.high;
++            }
++            else
++            {
++                q.s.high = n.s.low << (n_uword_bits - sr);
++                r.s.high = n.s.high >> sr;
++                r.s.low = (n.s.high << (n_uword_bits - sr)) | (n.s.low >> sr);
++            }
++        }
++    }
++    /* Not a special case
++     * q and r are initialized with:
++     * q.all = n.all << (n_udword_bits - sr);
++     * r.all = n.all >> sr;
++     * 1 <= sr <= n_udword_bits - 1
++     */
++    su_int carry = 0;
++    for (; sr > 0; --sr)
++    {
++        /* r:q = ((r:q)  << 1) | carry */
++        r.s.high = (r.s.high << 1) | (r.s.low  >> (n_uword_bits - 1));
++        r.s.low  = (r.s.low  << 1) | (q.s.high >> (n_uword_bits - 1));
++        q.s.high = (q.s.high << 1) | (q.s.low  >> (n_uword_bits - 1));
++        q.s.low  = (q.s.low  << 1) | carry;
++        /* carry = 0;
++         * if (r.all >= d.all)
++         * {
++         *      r.all -= d.all;
++         *      carry = 1;
++         * }
++         */
++        const di_int s = (di_int)(d.all - r.all - 1) >> (n_udword_bits - 1);
++        carry = s & 1;
++        r.all -= d.all & s;
++    }
++    q.all = (q.all << 1) | carry;
++    if (rem)
++        *rem = r.all;
++    return q.all;
++}
+diff --git a/libs/compiler-rt/lib/builtins/udivmodsi4.c b/libs/compiler-rt/lib/builtins/udivmodsi4.c
+new file mode 100644
+index 00000000000..8e6af2d27d7
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/udivmodsi4.c
+@@ -0,0 +1,25 @@
++/*===-- udivmodsi4.c - Implement __udivmodsi4 ------------------------------===
++ *
++ *                    The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __udivmodsi4 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Returns: a / b, *rem = a % b  */
++
++COMPILER_RT_ABI su_int
++__udivmodsi4(su_int a, su_int b, su_int* rem)
++{
++  si_int d = __udivsi3(a,b);
++  *rem = a - (d*b);
++  return d;
++}
+diff --git a/libs/compiler-rt/lib/builtins/udivmodti4.c b/libs/compiler-rt/lib/builtins/udivmodti4.c
+new file mode 100644
+index 00000000000..4341073ac4f
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/udivmodti4.c
+@@ -0,0 +1,238 @@
++/* ===-- udivmodti4.c - Implement __udivmodti4 -----------------------------===
++ *
++ *                    The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __udivmodti4 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++#ifdef CRT_HAS_128BIT
++
++/* Effects: if rem != 0, *rem = a % b
++ * Returns: a / b
++ */
++
++/* Translated from Figure 3-40 of The PowerPC Compiler Writer's Guide */
++
++COMPILER_RT_ABI tu_int
++__udivmodti4(tu_int a, tu_int b, tu_int* rem)
++{
++    const unsigned n_udword_bits = sizeof(du_int) * CHAR_BIT;
++    const unsigned n_utword_bits = sizeof(tu_int) * CHAR_BIT;
++    utwords n;
++    n.all = a;
++    utwords d;
++    d.all = b;
++    utwords q;
++    utwords r;
++    unsigned sr;
++    /* special cases, X is unknown, K != 0 */
++    if (n.s.high == 0)
++    {
++        if (d.s.high == 0)
++        {
++            /* 0 X
++             * ---
++             * 0 X
++             */
++            if (rem)
++                *rem = n.s.low % d.s.low;
++            return n.s.low / d.s.low;
++        }
++        /* 0 X
++         * ---
++         * K X
++         */
++        if (rem)
++            *rem = n.s.low;
++        return 0;
++    }
++    /* n.s.high != 0 */
++    if (d.s.low == 0)
++    {
++        if (d.s.high == 0)
++        {
++            /* K X
++             * ---
++             * 0 0
++             */
++            if (rem)
++                *rem = n.s.high % d.s.low;
++            return n.s.high / d.s.low;
++        }
++        /* d.s.high != 0 */
++        if (n.s.low == 0)
++        {
++            /* K 0
++             * ---
++             * K 0
++             */
++            if (rem)
++            {
++                r.s.high = n.s.high % d.s.high;
++                r.s.low = 0;
++                *rem = r.all;
++            }
++            return n.s.high / d.s.high;
++        }
++        /* K K
++         * ---
++         * K 0
++         */
++        if ((d.s.high & (d.s.high - 1)) == 0)     /* if d is a power of 2 */
++        {
++            if (rem)
++            {
++                r.s.low = n.s.low;
++                r.s.high = n.s.high & (d.s.high - 1);
++                *rem = r.all;
++            }
++            return n.s.high >> __builtin_ctzll(d.s.high);
++        }
++        /* K K
++         * ---
++         * K 0
++         */
++        sr = __builtin_clzll(d.s.high) - __builtin_clzll(n.s.high);
++        /* 0 <= sr <= n_udword_bits - 2 or sr large */
++        if (sr > n_udword_bits - 2)
++        {
++           if (rem)
++                *rem = n.all;
++            return 0;
++        }
++        ++sr;
++        /* 1 <= sr <= n_udword_bits - 1 */
++        /* q.all = n.all << (n_utword_bits - sr); */
++        q.s.low = 0;
++        q.s.high = n.s.low << (n_udword_bits - sr);
++        /* r.all = n.all >> sr; */
++        r.s.high = n.s.high >> sr;
++        r.s.low = (n.s.high << (n_udword_bits - sr)) | (n.s.low >> sr);
++    }
++    else  /* d.s.low != 0 */
++    {
++        if (d.s.high == 0)
++        {
++            /* K X
++             * ---
++             * 0 K
++             */
++            if ((d.s.low & (d.s.low - 1)) == 0)     /* if d is a power of 2 */
++            {
++                if (rem)
++                    *rem = n.s.low & (d.s.low - 1);
++                if (d.s.low == 1)
++                    return n.all;
++                sr = __builtin_ctzll(d.s.low);
++                q.s.high = n.s.high >> sr;
++                q.s.low = (n.s.high << (n_udword_bits - sr)) | (n.s.low >> sr);
++                return q.all;
++            }
++            /* K X
++             * ---
++             * 0 K
++             */
++            sr = 1 + n_udword_bits + __builtin_clzll(d.s.low)
++                                   - __builtin_clzll(n.s.high);
++            /* 2 <= sr <= n_utword_bits - 1
++             * q.all = n.all << (n_utword_bits - sr);
++             * r.all = n.all >> sr;
++             */
++            if (sr == n_udword_bits)
++            {
++                q.s.low = 0;
++                q.s.high = n.s.low;
++                r.s.high = 0;
++                r.s.low = n.s.high;
++            }
++            else if (sr < n_udword_bits)  // 2 <= sr <= n_udword_bits - 1
++            {
++                q.s.low = 0;
++                q.s.high = n.s.low << (n_udword_bits - sr);
++                r.s.high = n.s.high >> sr;
++                r.s.low = (n.s.high << (n_udword_bits - sr)) | (n.s.low >> sr);
++            }
++            else              // n_udword_bits + 1 <= sr <= n_utword_bits - 1
++            {
++                q.s.low = n.s.low << (n_utword_bits - sr);
++                q.s.high = (n.s.high << (n_utword_bits - sr)) |
++                           (n.s.low >> (sr - n_udword_bits));
++                r.s.high = 0;
++                r.s.low = n.s.high >> (sr - n_udword_bits);
++            }
++        }
++        else
++        {
++            /* K X
++             * ---
++             * K K
++             */
++            sr = __builtin_clzll(d.s.high) - __builtin_clzll(n.s.high);
++            /*0 <= sr <= n_udword_bits - 1 or sr large */
++            if (sr > n_udword_bits - 1)
++            {
++               if (rem)
++                    *rem = n.all;
++                return 0;
++            }
++            ++sr;
++            /* 1 <= sr <= n_udword_bits
++             * q.all = n.all << (n_utword_bits - sr);
++             * r.all = n.all >> sr;
++             */
++            q.s.low = 0;
++            if (sr == n_udword_bits)
++            {
++                q.s.high = n.s.low;
++                r.s.high = 0;
++                r.s.low = n.s.high;
++            }
++            else
++            {
++                r.s.high = n.s.high >> sr;
++                r.s.low = (n.s.high << (n_udword_bits - sr)) | (n.s.low >> sr);
++                q.s.high = n.s.low << (n_udword_bits - sr);
++            }
++        }
++    }
++    /* Not a special case
++     * q and r are initialized with:
++     * q.all = n.all << (n_utword_bits - sr);
++     * r.all = n.all >> sr;
++     * 1 <= sr <= n_utword_bits - 1
++     */
++    su_int carry = 0;
++    for (; sr > 0; --sr)
++    {
++        /* r:q = ((r:q)  << 1) | carry */
++        r.s.high = (r.s.high << 1) | (r.s.low  >> (n_udword_bits - 1));
++        r.s.low  = (r.s.low  << 1) | (q.s.high >> (n_udword_bits - 1));
++        q.s.high = (q.s.high << 1) | (q.s.low  >> (n_udword_bits - 1));
++        q.s.low  = (q.s.low  << 1) | carry;
++        /* carry = 0;
++         * if (r.all >= d.all)
++         * {
++         *     r.all -= d.all;
++         *      carry = 1;
++         * }
++         */
++        const ti_int s = (ti_int)(d.all - r.all - 1) >> (n_utword_bits - 1);
++        carry = s & 1;
++        r.all -= d.all & s;
++    }
++    q.all = (q.all << 1) | carry;
++    if (rem)
++        *rem = r.all;
++    return q.all;
++}
++
++#endif /* CRT_HAS_128BIT */
+diff --git a/libs/compiler-rt/lib/builtins/udivsi3.c b/libs/compiler-rt/lib/builtins/udivsi3.c
+new file mode 100644
+index 00000000000..bb720f8c382
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/udivsi3.c
+@@ -0,0 +1,68 @@
++/* ===-- udivsi3.c - Implement __udivsi3 -----------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __udivsi3 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Returns: a / b */
++
++/* Translated from Figure 3-40 of The PowerPC Compiler Writer's Guide */
++
++/* This function should not call __divsi3! */
++COMPILER_RT_ABI su_int
++__udivsi3(su_int n, su_int d)
++{
++    const unsigned n_uword_bits = sizeof(su_int) * CHAR_BIT;
++    su_int q;
++    su_int r;
++    unsigned sr;
++    /* special cases */
++    if (d == 0)
++        return 0; /* ?! */
++    if (n == 0)
++        return 0;
++    sr = __builtin_clz(d) - __builtin_clz(n);
++    /* 0 <= sr <= n_uword_bits - 1 or sr large */
++    if (sr > n_uword_bits - 1)  /* d > r */
++        return 0;
++    if (sr == n_uword_bits - 1)  /* d == 1 */
++        return n;
++    ++sr;
++    /* 1 <= sr <= n_uword_bits - 1 */
++    /* Not a special case */
++    q = n << (n_uword_bits - sr);
++    r = n >> sr;
++    su_int carry = 0;
++    for (; sr > 0; --sr)
++    {
++        /* r:q = ((r:q)  << 1) | carry */
++        r = (r << 1) | (q >> (n_uword_bits - 1));
++        q = (q << 1) | carry;
++        /* carry = 0;
++         * if (r.all >= d.all)
++         * {
++         *      r.all -= d.all;
++         *      carry = 1;
++         * }
++         */
++        const si_int s = (si_int)(d - r - 1) >> (n_uword_bits - 1);
++        carry = s & 1;
++        r -= d & s;
++    }
++    q = (q << 1) | carry;
++    return q;
++}
++
++#if defined(__ARM_EABI__)
++AEABI_RTABI su_int __aeabi_uidiv(su_int n, su_int d) COMPILER_RT_ALIAS(__udivsi3);
++#endif
+diff --git a/libs/compiler-rt/lib/builtins/udivti3.c b/libs/compiler-rt/lib/builtins/udivti3.c
+new file mode 100644
+index 00000000000..ec94673e25b
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/udivti3.c
+@@ -0,0 +1,27 @@
++/* ===-- udivti3.c - Implement __udivti3 -----------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __udivti3 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++#ifdef CRT_HAS_128BIT
++
++/* Returns: a / b */
++
++COMPILER_RT_ABI tu_int
++__udivti3(tu_int a, tu_int b)
++{
++    return __udivmodti4(a, b, 0);
++}
++
++#endif /* CRT_HAS_128BIT */
+diff --git a/libs/compiler-rt/lib/builtins/umoddi3.c b/libs/compiler-rt/lib/builtins/umoddi3.c
+new file mode 100644
+index 00000000000..d513f080a1e
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/umoddi3.c
+@@ -0,0 +1,25 @@
++/* ===-- umoddi3.c - Implement __umoddi3 -----------------------------------===
++ *
++ *                    The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __umoddi3 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Returns: a % b */
++
++COMPILER_RT_ABI du_int
++__umoddi3(du_int a, du_int b)
++{
++    du_int r;
++    __udivmoddi4(a, b, &r);
++    return r;
++}
+diff --git a/libs/compiler-rt/lib/builtins/umodsi3.c b/libs/compiler-rt/lib/builtins/umodsi3.c
+new file mode 100644
+index 00000000000..d5fda4a6af1
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/umodsi3.c
+@@ -0,0 +1,23 @@
++/* ===-- umodsi3.c - Implement __umodsi3 -----------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __umodsi3 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++/* Returns: a % b */
++
++COMPILER_RT_ABI su_int
++__umodsi3(su_int a, su_int b)
++{
++    return a - __udivsi3(a, b) * b;
++}
+diff --git a/libs/compiler-rt/lib/builtins/umodti3.c b/libs/compiler-rt/lib/builtins/umodti3.c
+new file mode 100644
+index 00000000000..6d1ca7a8cf6
+--- /dev/null
++++ b/libs/compiler-rt/lib/builtins/umodti3.c
+@@ -0,0 +1,29 @@
++/* ===-- umodti3.c - Implement __umodti3 -----------------------------------===
++ *
++ *                     The LLVM Compiler Infrastructure
++ *
++ * This file is dual licensed under the MIT and the University of Illinois Open
++ * Source Licenses. See LICENSE.TXT for details.
++ *
++ * ===----------------------------------------------------------------------===
++ *
++ * This file implements __umodti3 for the compiler_rt library.
++ *
++ * ===----------------------------------------------------------------------===
++ */
++
++#include "int_lib.h"
++
++#ifdef CRT_HAS_128BIT
++
++/* Returns: a % b */
++
++COMPILER_RT_ABI tu_int
++__umodti3(tu_int a, tu_int b)
++{
++    tu_int r;
++    __udivmodti4(a, b, &r);
++    return r;
++}
++
++#endif /* CRT_HAS_128BIT */

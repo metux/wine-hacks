@@ -1,0 +1,26 @@
+commit ec2b9fa5bf4b3229de17b0fa373ce6b1b2b27379
+Author: Georg Lehmann <dadschoorse@gmail.com>
+Date:   Thu Aug 21 15:25:13 2025 +0200
+
+    winevulkan: Reorder bitmasks to handle aliases correctly.
+
+--- a/dlls/winevulkan/make_vulkan
++++ b/dlls/winevulkan/make_vulkan
+@@ -3087,8 +3087,15 @@ class VkGenerator(object):
+             f.write(base_type.definition())
+         f.write("\n")
+ 
+-        for bitmask in self.registry.bitmasks:
+-            f.write(bitmask.definition())
++        # Reorder bitmasks to handle aliases correctly.
++        remaining_bitmasks = list(self.registry.bitmasks)
++        while len(remaining_bitmasks) > 0:
++            for bitmask in remaining_bitmasks:
++                if bitmask.is_alias() and bitmask.alias in remaining_bitmasks:
++                    continue
++                f.write(bitmask.definition())
++                remaining_bitmasks.remove(bitmask)
++                break
+         f.write("\n")
+ 
+         # Define enums, this includes values for some of the bitmask types as well.

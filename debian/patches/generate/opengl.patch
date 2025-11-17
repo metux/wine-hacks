@@ -1,0 +1,52 @@
+description: rebuild automatically generated opengl files
+forwarded: not-needed
+author: Michael Gilbert <mgilbert@debian.org>
+
+--- a/dlls/opengl32/make_opengl
++++ b/dlls/opengl32/make_opengl
+@@ -623,18 +623,6 @@ if ($version eq "1.0") {
+ }
+ 
+ #
+-# Fetch the registry files
+-#
+-my $url="https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry";
+-my $commit="03e1bfb87c4664d34dc7822fb591841eec747094";
+-my $cache = ($ENV{XDG_CACHE_HOME} || "$ENV{HOME}/.cache") . "/wine";
+-
+-system "mkdir", "-p", $cache;
+--f "$cache/gl-$commit.xml" || system "wget", "-q", "-O", "$cache/gl-$commit.xml", "$url/$commit/xml/gl.xml" || die "cannot download gl.xml";
+--f "$cache/wgl-$commit.xml" || system "wget", "-q", "-O", "$cache/wgl-$commit.xml", "$url/$commit/xml/wgl.xml" || die "cannot download wgl.xml";
+-chdir(dirname($0));
+-
+-#
+ # Then, create the list of all OpenGL functions using the registry
+ # files. This will create two hash-tables, one with all the function
+ # whose category matches the one listed in '@norm_categories', the other
+@@ -854,22 +842,14 @@ sub parse_file($)
+     }
+ }
+ 
+-parse_file( "$cache/gl-$commit.xml" );
+-parse_file( "$cache/wgl-$commit.xml" );
++parse_file( "/usr/share/khronos-api/gl.xml" );
++parse_file( "/usr/share/khronos-api/wgl.xml" );
+ parse_file( "winegl.xml" );
+ 
+ #
+-# Get the current wgl_driver.h version
++# Previous wgl_driver.h version, modified by debian/scripts/import
+ #
+-my $wgl_version = 0;
+-open HEADER, "<$wgl_driver_file" or die "cannot open $wgl_driver_file";
+-while (<HEADER>)
+-{
+-    next unless /^#define WINE_WGL_DRIVER_VERSION (\d+)/;
+-    $wgl_version = $1;
+-    last;
+-}
+-close HEADER;
++my $wgl_version = 27;
+ 
+ #
+ # Generate the wgl_driver.h file

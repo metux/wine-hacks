@@ -1,0 +1,14 @@
+description: avoid duplicate installation of nls files
+author: Michael Gilbert <mgilbert@debian.org>
+forwarded: not-needed
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -3422,7 +3422,6 @@ WINE_CONFIG_MAKEFILE(libs/wmcodecdspuuid
+ WINE_CONFIG_MAKEFILE(libs/xml2)
+ WINE_CONFIG_MAKEFILE(libs/xslt)
+ WINE_CONFIG_MAKEFILE(loader)
+-WINE_CONFIG_MAKEFILE(nls)
+ WINE_CONFIG_MAKEFILE(po)
+ WINE_CONFIG_MAKEFILE(programs/arp)
+ WINE_CONFIG_MAKEFILE(programs/aspnet_regiis)

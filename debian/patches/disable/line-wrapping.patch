@@ -1,0 +1,15 @@
+description: disable manual line wrapping in makefiles
+forwarded: not-needed
+author: Michael Gilbert <mgilbert@debian.org>
+
+--- a/tools/makedep.c
++++ b/tools/makedep.c
+@@ -401,7 +401,7 @@ static void strarray_set_value( struct s
+  */
+ static void output_filename( const char *name )
+ {
+-    if (output_column + strlen(name) + 1 > 100)
++    if (0)
+     {
+         output( " \\\n" );
+         output( "  " );

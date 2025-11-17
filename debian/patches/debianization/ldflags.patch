@@ -1,0 +1,15 @@
+description: pass LDFLAGS only to gcc (not mingw)
+author: Michael Gilbert <mgilbert@debian.org>
+forwarded: not-needed
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -590,7 +590,7 @@ AC_SUBST(LDDLLFLAGS,"")
+ AC_SUBST(LDEXECFLAGS,"")
+ AC_SUBST(EXTRACFLAGS,"")
+ AC_SUBST(UNIXDLLFLAGS,"-fPIC")
+-AC_SUBST(UNIXLDFLAGS,["-shared -Wl,-Bsymbolic -Wl,-soname,\$(UNIXLIB)"])
++AC_SUBST(UNIXLDFLAGS,["-shared -Wl,-Bsymbolic -Wl,-soname,\$(UNIXLIB) $(dpkg-buildflags --get LDFLAGS)"])
+ AC_SUBST(TOP_INSTALL_LIB,"")
+ AC_SUBST(TOP_INSTALL_DEV,"")
+ AC_SUBST(WINELOADER_LDFLAGS,"")

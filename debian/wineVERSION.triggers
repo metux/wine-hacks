@@ -1,0 +1,7 @@
+# update the wine alternatives in "wineVERSION.postinst triggered"
+
+# explicit trigger
+interest-noawait wineVERSION
+
+# indicates package wine{32|64}-tools installation status changed
+interest-noawait /usr/bin/winegccDEBSUFFIX

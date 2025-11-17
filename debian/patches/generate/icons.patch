@@ -1,0 +1,94 @@
+description: regenerate all icon files
+forwarded: not-needed
+author: Michael Gilbert <mgilbert@debian.org>
+
+--- a/tools/makedep.c
++++ b/tools/makedep.c
+@@ -1526,6 +1526,9 @@ static struct file *open_include_file( c
+ 
+     if (pFile->type == INCL_SYSTEM) return NULL;  /* ignore system files we cannot find */
+ 
++    /* no reason to check that files exist here, may be built later */
++    return file;
++
+     /* try in src file directory */
+     if ((file = open_same_dir_generated_file( make, pFile->included_by, pFile, ".tab.h", ".y" )) ||
+         (file = open_same_dir_generated_file( make, pFile->included_by, pFile, ".h", ".idl" )) ||
+@@ -3005,6 +3008,17 @@ static void output_source_svg( struct ma
+ 
+         if (images[i])
+         {
++            struct incl_file *src;
++            LIST_FOR_EACH_ENTRY( src, &make->sources, struct incl_file, entry )
++            {
++                if (strendswith( src->name, ".rc" ))
++                {
++                    char *res = replace_extension( src->name, "rc", "res" );
++                    char *res_file = src_dir_path( make, res );
++                    char *obj_file = src_dir_path( make, obj );
++                    output( "%s: %s.%s\n", res_file, obj_file, images[i] );
++                }
++            }
+             output( "%s.%s: %s\n", src_dir_path( make, obj ), images[i], source->filename );
+             output( "\t%sCONVERT=\"%s\" ICOTOOL=\"%s\" RSVG=\"%s\" %s %s $@\n",
+                     cmd_prefix( "GEN" ), convert, icotool, rsvg,
+--- a/programs/regedit/Makefile.in
++++ b/programs/regedit/Makefile.in
+@@ -16,5 +16,10 @@ SOURCES = \
+ 	regedit.man.in \
+ 	regedit.rc \
+ 	regedit.svg \
++	string.svg \
++	folder.svg \
++	folderopen.svg \
++	computer.svg \
++	bin.svg \
+ 	regproc.c \
+ 	treeview.c
+--- a/dlls/display.drv16/Makefile.in
++++ b/dlls/display.drv16/Makefile.in
+@@ -5,4 +5,5 @@ EXTRADLLFLAGS = -m16
+ 
+ SOURCES = \
+ 	display.c \
+-	display.rc
++	display.rc \
++	oic_hand.svg \
+--- a/dlls/comdlg32/Makefile.in
++++ b/dlls/comdlg32/Makefile.in
+@@ -19,4 +19,10 @@ SOURCES = \
+ 	pd32_landscape.svg \
+ 	pd32_nocollate.svg \
+ 	pd32_portrait.svg \
++	cdrom.svg \
++	hdisk.svg \
++	floppy.svg \
++	folder.svg \
++	folder2.svg \
++	network.svg \
+ 	printdlg.c
+--- a/dlls/comctl32/Makefile.in
++++ b/dlls/comctl32/Makefile.in
+@@ -29,6 +29,13 @@ SOURCES = \
+ 	idc_divider.svg \
+ 	idc_divideropen.svg \
+ 	idc_movebutton.svg \
++	idi_dragarrow.svg \
++	idi_tt_info_md.svg \
++	idi_tt_info_sm.svg \
++	idi_tt_warn_md.svg \
++	idi_tt_warn_sm.svg \
++	idi_tt_error_md.svg \
++	idi_tt_error_sm.svg \
+ 	imagelist.c \
+ 	ipaddress.c \
+ 	listbox.c \
+--- a/programs/taskmgr/Makefile.in
++++ b/programs/taskmgr/Makefile.in
+@@ -23,4 +23,6 @@ SOURCES = \
+ 	taskmgr.c \
+ 	taskmgr.rc \
+ 	taskmgr.svg \
++	window.svg \
++	windowsm.svg \
+ 	trayicon.c

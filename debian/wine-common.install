@@ -1,0 +1,8 @@
+# language support files
+nls/*.nls usr/share/wine/nls
+
+# windows font files
+fonts/*.fon usr/share/wine/fonts
+
+# true type font files
+fonts/*.ttf usr/share/wine/fonts

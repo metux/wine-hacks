@@ -1,0 +1,62 @@
+description: append debian package revision to the end of the version string
+origin: https://github.com/wine-compholio/wine-staging/blob/master/patches/Staging/0002-winelib-Append-Staging-at-the-end-of-the-version-s.patch
+forwarded: not-needed
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -3700,8 +3700,11 @@ maintainer-clean::
+ dnl Rules for generated source files
+ 
+ WINE_APPEND_RULE(
+-[dlls/ntdll/unix/version.c: dummy
+-	@version=\`(GIT_DIR=${wine_srcdir}.git git describe HEAD 2>/dev/null || echo \"wine-\$(PACKAGE_VERSION)\") | sed -n -e '\$\$s/\(.*\)/const char wine_build[[]] = \"\\1\";/p'\` && (echo \$\$version | cmp -s - \$[@]) || echo \$\$version >\$[@] || (rm -f \$[@] && exit 1)
++[
++dlls/ntdll/unix/loader.o: dlls/ntdll/unix/version.h
++dlls/ntdll/unix/system.o: dlls/ntdll/unix/version.h
++dlls/ntdll/unix/version.h: dummy
++	@echo \"#ifndef wine_build\\n#define wine_build \\\"wine-\$(PACKAGE_VERSION) (\$(VENDOR))\\\"\n#endif\" > \$@ || (rm -f \$@ && exit 1)
+ programs/winetest/build.rc: dummy
+ 	@build=\"STRINGTABLE { 1 \\\"\`GIT_DIR=${wine_srcdir}.git git rev-parse HEAD 2>/dev/null\`\\\" }\" && (echo \$\$build | cmp -s - \$[@]) || echo \$\$build >\$[@] || (rm -f \$[@] && exit 1)
+ programs/winetest/build.nfo:
+--- a/dlls/ntdll/unix/system.c
++++ b/dlls/ntdll/unix/system.c
+@@ -23,6 +23,7 @@
+ #endif
+ 
+ #include "config.h"
++#include "version.h"
+ 
+ #include <fcntl.h>
+ #include <string.h>
+--- a/dlls/ntdll/unix/unix_private.h
++++ b/dlls/ntdll/unix/unix_private.h
+@@ -156,8 +156,6 @@ extern SYSTEM_DLL_INIT_BLOCK *pLdrSystem
+ 
+ struct _FILE_FS_DEVICE_INFORMATION;
+ 
+-extern const char wine_build[];
+-
+ extern const char *home_dir;
+ extern const char *data_dir;
+ extern const char *build_dir;
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -23,6 +23,7 @@
+ #endif
+ 
+ #include "config.h"
++#include "version.h"
+ 
+ #include <assert.h>
+ #include <errno.h>
+--- a/dlls/ntdll/Makefile.in
++++ b/dlls/ntdll/Makefile.in
+@@ -71,8 +71,6 @@ SOURCES = \
+ 	version.rc \
+ 	wcstring.c
+ 
+-EXTRA_OBJS = unix/version.o
+-
+ unix_loader_EXTRADEFS = \
+ 	-DBINDIR=\"${bindir}\" \
+ 	-DLIBDIR=\"${libdir}\" \

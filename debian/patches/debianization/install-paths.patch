@@ -1,0 +1,121 @@
+description: don't append wine to the default path settings
+author: Michael Gilbert <mgilbert@debian.org>
+forwarded: not-needed
+
+--- a/tools/makedep.c
++++ b/tools/makedep.c
+@@ -2972,7 +2972,6 @@ static void output_source_sfd( struct ma
+     }
+     if (source->file->flags & FLAG_INSTALL)
+     {
+-        add_install_rule( make, source->name, 0, ttf_obj, strmake( "D$(datadir)/wine/fonts/%s", ttf_obj ));
+         output_srcdir_symlink( make, ttf_obj );
+     }
+ 
+@@ -2990,7 +2989,7 @@ static void output_source_sfd( struct ma
+                     tools_path( make, "sfnt2fon" ), ttf_file );
+             output( "\t%s%s -q -o $@ %s %s\n", cmd_prefix( "GEN" ),
+                     tools_path( make, "sfnt2fon" ), ttf_file, args );
+-            add_install_rule( make, source->name, 0, xstrdup(font), strmake( "d$(datadir)/wine/fonts/%s", font ));
++            add_install_rule( make, source->name, 0, xstrdup(font), strmake( "d/usr/share/wine/fonts/%s", font ));
+         }
+     }
+ }
+@@ -3027,7 +3026,7 @@ static void output_source_svg( struct ma
+ static void output_source_nls( struct makefile *make, struct incl_file *source, const char *obj )
+ {
+     add_install_rule( make, source->name, 0, source->name,
+-                      strmake( "D$(datadir)/wine/nls/%s", source->name ));
++                      strmake( "D$(datadir)/nls/%s", source->name ));
+     output_srcdir_symlink( make, strmake( "%s.nls", obj ));
+ }
+ 
+@@ -3088,7 +3087,7 @@ static void output_source_in( struct mak
+     output( "%s:", obj_dir_path( make, obj ));
+     output_filenames( source->dependencies );
+     output( "\n" );
+-    add_install_rule( make, obj, 0, obj, strmake( "d$(datadir)/wine/%s", obj ));
++    add_install_rule( make, obj, 0, obj, strmake( "d$(datadir)/%s", obj ));
+ }
+ 
+ 
+@@ -3411,7 +3410,7 @@ static void output_fake_module( struct m
+     if (make->disabled[arch]) return;
+ 
+     strarray_add( &make->all_targets[arch], name );
+-    add_install_rule( make, make->module, arch, name, strmake( "d$(libdir)/wine/%s", name ));
++    add_install_rule( make, make->module, arch, name, strmake( "d$(libdir)/%s", name ));
+ 
+     output( "%s:", obj_dir_path( make, name ));
+     if (spec_file) output_filename( spec_file );
+@@ -3488,7 +3487,7 @@ static void output_module( struct makefi
+     strarray_add( &make->all_targets[link_arch], module_name );
+     if (make->data_only)
+         add_install_rule( make, make->module, link_arch, module_name,
+-                          strmake( "d$(libdir)/wine/%s%s", arch_pe_dirs[arch], make->module ));
++                          strmake( "d$(libdir)/%s%s", arch_pe_dirs[arch], make->module ));
+     else
+         add_install_rule( make, make->module, link_arch, module_name,
+                           strmake( "%c%s%s%s", '0' + arch, arch_install_dirs[arch], make->module,
+@@ -4642,7 +4641,7 @@ int main( int argc, char *argv[] )
+ 
+     arch_dirs[0] = "";
+     arch_pe_dirs[0] = strmake( "%s-windows/", archs.str[0] );
+-    arch_install_dirs[0] = unix_lib_supported ? strmake( "$(libdir)/wine/%s-unix/", archs.str[0] ) : "$(libdir)/wine/";
++    arch_install_dirs[0] = unix_lib_supported ? strmake( "$(libdir)/%s-unix/", archs.str[0] ) : "$(libdir)/";
+     strip_progs[0] = "\"$(STRIP)\"";
+ 
+     for (arch = 1; arch < archs.count; arch++)
+@@ -4652,7 +4651,7 @@ int main( int argc, char *argv[] )
+         strarray_add( &target_flags[arch], target );
+         arch_dirs[arch] = strmake( "%s-windows/", archs.str[arch] );
+         arch_pe_dirs[arch] = arch_dirs[arch];
+-        arch_install_dirs[arch] = strmake( "$(libdir)/wine/%s", arch_dirs[arch] );
++        arch_install_dirs[arch] = strmake( "$(libdir)/%s", arch_dirs[arch] );
+         strip_progs[arch] = get_expanded_arch_var( top_makefile, "STRIP", arch );
+         dll_ext[arch] = "";
+     }
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -483,8 +483,8 @@ static void init_paths( char *argv[] )
+             free( path );
+         }
+ #endif
+-        if (!bin_dir) bin_dir = build_relative_path( dll_dir, LIBDIR "/wine", BINDIR );
+-        data_dir = build_relative_path( bin_dir, BINDIR, DATADIR "/wine" );
++        if (!bin_dir) bin_dir = build_relative_path( dll_dir, LIBDIR, BINDIR );
++        data_dir = build_relative_path( bin_dir, BINDIR, DATADIR );
+         wineloader = build_path( bin_dir, basename );
+     }
+     else
+--- a/loader/main.c
++++ b/loader/main.c
+@@ -224,7 +224,7 @@ static void *load_ntdll( char *argv0 )
+         if ((p = remove_tail( path, "/loader" )))
+             handle = try_dlopen( p, "dlls/ntdll/ntdll.so" );
+         else if ((p = build_relative_path( path, BINDIR, LIBDIR )))
+-            handle = try_dlopen( p, "wine/" SO_DIR "ntdll.so" );
++            handle = try_dlopen( p, SO_DIR "ntdll.so" );
+         free( p );
+         free( path );
+     }
+@@ -241,7 +241,7 @@ static void *load_ntdll( char *argv0 )
+         free( path );
+     }
+ 
+-    if (!handle && !self) handle = try_dlopen( LIBDIR, "wine/" SO_DIR "ntdll.so" );
++    if (!handle && !self) handle = try_dlopen( LIBDIR, SO_DIR "ntdll.so" );
+ 
+     return handle;
+ }
+--- a/tools/widl/widl.c
++++ b/tools/widl/widl.c
+@@ -635,7 +635,7 @@ static void option_callback( int optc, c
+ 
+ int open_typelib( const char *name )
+ {
+-    static const char *default_dirs[] = { LIBDIR "/wine", "/usr/lib/wine", "/usr/local/lib/wine" };
++    static const char *default_dirs[] = { LIBDIR, "/usr/lib/wine", "/usr/local/lib/wine" };
+     struct target win_target = { target.cpu, PLATFORM_WINDOWS };
+     const char *pe_dir = get_arch_dir( win_target );
+     int fd;

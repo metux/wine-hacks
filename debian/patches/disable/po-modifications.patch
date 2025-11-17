@@ -1,0 +1,18 @@
+description: avoid modifications to po files that are under version control
+forwarded: not-needed
+author: Michael Gilbert
+
+--- a/tools/makedep.c
++++ b/tools/makedep.c
+@@ -2689,11 +2689,6 @@ static void output_po_files( struct make
+ 
+     if (linguas.count)
+     {
+-        for (i = 0; i < linguas.count; i++)
+-            output_filename( strmake( "%s/%s.po", po_dir, linguas.str[i] ));
+-        output( ": %s/wine.pot\n", po_dir );
+-        output( "\t%smsgmerge --previous -q $@ %s/wine.pot | msgattrib --no-obsolete -o $@.new && mv $@.new $@\n",
+-                cmd_prefix( "MSG" ), po_dir );
+         output( "po/all:" );
+         for (i = 0; i < linguas.count; i++)
+             output_filename( strmake( "%s/%s.po", po_dir, linguas.str[i] ));

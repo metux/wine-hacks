@@ -1,0 +1,354 @@
+description: fix format strings with the wrong type on armhf
+author: Michael Gilbert <mgilbert@debian.org>
+
+--- a/programs/winedbg/info.c
++++ b/programs/winedbg/info.c
+@@ -197,14 +197,22 @@ static void module_print_info(const stru
+              module->ext_module_info.has_file_image ? "" : "^");
+ 
+     if (multi_machine)
++#ifdef __arm__
++        dbg_printf("%-8s%I64lld-%I64lld       %-16s%-16s%s\n",
++#else
+         dbg_printf("%-8s%16I64x-%16I64x       %-16s%-16s%s\n",
++#endif
+                    buffer,
+                    module->mi.BaseOfImage,
+                    module->mi.BaseOfImage + module->mi.ImageSize,
+                    get_machine_str(module->mi.MachineType),
+                    is_embedded ? "\\" : get_symtype_str(module), module->name);
+     else
++#ifdef __arm__
++        dbg_printf("%-8s%I64d %I64lld %I64d %I64lld       %-16s%s\n",
++#else
+         dbg_printf("%-8s%*I64x-%*I64x       %-16s%s\n",
++#endif
+                    buffer,
+                    ADDRWIDTH, module->mi.BaseOfImage,
+                    ADDRWIDTH, module->mi.BaseOfImage + module->mi.ImageSize,
+@@ -344,7 +352,11 @@ void info_win32_module(DWORD64 base, BOO
+     free(im.modules);
+ 
+     if (base && !num_printed)
++#ifdef __arm__
++        dbg_printf("'0x%0I64d %0I64lld' is not a valid module address\n", ADDRWIDTH, base);
++#else
+         dbg_printf("'0x%0*I64x' is not a valid module address\n", ADDRWIDTH, base);
++#endif
+     if (has_missing_filename)
+         dbg_printf("^ denotes modules for which image file couldn't be found\n");
+ }
+@@ -456,7 +468,11 @@ static void info_window(HWND hWnd, int i
+         if (!GetWindowTextA(hWnd, wndName, sizeof(wndName)))
+             strcpy(wndName, "-- Empty --");
+ 
++#ifdef __arm__
++        dbg_printf("%x %s %Ild %x %s %-17.17s %08lx %x %Ild %08lx %.14s\n",
++#else
+         dbg_printf("%*s%08Ix%*s %-17.17s %08lx %0*Ix %08lx %.14s\n",
++#endif
+                    indent, "", (DWORD_PTR)hWnd, 12 - indent, "",
+                    clsName, GetWindowLongW(hWnd, GWL_STYLE),
+                    ADDRWIDTH, (ULONG_PTR)GetWindowLongPtrW(hWnd, GWLP_WNDPROC),
+@@ -498,7 +514,11 @@ void info_win32_window(HWND hWnd, BOOL d
+ 
+     /* FIXME missing fields: hmemTaskQ, hrgnUpdate, dce, flags, pProp, scroll */
+     dbg_printf("next=%p  child=%p  parent=%p  owner=%p  class='%s'\n"
++#ifdef __arm__
++               "inst=%p  active=%p  idmenu=%Ild\n"
++#else
+                "inst=%p  active=%p  idmenu=%08Ix\n"
++#endif
+                "style=0x%08lx  exstyle=0x%08lx  wndproc=%p  text='%s'\n"
+                "client=%ld,%ld-%ld,%ld  window=%ld,%ld-%ld,%ld sysmenu=%p\n",
+                GetWindow(hWnd, GW_HWNDNEXT),
+@@ -911,7 +931,11 @@ void info_win32_virtual(DWORD pid)
+             type = "";
+             prot[0] = '\0';
+         }
++#ifdef __arm__
++        dbg_printf("%x %Ild %x %Ild %s %s %s\n",
++#else
+         dbg_printf("%0*Ix %0*Ix %s %s %s\n",
++#endif
+                    ADDRWIDTH, (DWORD_PTR)addr, ADDRWIDTH, (DWORD_PTR)addr + mbi.RegionSize - 1, state, type, prot);
+         if (addr + mbi.RegionSize < addr) /* wrap around ? */
+             break;
+@@ -1023,7 +1047,11 @@ void info_win32_exception(void)
+         break;
+     case EXCEPTION_ACCESS_VIOLATION:
+         if (rec->NumberParameters == 2)
++#ifdef __arm__
++            dbg_printf("page fault on %s access to %x 0x%Ild",
++#else
+             dbg_printf("page fault on %s access to 0x%0*Ix",
++#endif
+                        rec->ExceptionInformation[0] == EXCEPTION_WRITE_FAULT ? "write" :
+                        rec->ExceptionInformation[0] == EXCEPTION_EXECUTE_FAULT ? "execute" : "read",
+                        ADDRWIDTH, rec->ExceptionInformation[1]);
+@@ -1091,14 +1119,22 @@ void info_win32_exception(void)
+         break;
+     case EXCEPTION_WINE_CXX_EXCEPTION:
+         if(rec->NumberParameters == 3 && rec->ExceptionInformation[0] == EXCEPTION_WINE_CXX_FRAME_MAGIC)
++#ifdef __arm__
++            dbg_printf("C++ exception(object = %x 0x%Ild, type = %x 0x%Ild)",
++#else
+             dbg_printf("C++ exception(object = 0x%0*Ix, type = 0x%0*Ix)",
++#endif
+                        ADDRWIDTH, rec->ExceptionInformation[1], ADDRWIDTH, rec->ExceptionInformation[2]);
+         else if(rec->NumberParameters == 4 && rec->ExceptionInformation[0] == EXCEPTION_WINE_CXX_FRAME_MAGIC)
+             dbg_printf("C++ exception(object = %p, type = %p, base = %p)",
+                        (void*)rec->ExceptionInformation[1], (void*)rec->ExceptionInformation[2],
+                        (void*)rec->ExceptionInformation[3]);
+         else
++#ifdef __arm__
++            dbg_printf("C++ exception with strange parameter count %ld or magic %x 0x%0Ild",
++#else
+             dbg_printf("C++ exception with strange parameter count %ld or magic 0x%0*Ix",
++#endif
+                        rec->NumberParameters, ADDRWIDTH, rec->ExceptionInformation[0]);
+         break;
+     default:
+--- a/programs/winedbg/memory.c
++++ b/programs/winedbg/memory.c
+@@ -124,7 +124,11 @@ BOOL memory_write_value(const struct dbg
+     if (!types_get_info(&lvalue->type, TI_GET_LENGTH, &os)) return FALSE;
+     if (size != os)
+     {
++#ifdef __arm__
++        dbg_printf("Size mismatch in memory_write_value, got %I64llu from type while expecting %lu\n",
++#else
+         dbg_printf("Size mismatch in memory_write_value, got %I64u from type while expecting %lu\n",
++#endif
+                    os, size);
+         return FALSE;
+     }
+@@ -264,7 +268,11 @@ void memory_examine(const struct dbg_lva
+         }
+         else
+         {
++#ifdef __arm__
++            DO_DUMP(DWORD64, 2, " %I64lld");
++#else
+             DO_DUMP(DWORD64, 2, " %16.16I64x");
++#endif
+         }
+         break;
+     case 'c': DO_DUMP2(char, 32, " %c", (_v < 0x20) ? ' ' : _v); break;
+@@ -469,7 +477,11 @@ char* memory_offset_to_string(char *str,
+ 
+ static void dbg_print_sdecimal(dbg_lgint_t sv)
+ {
++#ifdef __arm__
++    dbg_printf("%I64lld", sv);
++#else
+     dbg_printf("%I64d", sv);
++#endif
+ }
+ 
+ static void dbg_print_hex(DWORD size, dbg_lgint_t sv)
+@@ -478,7 +490,11 @@ static void dbg_print_hex(DWORD size, db
+         dbg_printf("0");
+     else
+         /* clear unneeded high bits, esp. sign extension */
++#ifdef __arm__
++        dbg_printf("%I64lld", sv & (~(dbg_lguint_t)0 >> (8 * (sizeof(dbg_lgint_t) - size))));
++#else
+         dbg_printf("%#I64x", sv & (~(dbg_lguint_t)0 >> (8 * (sizeof(dbg_lgint_t) - size))));
++#endif
+ }
+ 
+ static void print_typed_basic(const struct dbg_lvalue* lvalue)
+@@ -721,7 +737,11 @@ void print_address_symbol(const ADDRESS6
+     if (SymFromAddr(dbg_curr_process->handle, lin, &disp64, si) && disp64 < si->Size)
+     {
+         dbg_printf("%s %s", sep, si->Name);
++#ifdef __arm__
++        if (disp64) dbg_printf("+0x%I64lld", disp64);
++#else
+         if (disp64) dbg_printf("+0x%I64x", disp64);
++#endif
+     }
+     else
+     {
+@@ -729,7 +749,11 @@ void print_address_symbol(const ADDRESS6
+         if (!SymGetModuleInfo(dbg_curr_process->handle, lin, &im)) return;
+         dbg_printf("%s %s", sep, im.ModuleName);
+         if (lin > im.BaseOfImage)
++#ifdef __arm__
++            dbg_printf("+0x%Ild", lin - (DWORD_PTR)im.BaseOfImage);
++#else
+             dbg_printf("+0x%Ix", lin - (DWORD_PTR)im.BaseOfImage);
++#endif
+     }
+     if (with_line)
+     {
+--- a/programs/winedbg/stack.c
++++ b/programs/winedbg/stack.c
+@@ -281,7 +281,11 @@ static void stack_print_addr_and_args(vo
+         DWORD           disp;
+ 
+         dbg_printf(" %s", si->Name);
++#ifdef __arm__
++        if (disp64) dbg_printf("+0x%I64lld", disp64);
++#else
+         if (disp64) dbg_printf("+0x%I64x", disp64);
++#endif
+ 
+         stack_set_local_scope();
+         se.first = TRUE;
+@@ -296,7 +300,11 @@ static void stack_print_addr_and_args(vo
+             dbg_printf(" [%s:%lu]", il.FileName, il.LineNumber);
+         dbg_printf(" in %s", im.ModuleName);
+     }
++#ifdef __arm__
++    else dbg_printf(" in %s (+0x%Ild)", im.ModuleName, frm->linear_pc - (DWORD_PTR)im.BaseOfImage);
++#else
+     else dbg_printf(" in %s (+0x%Ix)", im.ModuleName, frm->linear_pc - (DWORD_PTR)im.BaseOfImage);
++#endif
+ }
+ 
+ /******************************************************************
+--- a/programs/winedbg/break.c
++++ b/programs/winedbg/break.c
+@@ -325,7 +325,11 @@ void break_add_break_from_lineno(const c
+         il.SizeOfStruct = sizeof(il);
+         if (!SymGetLineFromAddr64(dbg_curr_process->handle, linear, &disp, &il))
+         {
++#ifdef __arm__
++            dbg_printf("Unable to add breakpoint (unknown address %Ild)\n", linear);
++#else
+             dbg_printf("Unable to add breakpoint (unknown address %Ix)\n", linear);
++#endif
+             return;
+         }
+         filename = il.FileName;
+@@ -421,7 +425,11 @@ void break_add_watch(const struct dbg_lv
+             if (!(l64 & (l64 - 1)) && l64 <= l)
+                 l = l64;
+             else
++#ifdef __arm__
++                dbg_printf("Unsupported length (%I64lld) for watch-points, defaulting to %lu\n", l64, l);
++#else
+                 dbg_printf("Unsupported length (%I64x) for watch-points, defaulting to %lu\n", l64, l);
++#endif
+             /* most CPUs request watch address to be aligned on length */
+             if (lvalue->addr.Offset & (l - 1))
+             {
+@@ -738,7 +746,11 @@ BOOL break_should_continue(ADDRESS64* ad
+         case be_xpoint_watch_write:
+             dbg_printf("Stopped on watchpoint %d at ", dbg_curr_thread->stopped_xpoint);
+             print_address(addr, TRUE);
++#ifdef __arm__
++            dbg_printf(" new value %I64lld\n",
++#else
+             dbg_printf(" new value %I64x\n",
++#endif
+                        dbg_curr_process->bp[dbg_curr_thread->stopped_xpoint].w.oldval);
+         }
+         return FALSE;
+--- a/programs/winedbg/symbol.c
++++ b/programs/winedbg/symbol.c
+@@ -757,7 +757,11 @@ BOOL symbol_info_locals(void)
+     addr.Mode = AddrModeFlat;
+     addr.Offset = frm->linear_pc;
+     print_address(&addr, FALSE);
++#ifdef __arm__
++    dbg_printf(": %x (%Ild)\n", ADDRWIDTH, frm->linear_frame);
++#else
+     dbg_printf(": (%0*Ix)\n", ADDRWIDTH, frm->linear_frame);
++#endif
+     SymEnumSymbols(dbg_curr_process->handle, 0, NULL, info_locals_cb, (void*)frm->linear_frame);
+ 
+     return TRUE;
+@@ -779,7 +783,11 @@ static BOOL CALLBACK symbols_info_cb(PSY
+             mi.ModuleName[len - 5] = '\0';
+     }
+ 
++#ifdef __arm__
++    dbg_printf("%x %I64lld: %s!%s", ADDRWIDTH, sym->Address, mi.ModuleName, sym->Name);
++#else
+     dbg_printf("%0*I64x: %s!%s", ADDRWIDTH, sym->Address, mi.ModuleName, sym->Name);
++#endif
+     type.id = sym->TypeIndex;
+     type.module = sym->ModBase;
+ 
+--- a/programs/winedbg/types.c
++++ b/programs/winedbg/types.c
+@@ -599,7 +599,11 @@ static BOOL CALLBACK print_types_cb(PSYM
+     struct dbg_type     type;
+     type.module = sym->ModBase;
+     type.id = sym->TypeIndex;
++#ifdef __arm__
++    dbg_printf("Mod: %x %Ild ID: %08lx\n", ADDRWIDTH, type.module, type.id);
++#else
+     dbg_printf("Mod: %0*Ix ID: %08lx\n", ADDRWIDTH, type.module, type.id);
++#endif
+     types_print_type(&type, TRUE, FALSE);
+     dbg_printf("\n");
+     return TRUE;
+@@ -646,7 +650,11 @@ BOOL types_print_type(const struct dbg_t
+         {
+             const char* longness = "";
+             if (bt == btLong || bt == btULong) longness = " long";
++#ifdef __arm__
++            dbg_printf(": size=%I64lld%s", bitlen, longness);
++#else
+             dbg_printf(": size=%I64d%s", bitlen, longness);
++#endif
+         }
+         break;
+     case SymTagPointerType:
+@@ -695,7 +703,11 @@ BOOL types_print_type(const struct dbg_t
+                         else dbg_printf("<unknown> %ls", ptr);
+                         HeapFree(GetProcessHeap(), 0, ptr);
+                         if (bitlen != ~(DWORD64)0)
++#ifdef __arm__
++                            dbg_printf(" : %I64llu", bitlen);
++#else
+                             dbg_printf(" : %I64u", bitlen);
++#endif
+                         dbg_printf(";");
+                         if (i < min(fcp->Count, count) - 1 || count > 256) dbg_printf(" ");
+                     }
+@@ -749,11 +761,19 @@ BOOL types_print_type(const struct dbg_t
+                         case VT_I1:  dbg_printf("%d",    V_I1(&variant)); break;
+                         case VT_I2:  dbg_printf("%d",    V_I2(&variant)); break;
+                         case VT_I4:  dbg_printf("%ld",   V_I4(&variant)); break;
++#ifdef __arm__
++                        case VT_I8:  dbg_printf("%I64lld", V_I8(&variant)); break;
++#else
+                         case VT_I8:  dbg_printf("%I64d", V_I8(&variant)); break;
++#endif
+                         case VT_UI1: dbg_printf("%u",    V_UI1(&variant)); break;
+                         case VT_UI2: dbg_printf("%u",    V_UI2(&variant)); break;
+                         case VT_UI4: dbg_printf("%lu",   V_UI4(&variant)); break;
++#ifdef __arm__
++                        case VT_UI8: dbg_printf("%I64llu", V_UI8(&variant)); break;
++#else
+                         case VT_UI8: dbg_printf("%I64u", V_UI8(&variant)); break;
++#endif
+                         }
+                         HeapFree(GetProcessHeap(), 0, ptr);
+                         if (i < min(fcp->Count, count) - 1 || count > 256) dbg_printf(", ");
+--- a/programs/winedbg/expr.c
++++ b/programs/winedbg/expr.c
+@@ -637,10 +637,18 @@ BOOL expr_print(const struct expr* exp)
+         dbg_printf("$%s", exp->un.intvar.name);
+         break;
+     case EXPR_TYPE_U_CONST:
++#ifdef __arm__
++        dbg_printf("%I64llu", exp->un.u_const.value);
++#else
+         dbg_printf("%I64u", exp->un.u_const.value);
++#endif
+         break;
+     case EXPR_TYPE_S_CONST:
++#ifdef __arm__
++        dbg_printf("%I64lld", exp->un.s_const.value);
++#else
+         dbg_printf("%I64d", exp->un.s_const.value);
++#endif
+         break;
+     case EXPR_TYPE_STRING:
+         dbg_printf("\"%s\"", exp->un.string.str);

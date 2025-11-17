@@ -1,0 +1,15 @@
+description: increase build verbosity
+author: Michael Gilbert <mgilbert@debian.org>
+forwarded: not-needed
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -831,7 +831,7 @@ do
+ 
+     CPPFLAGS=""
+     AS_VAR_SET_IF([${wine_arch}_CFLAGS],[],[AS_VAR_SET([${wine_arch}_CFLAGS],[${CROSSCFLAGS:-"$(dpkg-buildflags --get CFLAGS)"}])])
+-    AS_VAR_SET_IF([${wine_arch}_LDFLAGS],[],[AS_VAR_SET([${wine_arch}_LDFLAGS],[$CROSSLDFLAGS])])
++    AS_VAR_SET_IF([${wine_arch}_LDFLAGS],[],[AS_VAR_SET([${wine_arch}_LDFLAGS],[$CROSSLDFLAGS"-Wb,--verbose"])])
+     AS_VAR_COPY([CC],[${wine_arch}_CC])
+     AS_VAR_COPY([CFLAGS],[${wine_arch}_CFLAGS])
+     AS_VAR_COPY([LDFLAGS],[${wine_arch}_LDFLAGS])
