@@ -1,0 +1,17 @@
+description: do not interfere with user file type associations
+author: Michael Gilbert <mgilbert@debian.org>
+bug: https://bugs.winehq.org/show_bug.cgi?id=28159
+bug-debian: https://bugs.debian.org/845334
+
+--- a/programs/winemenubuilder/winemenubuilder.c
++++ b/programs/winemenubuilder/winemenubuilder.c
+@@ -1969,6 +1969,9 @@ static BOOL write_freedesktop_mime_type_
+ 
+ static BOOL is_type_banned(const WCHAR *win_type)
+ {
++    /* Ban all file type associations since most people don't want wine intefering with their preferences */
++    return TRUE;
++
+     /* These are managed through external tools like wine.desktop, to evade malware created file type associations */
+     if (!wcsicmp(win_type, L".bat") ||
+         !wcsicmp(win_type, L".com") ||

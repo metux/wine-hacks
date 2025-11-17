@@ -1,0 +1,8 @@
+# unfortunately wine fails to build with pie
+hardening-no-pie
+# unfortunately wine doesn't do fortify hardening
+hardening-no-fortify-functions
+# spelling is intentional
+spelling-error-in-binary usr/lib/wine-development/wrc ressize resize
+# incorrectly flagged
+debian-news-entry-has-unknown-version

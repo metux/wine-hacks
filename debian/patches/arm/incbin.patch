@@ -1,0 +1,16 @@
+description: workaround clang bug involving incbin directives on armhf
+bug-upstream: https://bugs.winehq.org/show_bug.cgi?id=58040
+author: Michael Gilbert <mgilbert@debian.org>
+
+--- a/tools/winebuild/res32.c
++++ b/tools/winebuild/res32.c
+@@ -473,7 +473,9 @@ void output_resources( DLLSPEC *spec )
+     {
+         output( "\n\t.balign 4\n" );
+         output( ".L__wine_spec_res_%d:\n", i );
++#ifndef __arm__
+         output( "\t.incbin \"%s\",%d,%d\n", res->input_name, res->input_offset, res->data_size );
++#endif
+     }
+ 
+     if (!is_pe())

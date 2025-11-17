@@ -1,0 +1,160 @@
+description: use system unicode
+forwarded: not-needed
+author: Michael Gilbert <mgilbert@debian.org>
+
+--- a/tools/make_unicode
++++ b/tools/make_unicode
+@@ -25,36 +25,38 @@ use Digest::SHA;
+ use Encode;
+ use Time::Local qw(timegm_modern);
+ 
+-my $UNIVERSION = "16.0.0";
++my $UNIVERSION = `dpkg-parsechangelog --file /usr/share/doc/unicode-data/changelog.Debian.gz --show-field Version | sed s/-.*//`;
++chomp($UNIVERSION);
++
+ my $CLDRVERSION = "46";
+ my $ISO639VERSION = "20230123";
+ my $TZVERSION = "2024a";
+ 
+ my %data_files =
+ (
+- ucd       => { url  => "https://www.unicode.org/Public/$UNIVERSION/ucd/UCD.zip", name => "UCD-$UNIVERSION.zip",
++ ucd       => { url  => "/usr/share/unicode",
+                 sha  => "c86dd81f2b14a43b0cc064aa5f89aa7241386801e35c59c7984e579832634eb2" },
+- unihan    => { url  => "https://www.unicode.org/Public/$UNIVERSION/ucd/Unihan.zip", name => "Unihan-$UNIVERSION.zip",
++ unihan    => { url  => "/usr/share/unicode",
+                 sha  => "b8f000df69de7828d21326a2ffea462b04bc7560022989f7cc704f10521ef3e0" },
+- idna      => { url  => "https://www.unicode.org/Public/idna/$UNIVERSION/IdnaMappingTable.txt", name => "IdnaMappingTable-$UNIVERSION.txt",
++ idna      => { url  => "/usr/share/unicode/idna",
+                 sha  => "6db2ef4ed35f3b3de74ebc2e00404a9607f76d499f576b8d4043cf14f1ed175c" },
+- cldr      => { url  => "https://github.com/unicode-org/cldr/archive/refs/tags/release-$CLDRVERSION.zip",
++ cldr      => { url  => "/usr/share/unicode/cldr",
+                 sha  => "716d0fc10a6469f7b808e55671ab98640c387e43bae152382e725462e366ccb2" },
+- cldr33    => { url  => "https://www.unicode.org/Public/cldr/33/cldr-common-33.0.zip",
++ cldr33    => { url  => "debian/unicode/cldr33",
+                 sha  => "fa3490082c086d21257153609642f54fcf788fcfda4966fe67f3f6daca0d58b9" },
+- sorting   => { url  => "https://download.microsoft.com/download/C/F/7/CF713A5E-9FBC-4FD6-9246-275F65C0E498/Windows 10 Sorting Weight Table.txt",
++ sorting   => { url  => "debian/unicode/Windows 10 Sorting Weight Table.txt",
+                 sha  => "81fcfa1e5ed3e3a94d329959ff7d97d522ddf9d653d2c4d6ddcccc5cd4df663f" },
+- codepages => { url  => "https://download.microsoft.com/download/C/F/7/CF713A5E-9FBC-4FD6-9246-275F65C0E498/Windows Supported Code Page Data Files.zip",
++ codepages => { url  => "debian/unicode/Windows Supported Code Page Data Files.zip",
+                 sha  => "5074e6dd253056ba61fc6c870c9a955467855129c6ad3a51761c386b301b125a" },
+- iso639    => { url  => "https://iso639-3.sil.org/sites/iso639-3/files/downloads/iso-639-3_Code_Tables_$ISO639VERSION.zip",
++ iso639    => { url  => "debian/unicode/iso-639-3_Code_Tables_$ISO639VERSION.zip",
+                 sha  => "884faa6cc5ac5181ed7969eed75355c1bc665447614cf4c06c62e87b38fe6a97" },
+- ksx1001   => { url  => "https://www.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/KSC/KSX1001.TXT",
++ ksx1001   => { url  => "debian/unicode/mappings/OBSOLETE/EASTASIA/KSC/KSX1001.TXT",
+                 sha  => "d8d2a35206ac0ea2865f5d801c9d6717f735bf46f263a658a64a960abe59e371" },
+- jis0208   => { url  => "https://www.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/JIS/JIS0208.TXT",
++ jis0208   => { url  => "debian/unicode/mappings/OBSOLETE/EASTASIA/JIS/JIS0208.TXT",
+                 sha  => "1c571870457f19c97720631fa83ee491549a96ba1436da1296786a67d8632e87" },
+- jis0212   => { url  => "https://www.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/JIS/JIS0212.TXT",
++ jis0212   => { url  => "debian/unicode/mappings/OBSOLETE/EASTASIA/JIS/JIS0212.TXT",
+                 sha  => "477820bb3055bbcc90880d788cd95607d221dc94457bae249231adecf13c12e6" },
+- tzdata    => { url  => "https://data.iana.org/time-zones/releases/tzdata$TZVERSION.tar.gz",
++ tzdata    => { url  => "debian/tzdata/tzdata$TZVERSION.tar.gz",
+                 sha  => "0d0434459acbd2059a7a8da1f3304a84a86591f6ed69c6248fffa502b6edffe3" },
+ );
+ 
+@@ -541,8 +543,6 @@ my @locales =
+  { name => "bez-TZ" },
+  { name => "bg", lcid => 0x00000002, oemcp => 866, ebcdiccp => 21025, group => 5, sabbrevlangname => "BGR", sopentypelang => "BGR" },
+  { name => "bg-BG", lcid => 0x00000402 },
+- { name => "bin", lcid => 0x00000066, oemcp => 850, dir => "exemplars", sabbrevlangname => "ZZZ", sopentypelang => "EDO" },
+- { name => "bin-NG", lcid => 0x00000466, file => "bin", dir => "exemplars" },
+  { name => "blo" },
+  { name => "blo-BJ" },
+  { name => "bm", sopentypelang => "BMB" },
+@@ -1030,10 +1030,6 @@ my @locales =
+  { name => "kok-Latn" },
+  { name => "kok-Latn-IN" },
+  { name => "kok-IN", alias => "kok-Deva-IN" },
+- { name => "kr", lcid => 0x00000071, sortlocale => "kr-Latn-NG", oemcp => 850, dir => "exemplars", sabbrevlangname => "ZZZ", sopentypelang => "KNR" },
+- { name => "kr-Latn", file => "kr", dir => "exemplars" },
+- { name => "kr-Latn-NG", lcid => 0x00000471, file => "kr", dir => "exemplars" },
+- { name => "kr-NG", alias => "kr-Latn-NG" },
+  { name => "ks", lcid => 0x00000060, group => 15, sabbrevlangname => "ZZZ", sopentypelang => "KSH" },
+  { name => "ks-Arab", lcid => 0x00000460 },
+  { name => "ks-Arab-IN" },
+@@ -1966,17 +1962,12 @@ sub download_data_files()
+     {
+         my $data = $data_files{$id};
+         my $url = $data->{url};
+-        my $filename = "$cache/" . ($data->{name} || ($url =~ s/.*\/([^\/]+)$/$1/r));
+ 
+-        unless (-f $filename)
++        if (!-d $url) # skip shasum check for directories
+         {
+-            print "Fetching $url...\n";
+-            system "mkdir", "-p", $cache;
+-            !system "wget", "-q", "-O", $filename, $url or die "cannot fetch $url";
++            my $sha = Digest::SHA->new( "sha256" )->addfile( $url )->hexdigest;
++            die "invalid checksum $sha for $url" unless $sha eq $data->{sha};
+         }
+-        my $sha = Digest::SHA->new( "sha256" )->addfile( $filename )->hexdigest;
+-        die "invalid checksum $sha for $filename" unless $sha eq $data->{sha};
+-        $data->{filename} = $filename;
+     }
+ }
+ 
+@@ -1987,15 +1978,20 @@ sub open_data_file($@)
+ {
+     my ($id, $name) = @_;
+     my $url = $data_files{$id}->{url};
+-    my $filename = $data_files{$id}->{filename};
+ 
+-    if ($filename =~ /\.zip$/)
++    my $filename = "$url";
++    if ($name)
++    {
++        $filename = "$url/$name";
++    }
++
++    if ($url =~ /\.zip$/)
+     {
+-        open FILE, "-|", "unzip", "-p", $filename, $name or die "cannot extract $name from $filename";
++        open FILE, "-|", "unzip", "-p", $url, $name or die "cannot extract $name from $url";
+     }
+-    elsif ($filename =~ /\.tar\.gz$/)
++    elsif ($url =~ /\.tar\.gz$/)
+     {
+-        open FILE, "-|", "tar", "-x", "-f", $filename, "-O", $name or die "cannot extract $name from $filename";
++        open FILE, "-|", "tar", "-x", "-f", $url, "-O", $name or die "cannot extract $name from $url";
+     }
+     else
+     {
+@@ -2344,7 +2340,7 @@ sub load_data()
+ 
+     # load the Unihan mappings
+ 
+-    my $UNIHAN = open_data_file( "unihan", "Unihan_Variants.txt" );
++    my $UNIHAN = open_data_file( "unihan", "Unihan_Variants.txt.bz2" );
+     while (<$UNIHAN>)
+     {
+         s/\#.*//;  # remove comments
+@@ -4489,7 +4485,7 @@ sub load_iso639()
+ # build the locale table for locale.nls
+ sub build_locale_data()
+ {
+-    my $base = "cldr-release-$CLDRVERSION";
++    my $base = "";
+     my $suppl = load_xml_data_file( "cldr", "$base/common/supplemental/supplementalData.xml" );
+     my $subtags = load_xml_data_file( "cldr", "$base/common/supplemental/likelySubtags.xml" );
+     my $numbers = load_xml_data_file( "cldr", "$base/common/supplemental/numberingSystems.xml" );
+@@ -4704,6 +4700,7 @@ sub build_locale_data()
+     my $lcname_data = "";
+     foreach my $name (sort compare_locales keys %lcnames)
+     {
++        #print "lcid $name\n";
+         my $loc = $lcnames{$name};
+         $lcname_data .= pack "S<2L<", add_string($name), $loc->{idx}, $loc->{lcid} || 0x1000;
+     }
+@@ -5435,7 +5432,7 @@ sub load_windows_zones()
+ {
+     my $current_name;
+     my %names;
+-    my $base = "cldr-release-$CLDRVERSION";
++    my $base = "";
+     my $INPUT = open_data_file( "cldr", "$base/common/supplemental/windowsZones.xml" );
+     while (<$INPUT>)
+     {

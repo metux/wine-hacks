@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+    configure)
+        if [ -e /usr/sbin/update-binfmts ]; then
+            update-binfmts --import wine
+        fi
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

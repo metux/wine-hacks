@@ -1,0 +1,4 @@
+# the files in this package are symlinks to the fonts in wine-common, incorrectly flagged as duplicates
+duplicate-font-file
+# incorrectly flagged
+debian-news-entry-has-unknown-version

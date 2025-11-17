@@ -1,0 +1,240 @@
+Resources
+=========
+If you have any problems, the Wine FAQ is often very useful:
+https://wiki.winehq.org/FAQ
+
+Detailed documentation about Wine and its internals are available in the
+various User Guides and manpages:
+https://www.winehq.org/documentation
+
+For resources related to Debian Wine packaging, please visit:
+https://salsa.debian.org/groups/wine-team
+
+To participate in development and/or discussion about the Debian packages,
+please subscribe to the Debian Wine mailing list:
+https://lists.debian.org/debian-wine/
+
+The Debian package repository can also be checked out with git:
+$ git clone https://salsa.debian.org/wine-team/wine.git
+
+Or viewed online at:
+https://salsa.debian.org/wine-team/wine
+
+
+Debugging
+=========
+Debugging information is limited to only error messages by default.  If you
+want other types of debugging output as well, you can set the WINEDEBUG
+environment variable.
+
+Example:
+$ WINEDEBUG=fixme+all wine
+
+If you want this to be more permanent, you can include an
+"export WINEDEBUG=fixme+all" line in your ~/.bashrc file.
+
+For more detail about WINEDEBUG options, please see the wine manpage.
+
+
+Old Versions
+============
+If you want to install a previous version of Wine, you should be able to fetch
+prior Debian versions from:
+http://snapshot.debian.org/package/wine/
+http://snapshot.debian.org/package/wine-development/
+
+You can also use debsnap from the devscripts package, for example:
+$ debsnap -v -d . wine 1.6.1-1
+$ debsnap -v -d . wine-development 1.7.24-3
+
+debsnap fetches source packages by default, which you will then need to build
+(see debuild).  debsnap also lets you fetch the binary packages with the
+"-a <architecture>" option and then specifying each of the binary packages.
+
+
+Alternative current versions
+============================
+You can choose between two sets of Wine packages: wine and wine-development.
+wine tracks the stable releases from winehq.org (e.g. version 3.0.1), and
+wine-development the development releases (e.g. version 3.7).
+
+wine and wine-development use the Debian alternatives system to provide
+/usr/bin/wine and other commands.  If both packages are installed it defaults
+to use the commands provided by wine.  You may change this by running:
+$ sudo update-alternatives --quiet --config wine
+
+You may force a version at any time (as long as the wineserver isn't running
+yet), by using the suffixed command names, e.g.:
+$ wine-stable foo.exe
+$ wine-development foo.exe
+$ winecfg-stable
+$ winecfg-development
+$ winegcc-stable ...
+$ winegcc-development ...
+
+
+Configuring Wine's Options
+==========================
+Usually everything is automatically configured, but for fine-tuning a good tool
+is winecfg.
+
+If you want to set up Wine manually in a command line only setting, you can
+force the creation of a ~/.wine directory by running:
+$ wineboot
+
+If something goes horribly wrong, you can always completely wipe your Wine
+setup with "rm -rf ~/.wine".  This will destroy everything you've installed,
+including configuration and data files, so if you have anything important,
+please back it up first.  You can then start fresh.
+
+
+Running 32-bit Windows applications on 64-bit systems
+=====================================================
+Most Windows binaries are 32-bit applications.  Next to the main package wine
+(or wine-development) you need to install wine32 (or wine32-development) to run
+them.  wine64 (or wine64-development) alone cannot do this.
+
+On 64-bit systems you need to enable multiarch to install wine32 (or
+wine32-development).  As root, execute e.g.:
+# dpkg --add-architecture i386 && apt update && apt install wine32
+# dpkg --add-architecture i386 && apt update && apt install wine32-development
+
+If you have wine32 and wine64 (or wine32-development and wine64-development)
+installed, Wine will default to a shared 64-bit prefix that runs most 32-bit
+Windows applications (WoW64).
+
+If this causes problems for an application, you may create a 32-bit prefix by
+running e.g.:
+$ WINEARCH=win32 WINEPREFIX="$HOME/.wine32" wineboot
+
+You have to specify this 32-bit prefix, whenever you want to use it, e.g.:
+$ WINEPREFIX="$HOME/.wine32" wine application.exe
+
+If you don't want 64-bit at all, just uninstall wine64 (or
+wine64-development).
+
+
+32-bit results from the tools (winegcc, ...) on 64-bit systems
+==============================================================
+You may generate 32-bit results with the programs in wine32-tools (or
+wine32-development-tools) as well as with those in wine64-tools (or
+wine64-development-tools).
+
+Enable multiarch (see above).  Than install the matching 32-bit Wine
+development files.  As root, execute e.g. on amd64:
+# apt install libwine-dev:i386
+# apt install libwine-development-dev:i386
+
+Use the programs with the option "-m32" (for winemaker --wine32).
+
+
+Wine Gecko
+==========
+The downloader for Wine Gecko is intentionally disabled in the Debian packages.
+
+Instead libwine-gecko-* packages used to be available in the official Debian
+archives.  However as of October 2018 the last available versions are for Wine
+in Debian 8 (Jessie).  So help in packaging new versions is really needed.
+
+Information about which Wine Gecko should be associated with any particular
+Wine version is available at:
+https://wiki.winehq.org/Gecko
+
+Information about available versions in Debian is at:
+https://packages.debian.org/wine-gecko
+
+If the right libwine-gecko-*.deb package is not currently available, you can
+download the Wine Gecko installers (on 64-bit systems you need both the 32-bit
+and the 64-bit version).  Copy them to one of the following locations (their
+checksums only get verified in $HOME, but not in /usr/share/):
+- /usr/share/wine/wine/gecko/ or /usr/share/wine-development/wine/gecko/
+- /usr/share/wine/gecko/ or /usr/share/wine-development/gecko/
+- /usr/share/wine/gecko/
+- /usr/share/wine-gecko/
+- /opt/wine/gecko/
+- $XDG_CACHE_HOME/wine/
+- $HOME/.cache/wine/ (if XDG_CACHE_HOME is not set)
+Or preferably, please provide help building the new Debian libwine-gecko-*
+package that is needed.
+
+
+Wine Mono
+=========
+The downloader for Wine Mono is intentionally disabled in the Debian packages.
+Unfortunately Wine Mono is not available in the official Debian archives.
+
+You can find more information at:
+https://wiki.winehq.org/Mono
+
+You can download the Wine Mono installer and copy it to similar locations as
+shown for Wine Gecko above, just replace gecko with mono.
+
+
+System and desktop integration
+==============================
+You can configure your system to automatically launch Windows executables.  But
+this increases the risk of inadvertently launching Windows malware, so please
+make sure that you understand the security risks before blindly setting this
+up.  See this discussion for some details:
+https://bugs.launchpad.net/ubuntu/+source/wine/+bug/256880
+
+
+System integration (binfmt)
+---------------------------
+If you install the wine-binfmt package, Wine will be registered as interpreter
+for Windows executables.  Note that each executable has to be in a directory
+that is in your system PATH (or its path must be fully specified) and the
+executable mode bit (+x) must be set on the file.
+
+Once that is done, "./foo.exe" can be used instead of "wine foo.exe" to launch
+Windows PE files.  Please take note that once this is enabled, Windows
+executables (including malware) might get auto-started this way, even as root.
+
+This feature is probably most interesting for automatic software testing.
+Desktop users probably don't need it, so don't install wine-binfmt, unless you
+know that you need it.
+
+
+Desktop integration
+-------------------
+To make Wine known to your desktop environment you can install a wine.desktop
+file.  Then you may e.g. double-click on Windows executables in a filebrowser
+to start them, or right-click on them to "Open With Wine Windows Programs
+Loader".
+
+Enable system-wide:
+$ sudo cp /usr/share/doc/wine/examples/wine.desktop /usr/share/applications/
+or
+$ sudo cp /usr/share/doc/wine-development/examples/wine.desktop /usr/share/applications/
+
+Enable only for your current user:
+$ cp /usr/share/doc/wine/examples/wine.desktop ~/.local/share/applications/
+or
+$ cp /usr/share/doc/wine-development/examples/wine.desktop ~/.local/share/applications/
+
+Remove:
+$ sudo rm -f /usr/share/applications/wine.desktop
+$ sudo update-desktop-database
+$ rm -f ~/.local/share/applications/wine.desktop
+$ update-desktop-database ~/.local/share/applications/
+
+
+Opening files with Windows applications (MIME)
+----------------------------------------------
+Some applications register themselves for opening files of a specified type.
+Generally these associations are propagated to your Linux desktop, so that you
+can directly open files with the matching Windows application.
+
+Creation of these associations is disabled for some common file types to avoid
+unwanted associations with general purpose Windows applications, while a
+preferred native application exists (e.g. it prevents .txt files from being
+opened with Wine's notepad instead of your system's preferred editor).
+
+To remove all these file type associations:
+
+$ rm -rf ~/.local/share/applications/wine/
+$ rm -f ~/.local/share/applications/wine-extension-*
+$ update-desktop-database ~/.local/share/applications/
+
+The Wine FAQ has further information on this topic.
+

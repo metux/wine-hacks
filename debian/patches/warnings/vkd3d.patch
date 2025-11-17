@@ -1,0 +1,788 @@
+description: fix incorrect format strings in vkd3d
+author: Michael Gilbert <mgilbert@debian.org>
+
+--- a/libs/vkd3d/include/private/vkd3d_memory.h
++++ b/libs/vkd3d/include/private/vkd3d_memory.h
+@@ -36,7 +36,7 @@ static inline void *vkd3d_malloc(size_t
+ static inline void *vkd3d_realloc(void *ptr, size_t size)
+ {
+     if (!(ptr = realloc(ptr, size)))
+-        ERR("Out of memory, size %zu.\n", size);
++        ERR("Out of memory, size %u.\n", size);
+     return ptr;
+ }
+ 
+--- a/libs/vkd3d/libs/vkd3d-shader/d3dbc.c
++++ b/libs/vkd3d/libs/vkd3d-shader/d3dbc.c
+@@ -1022,7 +1022,7 @@ static void shader_sm1_read_immconst(str
+     {
+         vkd3d_shader_parser_error(&sm1->p, VKD3D_SHADER_ERROR_D3DBC_UNEXPECTED_EOF,
+                 "Attempted to read a constant definition, but not enough tokens are remaining. "
+-                "%zu token(s) available, %u required.", sm1->end - *ptr, count);
++                "%u token(s) available, %u required.", sm1->end - *ptr, count);
+         sm1->abort = true;
+         return;
+     }
+@@ -1067,7 +1067,7 @@ static void shader_sm1_read_comment(stru
+         if (size > --remaining)
+         {
+             vkd3d_shader_parser_error(&sm1->p, VKD3D_SHADER_ERROR_D3DBC_UNEXPECTED_EOF,
+-                    "Encountered a %u token comment, but only %zu token(s) is/are remaining.",
++                    "Encountered a %u token comment, but only %u token(s) is/are remaining.",
+                     size, remaining);
+             return;
+         }
+@@ -1184,7 +1184,7 @@ static void shader_sm1_read_instruction(
+     if (*ptr > sm1->end)
+     {
+         vkd3d_shader_parser_error(&sm1->p, VKD3D_SHADER_ERROR_D3DBC_UNEXPECTED_EOF,
+-                "The current instruction ends %zu token(s) past the end of the shader.",
++                "The current instruction ends %u token(s) past the end of the shader.",
+                 *ptr - sm1->end);
+         goto fail;
+     }
+@@ -1279,7 +1279,7 @@ static enum vkd3d_result shader_sm1_init
+     if (token_count < 2)
+     {
+         vkd3d_shader_error(message_context, &location, VKD3D_SHADER_ERROR_D3DBC_UNEXPECTED_EOF,
+-                "Invalid shader size %zu (token count %zu). At least 2 tokens are required.",
++                "Invalid shader size %u (token count %u). At least 2 tokens are required.",
+                 code_size, token_count);
+         return VKD3D_ERROR_INVALID_SHADER;
+     }
+--- a/libs/vkd3d/libs/vkd3d-shader/dxbc.c
++++ b/libs/vkd3d/libs/vkd3d-shader/dxbc.c
+@@ -57,7 +57,7 @@ int vkd3d_shader_serialize_dxbc(size_t s
+     struct vkd3d_bytecode_buffer buffer = {0};
+     uint32_t checksum[4];
+ 
+-    TRACE("section_count %zu, sections %p, dxbc %p, messages %p.\n", section_count, sections, dxbc, messages);
++    TRACE("section_count %u, sections %p, dxbc %p, messages %p.\n", section_count, sections, dxbc, messages);
+ 
+     if (messages)
+         *messages = NULL;
+@@ -149,7 +149,7 @@ static const char *shader_get_string(con
+ 
+     if (offset >= data_size)
+     {
+-        WARN("Invalid offset %#zx (data size %#zx).\n", offset, data_size);
++        WARN("Invalid offset %#x (data size %#x).\n", offset, data_size);
+         return NULL;
+     }
+ 
+@@ -179,9 +179,9 @@ static int parse_dxbc(const struct vkd3d
+ 
+     if (data_size < VKD3D_DXBC_HEADER_SIZE)
+     {
+-        WARN("Invalid data size %zu.\n", data_size);
++        WARN("Invalid data size %u.\n", data_size);
+         vkd3d_shader_error(message_context, &location, VKD3D_SHADER_ERROR_DXBC_INVALID_SIZE,
+-                "DXBC size %zu is smaller than the DXBC header size.", data_size);
++                "DXBC size %u is smaller than the DXBC header size.", data_size);
+         return VKD3D_ERROR_INVALID_ARGUMENT;
+     }
+ 
+@@ -248,9 +248,9 @@ static int parse_dxbc(const struct vkd3d
+ 
+         if (chunk_offset >= data_size || !require_space(chunk_offset, 2, sizeof(uint32_t), data_size))
+         {
+-            WARN("Invalid chunk offset %#x (data size %zu).\n", chunk_offset, data_size);
++            WARN("Invalid chunk offset %#x (data size %u).\n", chunk_offset, data_size);
+             vkd3d_shader_error(message_context, &location, VKD3D_SHADER_ERROR_DXBC_INVALID_CHUNK_OFFSET,
+-                    "DXBC chunk %u has invalid offset %#x (data size %#zx).", i, chunk_offset, data_size);
++                    "DXBC chunk %u has invalid offset %#x (data size %#x).", i, chunk_offset, data_size);
+             vkd3d_free(sections);
+             return VKD3D_ERROR_INVALID_ARGUMENT;
+         }
+@@ -262,10 +262,10 @@ static int parse_dxbc(const struct vkd3d
+ 
+         if (!require_space(chunk_ptr - data, 1, chunk_size, data_size))
+         {
+-            WARN("Invalid chunk size %#x (data size %zu, chunk offset %#x).\n",
++            WARN("Invalid chunk size %#x (data size %u, chunk offset %#x).\n",
+                     chunk_size, data_size, chunk_offset);
+             vkd3d_shader_error(message_context, &location, VKD3D_SHADER_ERROR_DXBC_INVALID_CHUNK_SIZE,
+-                    "DXBC chunk %u has invalid size %#x (data size %#zx, chunk offset %#x).",
++                    "DXBC chunk %u has invalid size %#x (data size %#x, chunk offset %#x).",
+                     i, chunk_offset, data_size, chunk_offset);
+             vkd3d_free(sections);
+             return VKD3D_ERROR_INVALID_ARGUMENT;
+@@ -323,7 +323,7 @@ int vkd3d_shader_parse_dxbc(const struct
+     struct vkd3d_shader_message_context message_context;
+     int ret;
+ 
+-    TRACE("dxbc {%p, %zu}, flags %#x, desc %p, messages %p.\n", dxbc->code, dxbc->size, flags, desc, messages);
++    TRACE("dxbc {%p, %u}, flags %#x, desc %p, messages %p.\n", dxbc->code, dxbc->size, flags, desc, messages);
+ 
+     if (messages)
+         *messages = NULL;
+@@ -377,9 +377,9 @@ static int shader_parse_signature(const
+ 
+     if (!require_space(0, 2, sizeof(uint32_t), section->data.size))
+     {
+-        WARN("Invalid data size %#zx.\n", section->data.size);
++        WARN("Invalid data size %#x.\n", section->data.size);
+         vkd3d_shader_error(message_context, NULL, VKD3D_SHADER_ERROR_DXBC_INVALID_SIGNATURE,
+-                "Section size %zu is smaller than the minimum signature header size.\n", section->data.size);
++                "Section size %u is smaller than the minimum signature header size.\n", section->data.size);
+         return VKD3D_ERROR_INVALID_ARGUMENT;
+     }
+ 
+@@ -400,7 +400,7 @@ static int shader_parse_signature(const
+ 
+     if (!require_space(ptr - data, count, 6 * sizeof(uint32_t), section->data.size))
+     {
+-        WARN("Invalid count %#x (data size %#zx).\n", count, section->data.size);
++        WARN("Invalid count %#x (data size %#x).\n", count, section->data.size);
+         return VKD3D_ERROR_INVALID_ARGUMENT;
+     }
+ 
+@@ -428,7 +428,7 @@ static int shader_parse_signature(const
+         if (!(name = shader_get_string(data, section->data.size, name_offset))
+                 || !(e[i].semantic_name = vkd3d_strdup(name)))
+         {
+-            WARN("Invalid name offset %#zx (data size %#zx).\n", name_offset, section->data.size);
++            WARN("Invalid name offset %#x (data size %#x).\n", name_offset, section->data.size);
+             for (j = 0; j < i; ++j)
+             {
+                 vkd3d_free((void *)e[j].semantic_name);
+@@ -960,7 +960,7 @@ static int shader_parse_root_signature(c
+ 
+     if (!require_space(0, 6, sizeof(uint32_t), data->size))
+     {
+-        WARN("Invalid data size %#zx.\n", data->size);
++        WARN("Invalid data size %#x.\n", data->size);
+         return VKD3D_ERROR_INVALID_ARGUMENT;
+     }
+ 
+@@ -1046,7 +1046,7 @@ int vkd3d_shader_parse_root_signature(co
+     struct vkd3d_shader_message_context message_context;
+     int ret;
+ 
+-    TRACE("dxbc {%p, %zu}, root_signature %p, messages %p.\n", dxbc->code, dxbc->size, root_signature, messages);
++    TRACE("dxbc {%p, %u}, root_signature %p, messages %p.\n", dxbc->code, dxbc->size, root_signature, messages);
+ 
+     memset(root_signature, 0, sizeof(*root_signature));
+     if (messages)
+--- a/libs/vkd3d/libs/vkd3d-shader/vkd3d_shader_main.c
++++ b/libs/vkd3d/libs/vkd3d-shader/vkd3d_shader_main.c
+@@ -1862,7 +1862,7 @@ int vkd3d_shader_parse_input_signature(c
+     struct shader_signature shader_signature;
+     int ret;
+ 
+-    TRACE("dxbc {%p, %zu}, signature %p, messages %p.\n", dxbc->code, dxbc->size, signature, messages);
++    TRACE("dxbc {%p, %u}, signature %p, messages %p.\n", dxbc->code, dxbc->size, signature, messages);
+ 
+     if (messages)
+         *messages = NULL;
+--- a/libs/vkd3d/libs/vkd3d/command.c
++++ b/libs/vkd3d/libs/vkd3d/command.c
+@@ -4952,7 +4952,7 @@ static void STDMETHODCALLTYPE d3d12_comm
+ 
+     if (render_target_descriptor_count > ARRAY_SIZE(list->rtvs))
+     {
+-        WARN("Descriptor count %u > %zu, ignoring extra descriptors.\n",
++        WARN("Descriptor count %u > %u, ignoring extra descriptors.\n",
+                 render_target_descriptor_count, ARRAY_SIZE(list->rtvs));
+         render_target_descriptor_count = ARRAY_SIZE(list->rtvs);
+     }
+@@ -7277,7 +7277,7 @@ static bool d3d12_command_queue_op_array
+ {
+     if (!vkd3d_array_reserve((void **)&array->ops, &array->size, array->count + count, sizeof(*array->ops)))
+     {
+-        ERR("Cannot reserve memory for %zu new ops.\n", count);
++        ERR("Cannot reserve memory for %u new ops.\n", count);
+         return false;
+     }
+ 
+@@ -7496,7 +7496,7 @@ VkQueue vkd3d_acquire_vk_queue(ID3D12Com
+     VkQueue vk_queue = vkd3d_queue_acquire(d3d12_queue->vkd3d_queue);
+ 
+     if (d3d12_queue->op_queue.count)
+-        WARN("Acquired command queue %p with %zu remaining ops.\n", d3d12_queue, d3d12_queue->op_queue.count);
++        WARN("Acquired command queue %p with %u remaining ops.\n", d3d12_queue, d3d12_queue->op_queue.count);
+     else if (d3d12_queue->is_flushing)
+         WARN("Acquired command queue %p which is flushing.\n", d3d12_queue);
+ 
+--- a/libs/vkd3d/libs/vkd3d/device.c
++++ b/libs/vkd3d/libs/vkd3d/device.c
+@@ -602,7 +602,7 @@ static HRESULT vkd3d_instance_init(struc
+     }
+     if (create_info->wchar_size != 2 && create_info->wchar_size != 4)
+     {
+-        WARN("Unexpected WCHAR size %zu.\n", create_info->wchar_size);
++        WARN("Unexpected WCHAR size %u.\n", create_info->wchar_size);
+         return E_INVALIDARG;
+     }
+ 
+@@ -5651,7 +5651,7 @@ HRESULT vkd3d_create_thread(struct vkd3d
+ 
+         if ((rc = pthread_create(&thread->pthread, NULL, thread_main, data)))
+         {
+-            ERR("Failed to create thread, error %d.\n", rc);
++            ERR("Failed to create thread, error %ld.\n", rc);
+             hr = hresult_from_errno(rc);
+         }
+ #endif
+--- a/libs/vkd3d/libs/vkd3d/resource.c
++++ b/libs/vkd3d/libs/vkd3d/resource.c
+@@ -4388,7 +4388,7 @@ HRESULT d3d12_descriptor_heap_create(str
+     max_descriptor_count = (~(size_t)0 - sizeof(*object)) / descriptor_size;
+     if (desc->NumDescriptors > max_descriptor_count)
+     {
+-        WARN("Invalid descriptor count %u (max %zu).\n", desc->NumDescriptors, max_descriptor_count);
++        WARN("Invalid descriptor count %u (max %u).\n", desc->NumDescriptors, max_descriptor_count);
+         return E_OUTOFMEMORY;
+     }
+ 
+--- a/libs/vkd3d/libs/vkd3d/state.c
++++ b/libs/vkd3d/libs/vkd3d/state.c
+@@ -1543,7 +1543,7 @@ static HRESULT d3d12_root_signature_init
+         return hr;
+     if (info.cost > D3D12_MAX_ROOT_COST)
+     {
+-        WARN("Root signature cost %zu exceeds maximum allowed cost.\n", info.cost);
++        WARN("Root signature cost %u exceeds maximum allowed cost.\n", info.cost);
+         return E_INVALIDARG;
+     }
+ 
+@@ -3168,7 +3168,7 @@ static HRESULT d3d12_pipeline_state_init
+     rt_count = desc->rtv_formats.NumRenderTargets;
+     if (rt_count > ARRAY_SIZE(graphics->blend_attachments))
+     {
+-        FIXME("NumRenderTargets %zu > %zu, ignoring extra formats.\n",
++        FIXME("NumRenderTargets %u > %u, ignoring extra formats.\n",
+                 rt_count, ARRAY_SIZE(graphics->blend_attachments));
+         rt_count = ARRAY_SIZE(graphics->blend_attachments);
+     }
+@@ -3442,7 +3442,7 @@ static HRESULT d3d12_pipeline_state_init
+     graphics->attribute_count = desc->input_layout.NumElements;
+     if (graphics->attribute_count > ARRAY_SIZE(graphics->attributes))
+     {
+-        FIXME("InputLayout.NumElements %zu > %zu, ignoring extra elements.\n",
++        FIXME("InputLayout.NumElements %u > %u, ignoring extra elements.\n",
+                 graphics->attribute_count, ARRAY_SIZE(graphics->attributes));
+         graphics->attribute_count = ARRAY_SIZE(graphics->attributes);
+     }
+--- a/libs/vkd3d/libs/vkd3d-shader/preproc.y
++++ b/libs/vkd3d/libs/vkd3d-shader/preproc.y
+@@ -100,7 +100,7 @@ bool preproc_add_macro(struct preproc_ct
+         preproc_free_macro(macro);
+     }
+ 
+-    TRACE("Defining new macro %s with %zu arguments.\n", debugstr_a(name), arg_count);
++    TRACE("Defining new macro %s with %u arguments.\n", debugstr_a(name), arg_count);
+ 
+     if (!(macro = vkd3d_malloc(sizeof(*macro))))
+         return false;
+--- a/libs/vkd3d/libs/vkd3d-shader/preproc.l
++++ b/libs/vkd3d/libs/vkd3d-shader/preproc.l
+@@ -265,7 +265,7 @@ static void preproc_pop_buffer(struct pr
+             free(exp->arg_values);
+         }
+         --ctx->expansion_count;
+-        TRACE("Expansion stack size is now %zu.\n", ctx->expansion_count);
++        TRACE("Expansion stack size is now %u.\n", ctx->expansion_count);
+     }
+     else
+     {
+@@ -287,7 +287,7 @@ static void preproc_pop_buffer(struct pr
+         yy_delete_buffer(file->buffer.lexer_buffer, ctx->scanner);
+ 
+         --ctx->file_count;
+-        TRACE("File stack size is now %zu.\n", ctx->file_count);
++        TRACE("File stack size is now %u.\n", ctx->file_count);
+     }
+ 
+     if (ctx->expansion_count)
+@@ -349,7 +349,7 @@ static bool preproc_push_expansion(struc
+     exp->buffer.location = text->location;
+     exp->macro = macro;
+     exp->arg_values = arg_values;
+-    TRACE("Expansion stack size is now %zu.\n", ctx->expansion_count);
++    TRACE("Expansion stack size is now %u.\n", ctx->expansion_count);
+     return true;
+ }
+ 
+@@ -716,7 +716,7 @@ int yylex(YYSTYPE *lval, YYLTYPE *lloc,
+                             else
+                             {
+                                 preproc_warning(ctx, lloc, VKD3D_SHADER_WARNING_PP_ARGUMENT_COUNT_MISMATCH,
+-                                        "Wrong number of arguments to macro \"%s\": expected %zu, got %zu.",
++                                        "Wrong number of arguments to macro \"%s\": expected %u, got %u.",
+                                         func_state->macro->name, func_state->macro->arg_count, func_state->arg_count);
+ 
+                                 if (ctx->current_directive)
+@@ -781,7 +781,7 @@ bool preproc_push_include(struct preproc
+     file->buffer.location.source_name = file->filename;
+     file->buffer.location.line = 1;
+     file->buffer.location.column = 1;
+-    TRACE("File stack size is now %zu.\n", ctx->file_count);
++    TRACE("File stack size is now %u.\n", ctx->file_count);
+     ctx->last_was_newline = true;
+     return true;
+ }
+--- a/libs/vkd3d/libs/vkd3d-shader/dxil.c
++++ b/libs/vkd3d/libs/vkd3d-shader/dxil.c
+@@ -1654,13 +1654,13 @@ static enum vkd3d_result sm6_parser_type
+ 
+                 if (!(type->u.array.count = record->operands[0]))
+                 {
+-                    TRACE("Setting unbounded for type %zu.\n", type_index);
++                    TRACE("Setting unbounded for type %u.\n", type_index);
+                     type->u.array.count = UINT_MAX;
+                 }
+ 
+                 if ((type_id = record->operands[1]) >= type_count)
+                 {
+-                    WARN("Invalid contained type id %"PRIu64" for type %zu.\n", type_id, type_index);
++                    WARN("Invalid contained type id %"PRIu64" for type %u.\n", type_id, type_index);
+                     return VKD3D_ERROR_INVALID_SHADER;
+                 }
+                 type->u.array.elem_type = &sm6->types[type_id];
+@@ -1682,13 +1682,13 @@ static enum vkd3d_result sm6_parser_type
+                 if (!dxil_record_validate_operand_min_count(record, 2, sm6))
+                     return VKD3D_ERROR_INVALID_SHADER;
+                 if (record->operands[0])
+-                    FIXME("Unhandled vararg function type %zu.\n", type_index);
++                    FIXME("Unhandled vararg function type %u.\n", type_index);
+ 
+                 type->class = TYPE_CLASS_FUNCTION;
+ 
+                 if ((type_id = record->operands[1]) >= type_count)
+                 {
+-                    WARN("Invalid return type id %"PRIu64" for type %zu.\n", type_id, type_index);
++                    WARN("Invalid return type id %"PRIu64" for type %u.\n", type_id, type_index);
+                     return VKD3D_ERROR_INVALID_SHADER;
+                 }
+ 
+@@ -1706,7 +1706,7 @@ static enum vkd3d_result sm6_parser_type
+                 {
+                     if ((type_id = record->operands[j + 2]) >= type_count)
+                     {
+-                        WARN("Invalid parameter type id %"PRIu64" for type %zu.\n", type_id, type_index);
++                        WARN("Invalid parameter type id %"PRIu64" for type %u.\n", type_id, type_index);
+                         vkd3d_free(type->u.function);
+                         return VKD3D_ERROR_INVALID_SHADER;
+                     }
+@@ -1740,7 +1740,7 @@ static enum vkd3d_result sm6_parser_type
+                     case 64:
+                         break;
+                     default:
+-                        WARN("Invalid integer width %"PRIu64" for type %zu.\n", width, type_index);
++                        WARN("Invalid integer width %"PRIu64" for type %u.\n", width, type_index);
+                         return VKD3D_ERROR_INVALID_SHADER;
+                 }
+                 type->u.width = width;
+@@ -1767,7 +1767,7 @@ static enum vkd3d_result sm6_parser_type
+ 
+                 if ((type_id = record->operands[0]) >= type_count)
+                 {
+-                    WARN("Invalid pointee type id %"PRIu64" for type %zu.\n", type_id, type_index);
++                    WARN("Invalid pointee type id %"PRIu64" for type %u.\n", type_id, type_index);
+                     return VKD3D_ERROR_INVALID_SHADER;
+                 }
+                 type->u.pointer.type = &sm6->types[type_id];
+@@ -1780,7 +1780,7 @@ static enum vkd3d_result sm6_parser_type
+                     return VKD3D_ERROR_INVALID_SHADER;
+                 if (record->code == TYPE_CODE_STRUCT_NAMED && !struct_name)
+                 {
+-                    WARN("Missing struct name before struct type %zu.\n", type_index);
++                    WARN("Missing struct name before struct type %u.\n", type_index);
+                     return VKD3D_ERROR_INVALID_SHADER;
+                 }
+ 
+@@ -1802,7 +1802,7 @@ static enum vkd3d_result sm6_parser_type
+                 {
+                     if ((type_id = record->operands[j + 1]) >= type_count)
+                     {
+-                        WARN("Invalid contained type id %"PRIu64" for type %zu.\n", type_id, type_index);
++                        WARN("Invalid contained type id %"PRIu64" for type %u.\n", type_id, type_index);
+                         vkd3d_free(type->u.struc);
+                         return VKD3D_ERROR_INVALID_SHADER;
+                     }
+@@ -1829,7 +1829,7 @@ static enum vkd3d_result sm6_parser_type
+                     return VKD3D_ERROR_OUT_OF_MEMORY;
+                 }
+                 if (!struct_name[0])
+-                    WARN("Struct name is empty for type %zu.\n", type_index);
++                    WARN("Struct name is empty for type %u.\n", type_index);
+                 continue;
+ 
+             case TYPE_CODE_VOID:
+@@ -1838,7 +1838,7 @@ static enum vkd3d_result sm6_parser_type
+                 break;
+ 
+             default:
+-                FIXME("Unhandled type %u at index %zu.\n", record->code, type_index);
++                FIXME("Unhandled type %u at index %u.\n", record->code, type_index);
+                 return VKD3D_ERROR_INVALID_SHADER;
+         }
+         ++sm6->type_count;
+@@ -2073,7 +2073,7 @@ static const struct sm6_type *sm6_parser
+ {
+     if (type_id >= sm6->type_count)
+     {
+-        WARN("Invalid type index %"PRIu64" at %zu.\n", type_id, sm6->value_count);
++        WARN("Invalid type index %"PRIu64" at %u.\n", type_id, sm6->value_count);
+         vkd3d_shader_parser_error(&sm6->p, VKD3D_SHADER_ERROR_DXIL_INVALID_TYPE_ID,
+                 "DXIL type id %"PRIu64" is invalid.", type_id);
+         return NULL;
+@@ -2608,14 +2608,14 @@ static size_t sm6_parser_get_value_index
+     /* This may underflow to produce a forward reference, but it must not exceed the final value count. */
+     if (i >= sm6->cur_max_value)
+     {
+-        WARN("Invalid value index %"PRIx64" at %zu.\n", idx, sm6->value_count);
++        WARN("Invalid value index %"PRIx64" at %u.\n", idx, sm6->value_count);
+         vkd3d_shader_parser_error(&sm6->p, VKD3D_SHADER_ERROR_DXIL_INVALID_OPERAND,
+                 "Invalid value relative index %u.", (unsigned int)idx);
+         return SIZE_MAX;
+     }
+     if (i == sm6->value_count)
+     {
+-        WARN("Invalid value self-reference at %zu.\n", sm6->value_count);
++        WARN("Invalid value self-reference at %u.\n", sm6->value_count);
+         vkd3d_shader_parser_error(&sm6->p, VKD3D_SHADER_ERROR_DXIL_INVALID_OPERAND, "Invalid value self-reference.");
+         return SIZE_MAX;
+     }
+@@ -2866,7 +2866,7 @@ static bool sm6_parser_declare_function(
+     fn->value_type = VALUE_TYPE_FUNCTION;
+     if (!(fn->u.function.name = sm6_parser_get_global_symbol_name(sm6, sm6->value_count)))
+     {
+-        WARN("Missing symbol name for function %zu.\n", sm6->value_count);
++        WARN("Missing symbol name for function %u.\n", sm6->value_count);
+         fn->u.function.name = "";
+     }
+ 
+@@ -3202,7 +3202,7 @@ static enum vkd3d_result sm6_parser_cons
+ 
+         if (!type)
+         {
+-            WARN("Constant record %zu has no type.\n", value_idx);
++            WARN("Constant record %u has no type.\n", value_idx);
+             return VKD3D_ERROR_INVALID_SHADER;
+         }
+ 
+@@ -3229,7 +3229,7 @@ static enum vkd3d_result sm6_parser_cons
+ 
+                 if (!sm6_type_is_integer(type))
+                 {
+-                    WARN("Invalid integer of non-integer type %u at constant idx %zu.\n", type->class, value_idx);
++                    WARN("Invalid integer of non-integer type %u at constant idx %u.\n", type->class, value_idx);
+                     return VKD3D_ERROR_INVALID_SHADER;
+                 }
+ 
+@@ -3247,7 +3247,7 @@ static enum vkd3d_result sm6_parser_cons
+ 
+                 if (!sm6_type_is_floating_point(type))
+                 {
+-                    WARN("Invalid float of non-fp type %u at constant idx %zu.\n", type->class, value_idx);
++                    WARN("Invalid float of non-fp type %u at constant idx %u.\n", type->class, value_idx);
+                     return VKD3D_ERROR_INVALID_SHADER;
+                 }
+ 
+@@ -3265,7 +3265,7 @@ static enum vkd3d_result sm6_parser_cons
+             case CST_CODE_DATA:
+                 if (!sm6_type_is_array(type))
+                 {
+-                    WARN("Invalid type %u for data constant idx %zu.\n", type->class, value_idx);
++                    WARN("Invalid type %u for data constant idx %u.\n", type->class, value_idx);
+                     vkd3d_shader_parser_error(&sm6->p, VKD3D_SHADER_ERROR_DXIL_INVALID_OPERAND,
+                             "The type of a constant array is not an array type.");
+                     return VKD3D_ERROR_INVALID_SHADER;
+@@ -3299,7 +3299,7 @@ static enum vkd3d_result sm6_parser_cons
+                 ptr_type = sm6_parser_get_type(sm6, record->operands[1]);
+                 if (!sm6_type_is_pointer(ptr_type))
+                 {
+-                    WARN("Constexpr cast at constant idx %zu is not a pointer.\n", value_idx);
++                    WARN("Constexpr cast at constant idx %u is not a pointer.\n", value_idx);
+                     vkd3d_shader_parser_error(&sm6->p, VKD3D_SHADER_ERROR_DXIL_INVALID_OPERAND,
+                             "Constexpr cast source operand is not a pointer.");
+                     return VKD3D_ERROR_INVALID_SHADER;
+@@ -3585,7 +3585,7 @@ static bool sm6_parser_declare_global(st
+         WARN("Ignoring section code %"PRIu64".\n", record->operands[5]);
+ 
+     if (!sm6_parser_get_global_symbol_name(sm6, sm6->value_count))
+-        WARN("Missing symbol name for global variable at index %zu.\n", sm6->value_count);
++        WARN("Missing symbol name for global variable at index %u.\n", sm6->value_count);
+     /* TODO: store global symbol names in struct vkd3d_shader_desc? */
+ 
+     if (record->operand_count > 6 && record->operands[6])
+@@ -3656,9 +3656,9 @@ static const struct vkd3d_shader_immedia
+     --index;
+     if (!(value = sm6_parser_get_value_safe(sm6, index)) || (!sm6_value_is_icb(value) && !sm6_value_is_undef(value)))
+     {
+-        WARN("Invalid initialiser index %zu.\n", index);
++        WARN("Invalid initialiser index %u.\n", index);
+         vkd3d_shader_parser_error(&sm6->p, VKD3D_SHADER_ERROR_DXIL_INVALID_OPERAND,
+-                "Global variable initialiser value index %zu is invalid.", index);
++                "Global variable initialiser value index %u is invalid.", index);
+         return NULL;
+     }
+     else if (sm6_value_is_icb(value))
+@@ -3680,9 +3680,9 @@ static bool resolve_forward_zero_initial
+     if (!(value = sm6_parser_get_value_safe(sm6, index))
+             || (!sm6_value_is_icb(value) && !sm6_value_is_constant(value) && !sm6_value_is_undef(value)))
+     {
+-        WARN("Invalid initialiser index %zu.\n", index);
++        WARN("Invalid initialiser index %u.\n", index);
+         vkd3d_shader_parser_error(&sm6->p, VKD3D_SHADER_ERROR_DXIL_INVALID_OPERAND,
+-                "TGSM initialiser value index %zu is invalid.", index);
++                "TGSM initialiser value index %u is invalid.", index);
+         return false;
+     }
+     else if ((sm6_value_is_icb(value) && value->u.icb->is_null) || sm6_value_is_constant_zero(value))
+@@ -6543,9 +6543,9 @@ static void sm6_parser_emit_call(struct
+     operand_count = type->u.function->param_count;
+     if (operand_count > ARRAY_SIZE(operands))
+     {
+-        WARN("Ignoring %zu operands.\n", operand_count - ARRAY_SIZE(operands));
++        WARN("Ignoring %u operands.\n", operand_count - ARRAY_SIZE(operands));
+         vkd3d_shader_parser_warning(&sm6->p, VKD3D_SHADER_WARNING_DXIL_IGNORING_OPERANDS,
+-                "Ignoring %zu operands for function call.", operand_count - ARRAY_SIZE(operands));
++                "Ignoring %u operands for function call.", operand_count - ARRAY_SIZE(operands));
+         operand_count = ARRAY_SIZE(operands);
+     }
+ 
+@@ -7882,7 +7882,7 @@ static enum vkd3d_result sm6_parser_func
+     if (block->record_count < 2)
+     {
+         /* It should contain at least a block count and a RET instruction. */
+-        WARN("Invalid function block record count %zu.\n", block->record_count);
++        WARN("Invalid function block record count %u.\n", block->record_count);
+         return VKD3D_ERROR_INVALID_SHADER;
+     }
+     if (block->records[0]->code != FUNC_CODE_DECLAREBLOCKS || !block->records[0]->operand_count
+@@ -7921,9 +7921,9 @@ static enum vkd3d_result sm6_parser_func
+ 
+         if (!code_block)
+         {
+-            WARN("Invalid block count %zu.\n", function->block_count);
++            WARN("Invalid block count %u.\n", function->block_count);
+             vkd3d_shader_parser_error(&sm6->p, VKD3D_SHADER_ERROR_DXIL_INVALID_OPERAND,
+-                    "Invalid block count %zu.", function->block_count);
++                    "Invalid block count %u.", function->block_count);
+             return VKD3D_ERROR_INVALID_SHADER;
+         }
+ 
+@@ -9812,9 +9812,9 @@ static void sm6_parser_gs_properties_ini
+     }
+     if (node->operand_count > ARRAY_SIZE(operands))
+     {
+-        WARN("Ignoring %zu extra operands.\n", node->operand_count - ARRAY_SIZE(operands));
++        WARN("Ignoring %u extra operands.\n", node->operand_count - ARRAY_SIZE(operands));
+         vkd3d_shader_parser_warning(&sm6->p, VKD3D_SHADER_WARNING_DXIL_IGNORING_OPERANDS,
+-                "Ignoring %zu extra operands for geometry shader properties.",
++                "Ignoring %u extra operands for geometry shader properties.",
+                 node->operand_count - ARRAY_SIZE(operands));
+     }
+ 
+@@ -9934,9 +9934,9 @@ static enum vkd3d_tessellator_domain sm6
+     }
+     if (node->operand_count > ARRAY_SIZE(operands))
+     {
+-        WARN("Ignoring %zu extra operands.\n", node->operand_count - ARRAY_SIZE(operands));
++        WARN("Ignoring %u extra operands.\n", node->operand_count - ARRAY_SIZE(operands));
+         vkd3d_shader_parser_warning(&sm6->p, VKD3D_SHADER_WARNING_DXIL_IGNORING_OPERANDS,
+-                "Ignoring %zu extra operands for domain shader properties.",
++                "Ignoring %u extra operands for domain shader properties.",
+                 node->operand_count - ARRAY_SIZE(operands));
+     }
+ 
+@@ -10273,9 +10273,9 @@ static enum vkd3d_result sm6_parser_init
+     count = byte_code_size / sizeof(*byte_code);
+     if (count < 6)
+     {
+-        WARN("Invalid data size %zu.\n", byte_code_size);
++        WARN("Invalid data size %u.\n", byte_code_size);
+         vkd3d_shader_error(message_context, &location, VKD3D_SHADER_ERROR_DXIL_INVALID_SIZE,
+-                "DXIL chunk size %zu is smaller than the DXIL header size.", byte_code_size);
++                "DXIL chunk size %u is smaller than the DXIL header size.", byte_code_size);
+         return VKD3D_ERROR_INVALID_SHADER;
+     }
+ 
+@@ -10286,9 +10286,9 @@ static enum vkd3d_result sm6_parser_init
+ 
+     if (token_count < 6 || count < token_count)
+     {
+-        WARN("Invalid token count %u (word count %zu).\n", token_count, count);
++        WARN("Invalid token count %u (word count %u).\n", token_count, count);
+         vkd3d_shader_error(message_context, &location, VKD3D_SHADER_ERROR_DXIL_INVALID_CHUNK_SIZE,
+-                "DXIL chunk token count %#x is invalid (word count %zu).", token_count, count);
++                "DXIL chunk token count %#x is invalid (word count %u).", token_count, count);
+         return VKD3D_ERROR_INVALID_SHADER;
+     }
+ 
+@@ -10304,18 +10304,18 @@ static enum vkd3d_result sm6_parser_init
+     chunk_offset = byte_code[4];
+     if (chunk_offset < 16 || chunk_offset >= byte_code_size)
+     {
+-        WARN("Invalid bitcode chunk offset %#x (data size %zu).\n", chunk_offset, byte_code_size);
++        WARN("Invalid bitcode chunk offset %#x (data size %u).\n", chunk_offset, byte_code_size);
+         vkd3d_shader_error(message_context, &location, VKD3D_SHADER_ERROR_DXIL_INVALID_CHUNK_OFFSET,
+-                "DXIL bitcode chunk has invalid offset %#x (data size %#zx).", chunk_offset, byte_code_size);
++                "DXIL bitcode chunk has invalid offset %#x (data size %#x).", chunk_offset, byte_code_size);
+         return VKD3D_ERROR_INVALID_SHADER;
+     }
+     chunk_size = byte_code[5];
+     if (chunk_size > byte_code_size - chunk_offset)
+     {
+-        WARN("Invalid bitcode chunk size %#x (data size %zu, chunk offset %#x).\n",
++        WARN("Invalid bitcode chunk size %#x (data size %u, chunk offset %#x).\n",
+                 chunk_size, byte_code_size, chunk_offset);
+         vkd3d_shader_error(message_context, &location, VKD3D_SHADER_ERROR_DXIL_INVALID_CHUNK_SIZE,
+-                "DXIL bitcode chunk has invalid size %#x (data size %#zx, chunk offset %#x).",
++                "DXIL bitcode chunk has invalid size %#x (data size %#x, chunk offset %#x).",
+                 chunk_size, byte_code_size, chunk_offset);
+         return VKD3D_ERROR_INVALID_SHADER;
+     }
+@@ -10401,17 +10401,17 @@ static enum vkd3d_result sm6_parser_init
+     length = sm6->ptr - sm6->start - block->start;
+     if (length != block->length)
+     {
+-        WARN("Invalid block length %zu; expected %u.\n", length, block->length);
++        WARN("Invalid block length %u; expected %u.\n", length, block->length);
+         vkd3d_shader_parser_warning(&sm6->p, VKD3D_SHADER_WARNING_DXIL_INVALID_BLOCK_LENGTH,
+-                "Root block ends with length %zu but indicated length is %u.", length, block->length);
++                "Root block ends with length %u but indicated length is %u.", length, block->length);
+     }
+     if (sm6->ptr != sm6->end)
+     {
+         size_t expected_length = sm6->end - sm6->start;
+         length = sm6->ptr - sm6->start;
+-        WARN("Invalid module length %zu; expected %zu.\n", length, expected_length);
++        WARN("Invalid module length %u; expected %u.\n", length, expected_length);
+         vkd3d_shader_parser_warning(&sm6->p, VKD3D_SHADER_WARNING_DXIL_INVALID_MODULE_LENGTH,
+-                "Module ends with length %zu but indicated length is %zu.", length, expected_length);
++                "Module ends with length %u but indicated length is %u.", length, expected_length);
+     }
+ 
+     if ((ret = sm6_parser_type_table_init(sm6)) < 0)
+@@ -10504,7 +10504,7 @@ static enum vkd3d_result sm6_parser_init
+         {
+             FIXME("Too many metadata tables.\n");
+             vkd3d_shader_parser_error(&sm6->p, VKD3D_SHADER_ERROR_DXIL_INVALID_METADATA,
+-                    "A metadata table count greater than %zu is unsupported.", ARRAY_SIZE(sm6->metadata_tables));
++                    "A metadata table count greater than %u is unsupported.", ARRAY_SIZE(sm6->metadata_tables));
+             ret = VKD3D_ERROR_INVALID_SHADER;
+             goto fail;
+         }
+@@ -10582,9 +10582,9 @@ static enum vkd3d_result sm6_parser_init
+ 
+     if (sm6->function_count > expected_function_count)
+     {
+-        FIXME("%zu unhandled functions.\n", sm6->function_count - expected_function_count);
++        FIXME("%u unhandled functions.\n", sm6->function_count - expected_function_count);
+         vkd3d_shader_parser_error(&sm6->p, VKD3D_SHADER_ERROR_DXIL_INVALID_MODULE,
+-                "%zu functions were not emitted.", sm6->function_count - expected_function_count);
++                "%u functions were not emitted.", sm6->function_count - expected_function_count);
+     }
+ 
+     dxil_block_destroy(&sm6->root_block);
+--- a/libs/vkd3d/libs/vkd3d-shader/tpf.c
++++ b/libs/vkd3d/libs/vkd3d-shader/tpf.c
+@@ -2650,7 +2650,7 @@ static void shader_sm4_read_instruction(
+     }
+     if (!len || remaining < len)
+     {
+-        WARN("Read invalid length %u (remaining %zu).\n", len, remaining);
++        WARN("Read invalid length %u (remaining %u).\n", len, remaining);
+         goto fail;
+     }
+     --len;
+--- a/libs/vkd3d/libs/vkd3d-shader/glsl.c
++++ b/libs/vkd3d/libs/vkd3d-shader/glsl.c
+@@ -1916,7 +1916,7 @@ static void shader_glsl_generate_cbv_dec
+     size /= VKD3D_VEC4_SIZE * sizeof(uint32_t);
+ 
+     vkd3d_string_buffer_printf(buffer,
+-            "layout(std140, binding = %u) uniform block_%s_cb_%u { vec4 %s_cb_%u[%zu]; };\n",
++            "layout(std140, binding = %u) uniform block_%s_cb_%u { vec4 %s_cb_%u[%u]; };\n",
+             binding->binding, prefix, cbv->register_id, prefix, cbv->register_id, size);
+ }
+ 
+--- a/libs/vkd3d/libs/vkd3d-shader/ir.c
++++ b/libs/vkd3d/libs/vkd3d-shader/ir.c
+@@ -6688,8 +6688,8 @@ static void VKD3D_PRINTF_FUNC(3, 4) vali
+     {
+         const struct vkd3d_shader_instruction *ins = &ctx->program->instructions.elements[ctx->instruction_idx];
+         vkd3d_shader_error(ctx->message_context, &ins->location, error,
+-                "instruction %zu: %s", ctx->instruction_idx + 1, buf.buffer);
+-        WARN("VSIR validation error: instruction %zu: %s\n", ctx->instruction_idx + 1, buf.buffer);
++                "instruction %u: %s", ctx->instruction_idx + 1, buf.buffer);
++        WARN("VSIR validation error: instruction %u: %s\n", ctx->instruction_idx + 1, buf.buffer);
+     }
+ 
+     vkd3d_string_buffer_cleanup(&buf);
+@@ -6886,7 +6886,7 @@ static void vsir_validate_temp_register(
+     {
+         validator_error(ctx, VKD3D_SHADER_ERROR_VSIR_INVALID_DIMENSION,
+                 "Invalid dimension %#x for a TEMP register: "
+-                "it has already been seen with dimension %#x at instruction %zu.",
++                "it has already been seen with dimension %#x at instruction %u.",
+                 reg->dimension, data->dimension, data->first_seen);
+     }
+ }
+@@ -7101,13 +7101,13 @@ static void vsir_validate_ssa_register(s
+         if (data->dimension != reg->dimension)
+             validator_error(ctx, VKD3D_SHADER_ERROR_VSIR_INVALID_DIMENSION,
+                     "Invalid dimension %#x for a SSA register: "
+-                    "it has already been seen with dimension %#x at instruction %zu.",
++                    "it has already been seen with dimension %#x at instruction %u.",
+                     reg->dimension, data->dimension, data->first_seen);
+ 
+         if (data_type_is_64_bit(data->data_type) != data_type_is_64_bit(reg->data_type))
+             validator_error(ctx, VKD3D_SHADER_ERROR_VSIR_INVALID_DATA_TYPE,
+                     "Invalid data type %#x for a SSA register: "
+-                    "it has already been seen with data type %#x at instruction %zu.",
++                    "it has already been seen with data type %#x at instruction %u.",
+                     reg->data_type, data->data_type, data->first_seen);
+     }
+ }
+@@ -7294,7 +7294,7 @@ static void vsir_validate_dst_param(stru
+                 else
+                 {
+                     validator_error(ctx, VKD3D_SHADER_ERROR_VSIR_INVALID_SSA_USAGE,
+-                            "SSA register is already assigned at instruction %zu.",
++                            "SSA register is already assigned at instruction %u.",
+                             data->first_assigned);
+                 }
+             }
+@@ -8245,7 +8245,7 @@ enum vkd3d_result vsir_program_validate(
+     ctx.invalid_instruction_idx = true;
+ 
+     if (ctx.depth != 0)
+-        validator_error(&ctx, VKD3D_SHADER_ERROR_VSIR_INVALID_CONTROL_FLOW, "%zu nested blocks were not closed.", ctx.depth);
++        validator_error(&ctx, VKD3D_SHADER_ERROR_VSIR_INVALID_CONTROL_FLOW, "%u nested blocks were not closed.", ctx.depth);
+ 
+     if (ctx.inside_block)
+         validator_error(&ctx, VKD3D_SHADER_ERROR_VSIR_INVALID_CONTROL_FLOW, "Last block was not closed.");
+--- a/libs/vkd3d/libs/vkd3d/cache.c
++++ b/libs/vkd3d/libs/vkd3d/cache.c
+@@ -158,7 +158,7 @@ int vkd3d_shader_cache_put(struct vkd3d_
+     struct rb_entry *entry;
+     enum vkd3d_result ret;
+ 
+-    TRACE("%p, %p, %#zx, %p, %#zx.\n", cache, key, key_size, value, value_size);
++    TRACE("%p, %p, %#x, %p, %#x.\n", cache, key, key_size, value, value_size);
+ 
+     k.hash = vkd3d_shader_cache_hash_key(key, key_size);
+     k.key = key;
+@@ -214,7 +214,7 @@ int vkd3d_shader_cache_get(struct vkd3d_
+     enum vkd3d_result ret;
+     size_t size_in;
+ 
+-    TRACE("%p, %p, %#zx, %p, %p.\n", cache, key, key_size, value, value_size);
++    TRACE("%p, %p, %#x, %p, %p.\n", cache, key, key_size, value, value_size);
+ 
+     size_in = *value_size;
+ 
+@@ -245,7 +245,7 @@ int vkd3d_shader_cache_get(struct vkd3d_
+ 
+     if (size_in < e->h.value_size)
+     {
+-        WARN("Output buffer is too small for item %#"PRIx64", got %#zx want %#"PRIx64".\n",
++        WARN("Output buffer is too small for item %#"PRIx64", got %#x want %#"PRIx64".\n",
+                 e->h.hash, size_in, e->h.value_size);
+         ret = VKD3D_ERROR_MORE_DATA;
+         goto done;
