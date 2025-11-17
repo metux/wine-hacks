@@ -9,8 +9,6 @@ debianization/desktop-launchers.patch
 debianization/duplicate-apploaders.patch
 debianization/wineserver-persistence.patch
 
-system/zlib.patch
-
 disable/line-wrapping.patch
 disable/duplicate-nls.patch
 disable/generated-data.patch

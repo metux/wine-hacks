@@ -1,0 +1,7 @@
+make_xftmpl
+makedep
+widl/widl
+wine/wine
+winebuild/winebuild
+winegcc/winegcc
+wrc/wrc

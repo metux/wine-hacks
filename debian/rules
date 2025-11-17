@@ -1,25 +1,24 @@
 #!/usr/bin/make -f
 
+VERSION := 10.19
+SUBDIR := wine$(VERSION)
+
+export DEB_BUILD_OPTIONS=parallel=$(shell nproc)
+
 # add DEB_* variables to the environment
 include /usr/share/dpkg/architecture.mk
 include /usr/share/dpkg/pkg-info.mk
 include /usr/share/dpkg/vendor.mk
 
-# determine whether this is a stable or development build
-VERSION=$(shell echo $(DEB_SOURCE) | sed s/wine//g)
-ifeq (x$(VERSION), x)
-DEBSUFFIX=-stable
-else
 DEBSUFFIX=$(VERSION)
-endif
 export DEBSUFFIX
 
 # installation paths
 MANDIR=usr/share/man
-BINDIR=usr/lib/wine$(VERSION)
-DATDIR=usr/share/wine$(VERSION)
-INCDIR=usr/include/wine$(VERSION)
-LIBDIR=usr/lib/$(DEB_HOST_MULTIARCH)/wine$(VERSION)
+BINDIR=/usr/lib/$(SUBDIR)
+DATDIR=/usr/share/$(SUBDIR)
+INCDIR=/usr/include/$(SUBDIR)
+LIBDIR=/usr/lib/$(DEB_HOST_MULTIARCH)/$(SUBDIR)
 
 # enable verbose build log
 export DH_VERBOSE=1
@@ -33,11 +32,9 @@ CONFLAGS=--with-gnutls \
          --without-sane \
          --without-netapi \
          --disable-tests \
-         --enable-werror \
-         --enable-maintainer-mode \
-         --libdir=/$(LIBDIR) \
+         --enable-win64 \
          --bindir=/$(BINDIR) \
-         --mandir=/$(MANDIR) \
+         --libdir=/$(LIBDIR) \
          --includedir=/$(INCDIR) \
          --datarootdir=/$(DATDIR) \
          LDFLAGS="" \
@@ -81,10 +78,8 @@ INSTALLS=$(shell ls debian/*VERSION* | sed s/VERSION/$(VERSION)/) \
 
 debian/control: debian/control.in debian/control.stable.in
 	sed "s/VERSION/$(VERSION)/g;s/DEBSUFFIX/$(DEBSUFFIX)/g" < $< > $@
-ifeq (x$(DEBSUFFIX),x-stable)
 	echo >> $@
 	cat debian/control.stable.in >> $@
-endif
 
 debian/wine$(VERSION)%: debian/wineVERSION%
 	sed "s/VERSION/$(VERSION)/g;s/DEBSUFFIX/$(DEBSUFFIX)/g" < $< > $@
@@ -109,42 +104,10 @@ override_dh_auto_configure:
 	$(CC) --version
 	# mingw version
 	$(DEB_HOST_GNU_CPU)-w64-mingw32-gcc --version || echo ""
-	# automatically generated files
-	./tools/make_unicode
-	./tools/make_requests
-	./tools/make_specfiles
-	cd dlls/dsound && ./make_fir
-	cd dlls/opengl32 && ./make_opengl
-	cd dlls/winevulkan && ./make_vulkan -x /usr/share/vulkan/registry/vk.xml -X /usr/share/vulkan/registry/video.xml
 	# autotools files
 	ln -sf /usr/share/misc/config.sub tools
 	ln -sf /usr/share/misc/config.guess tools
 	# image files used to generate icons for parts of wine
-	ln -sf ../../dlls/user32/resources/oic_hand.svg dlls/display.drv16/oic_hand.svg
-	ln -sf ../../dlls/user32/resources/oic_note.svg dlls/comctl32/idi_tt_info_md.svg
-	ln -sf ../../dlls/user32/resources/oic_note.svg dlls/comctl32/idi_tt_info_sm.svg
-	ln -sf ../../dlls/user32/resources/oic_bang.svg dlls/comctl32/idi_tt_warn_md.svg
-	ln -sf ../../dlls/user32/resources/oic_bang.svg dlls/comctl32/idi_tt_warn_sm.svg
-	ln -sf ../../dlls/user32/resources/oic_hand.svg dlls/comctl32/idi_tt_error_md.svg
-	ln -sf ../../dlls/user32/resources/oic_hand.svg dlls/comctl32/idi_tt_error_sm.svg
-	ln -sf ../../dlls/shell32/resources/move.svg dlls/comctl32/idi_dragarrow.svg
-	ln -sf ../../dlls/shell32/resources/image.svg programs/regedit/bin.svg
-	ln -sf ../../dlls/shell32/resources/folder.svg programs/regedit/folder.svg
-	ln -sf ../../dlls/shell32/resources/document.svg programs/regedit/string.svg
-	ln -sf ../../dlls/shell32/resources/mycomputer.svg programs/regedit/computer.svg
-	ln -sf ../../dlls/shell32/resources/folder_open.svg programs/regedit/folderopen.svg
-	ln -sf ../../dlls/shell32/resources/window.svg programs/taskmgr/window.svg
-	ln -sf ../../dlls/shell32/resources/window.svg programs/taskmgr/windowsm.svg
-	ln -sf ../../dlls/shell32/resources/drive.svg dlls/comdlg32/hdisk.svg
-	ln -sf ../../dlls/shell32/resources/folder.svg dlls/comdlg32/folder.svg
-	ln -sf ../../dlls/shell32/resources/network.svg dlls/comdlg32/network.svg
-	ln -sf ../../dlls/shell32/resources/folder_open.svg dlls/comdlg32/folder2.svg
-	ln -sf ../../dlls/shell32/resources/disk_drive.svg dlls/comdlg32/floppy.svg
-	ln -sf ../../dlls/shell32/resources/optical_drive.svg dlls/comdlg32/cdrom.svg
-ifneq (,$(filter $(DEB_HOST_ARCH),i386 amd64))
-	# ensure system zlib files are used for i386 and amd64
-	rm -rf libs/zlib
-endif
 	# execute wine's configure script
 	./configure $(CONFLAGS)
 
@@ -161,6 +124,11 @@ override_dh_auto_build-arch:
 override_dh_auto_test:
 	# disabled, there are currently too many failing tests
 
+#override_dh_install:
+#	dh_install
+#	mkdir -p debian/libwine$(VERSION)/usr/lib
+#	cp -a debian/tmp/usr/lib/* debian/libwine$(VERSION)/usr/lib/
+
 override_dh_install-indep:
 	dh_install
 	# create font symlinks
@@ -170,26 +138,27 @@ override_dh_auto_install-indep: $(INSTALLS)
 	mkdir -p debian/tmp
 	cp ANNOUNCE.md debian/tmp/NEWS
 	cp programs/winedbg/README debian/tmp/README.winedbg
-	sed "s|DEBSUFFIX|$(DEBSUFFIX)|g" debian/scripts/wineapploader.in > debian/tmp/wineapploader
-	chmod 755 debian/tmp/wineapploader
-	sed "s|BINDIR|$(BINDIR)|g;s|VERSION|$(VERSION)|g" debian/scripts/wine.in > debian/tmp/wine$(DEBSUFFIX)
-	make $(shell find . ! -path "./.pc/*" -name *\\.man\\.in | sed s/\\.in//)
-	for file in $$(find . ! -path "./debian/*" -name \*.man); do \
-	    rename=$$(basename $$file | sed "s/\\./$(DEBSUFFIX)./;s/UTF-8\\.//"); \
-	    mv $$file debian/tmp/$$rename || true; \
-	    done
-	# files to exclude from the architecture-independent packages
+	sed "s|DEBSUFFIX|$(VERSION)|g" debian/scripts/wineapploader.in > debian/tmp/$(BINDIR)wineapploader
+	chmod 755 debian/tmp/$(BINDIR)wineapploader
+	sed "s|BINDIR|$(BINDIR)|g;s|VERSION|$(VERSION)|g" debian/scripts/wine.in > debian/tmp/$(BINDIR)/wine$(VERSION)
+	chmod +x debian/tmp/$(BINDIR)/wine$(VERSION)
+#	make $(shell find . ! -path "./.pc/*" -name *\\.man\\.in | sed s/\\.in//)
+#	for file in $$(find . ! -path "./debian/*" -name \*.man); do \
+#	    rename=$$(basename $$file | sed "s/\\./$(VERSION)./;s/UTF-8\\.//"); \
+#	    mv $$file debian/tmp/$$rename || true; \
+#	    done
+#	# files to exclude from the architecture-independent packages
 	rm -f debian/tmp/usr/lib/*/wineserver
 	rm -f debian/tmp/notepad*.man debian/tmp/winemine*.man
 	# extract hicolor icon from logo.svg
-	sed '/image\/png/d;s|width="611"|width="209"|' programs/winecfg/logo.svg > debian/tmp/wine$(DEBSUFFIX).svg
+	sed '/image\/png/d;s|width="611"|width="209"|' programs/winecfg/logo.svg > debian/tmp/wine$(VERSION).svg
 
 override_dh_auto_install-arch: $(INSTALLS)
 	mkdir -p debian/tmp
 	cp ANNOUNCE.md debian/tmp/NEWS
 	cp tools/winedump/README debian/tmp/README.winedump
 	mv server/wineserver debian/tmp/wineserver$(DEB_HOST_ARCH_BITS)
-	sed "s|BINDIR|$(BINDIR)|g" debian/scripts/winegcc.in > debian/tmp/winegcc$(DEBSUFFIX)
+	sed "s|BINDIR|$(BINDIR)|g" debian/scripts/winegcc.in > debian/tmp/winegcc$(VERSION)
 	sed "s|BINDIR|$(BINDIR)|g;s|VERSION|$(VERSION)|g" debian/scripts/wineserver.in > debian/tmp/wineserver
 	chmod 755 debian/tmp/wineserver
 ifeq ($(DEB_HOST_ARCH), i386)
@@ -207,9 +176,10 @@ endif
 	dh_installdirs
 	dh_auto_install
 	for file in $$(find . ! -path "./debian/*" -name \*.man); do \
-	    rename=$$(basename $$file | sed "s/\\./$(DEBSUFFIX)./;s/UTF-8\\.//"); \
+	    rename=$$(basename $$file | sed "s/\\./$(VERSION)./;s/UTF-8\\.//"); \
 	    mv $$file debian/tmp/$$rename || true; \
 	    done
+	mkdir -p debian/tmp/$(BINDIR)
 ifeq ($(DEB_HOST_ARCH_BITS), 64)
 	# copy 64 bit wine-preloader
 	test -f debian/tmp/$(BINDIR)/wine64-preloader && \
@@ -258,10 +228,5 @@ override_dh_clean:
 	dh_clean -- $(INSTALLS)
 
 override_dh_auto_clean:
-ifeq (,$(filter $(DEB_HOST_ARCH),i386 amd64))
-	# remove zlib patch on non x86 architectures
-	QUILT_PATCHES=debian/patches quilt pop -af || true
-	QUILT_PATCHES=debian/patches quilt delete system/zlib.patch || true
-endif
 	QUILT_PATCHES=debian/patches quilt push -af || true
 	dh_auto_clean
