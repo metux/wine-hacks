@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-VERSION := 10.19
+VERSION := -10.19
 SUBDIR := wine$(VERSION)
 
 export DEB_BUILD_OPTIONS=parallel=$(shell nproc)
@@ -15,10 +15,10 @@ export DEBSUFFIX
 
 # installation paths
 MANDIR=usr/share/man
-BINDIR=/usr/lib/$(SUBDIR)
-DATDIR=/usr/share/$(SUBDIR)
-INCDIR=/usr/include/$(SUBDIR)
-LIBDIR=/usr/lib/$(DEB_HOST_MULTIARCH)/$(SUBDIR)
+BINDIR=usr/lib/wine$(VERSION)
+DATDIR=usr/share/wine$(VERSION)
+INCDIR=usr/include/wine$(VERSION)
+LIBDIR=usr/lib/$(DEB_HOST_MULTIARCH)/wine$(VERSION)
 
 # enable verbose build log
 export DH_VERBOSE=1
@@ -109,6 +109,7 @@ override_dh_auto_configure:
 	ln -sf /usr/share/misc/config.guess tools
 	# image files used to generate icons for parts of wine
 	# execute wine's configure script
+	autoreconf -fi
 	./configure $(CONFLAGS)
 
 override_dh_auto_build-indep:
