@@ -1,3 +1,6 @@
+# PE libraries
+debian/tmp/usr/lib/*/*/*/*/*.dll
+
 debian/tmp/usr/lib usr/lib
 
 # wine server
