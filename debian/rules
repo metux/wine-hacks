@@ -139,8 +139,8 @@ override_dh_auto_install-indep: $(INSTALLS)
 	mkdir -p debian/tmp
 	cp ANNOUNCE.md debian/tmp/NEWS
 	cp programs/winedbg/README debian/tmp/README.winedbg
-	sed "s|DEBSUFFIX|$(VERSION)|g" debian/scripts/wineapploader.in > debian/tmp/$(BINDIR)wineapploader
-	chmod 755 debian/tmp/$(BINDIR)wineapploader
+	sed "s|DEBSUFFIX|$(VERSION)|g" debian/scripts/wineapploader.in > debian/tmp/$(BINDIR)/wineapploader
+	chmod 755 debian/tmp/$(BINDIR)/wineapploader
 	sed "s|BINDIR|$(BINDIR)|g;s|VERSION|$(VERSION)|g" debian/scripts/wine.in > debian/tmp/$(BINDIR)/wine$(VERSION)
 	chmod +x debian/tmp/$(BINDIR)/wine$(VERSION)
 #	make $(shell find . ! -path "./.pc/*" -name *\\.man\\.in | sed s/\\.in//)

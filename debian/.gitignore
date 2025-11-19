@@ -30,10 +30,17 @@
 /wine6410.19-tools.*
 /wine6410.19-tools
 
-/libwine10.19.*
 /wine3210.19-tools.*
 /wine3210.19.*
 /wine6410.19.*
 
 /wine64*-preloader/
 /wine6410.19/
+
+/libwine10.19.*
+/libwine10.19-dev.*
+
+/libwine-10.19.*
+/libwine-10.19-dev.*
+
+*.debhelper.log
