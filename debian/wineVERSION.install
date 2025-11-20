@@ -8,4 +8,4 @@ debian/tmp/usr/lib/wineVERSION/wineapploader usr/lib/wineVERSION
 debian/tmp/wineDEBSUFFIX.svg usr/share/icons/hicolor/scalable/apps/
 
 # application metadata
-debian/org.winehq.wineVERSION.appdata.xml usr/share/metainfo/
+debian/org.winehq.wine.appdata.xml usr/share/metainfo/org.winehq.wineVERSION.appdata.xml
