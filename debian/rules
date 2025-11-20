@@ -108,6 +108,7 @@ debian/bug-control: debian/bug-control.in
 	dh $@
 
 override_dh_auto_configure:
+	echo "ARCHDEP_ARGS=$(ARCHDEP_ARGS)"
 	# cc version
 	$(CC) --version
 	# mingw version
