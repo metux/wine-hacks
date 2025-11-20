@@ -7,4 +7,4 @@ debian/tmp/usr/lib usr/lib
 debian/tmp/wineserver usr/lib/wineVERSION
 
 # configuration files
-debian/tmp/usr/share/**/*.inf
+debian/tmp/usr/share/*/*/*.inf
