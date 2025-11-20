@@ -230,7 +230,8 @@ override_dh_missing:
 	dh_missing -X elf.depends -X elf.recommends -X wine.desktop
 
 override_dh_clean:
-	dh_clean -- $(INSTALLS)
+	rm -f configure config.status
+	dh_clean
 
 override_dh_auto_clean:
 	QUILT_PATCHES=debian/patches quilt push -af || true
