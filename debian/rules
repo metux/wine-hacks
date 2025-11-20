@@ -236,6 +236,7 @@ override_dh_clean:
 override_dh_auto_clean:
 	QUILT_PATCHES=debian/patches quilt push -af || true
 	autoreconf -fi
+	rm -f config.status
 	dh_auto_clean
 
 #override_dh_gencontrol:
