@@ -236,7 +236,7 @@ override_dh_clean:
 override_dh_auto_clean:
 	QUILT_PATCHES=debian/patches quilt push -af || true
 	autoreconf -fi
-	dh_auto_clean $(CONFLAGS)
+	dh_auto_clean
 
 #override_dh_gencontrol:
 #	dh_gencontrol -- -DSource=wine$(VERSION)
