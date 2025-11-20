@@ -2,7 +2,7 @@
 debian/tmp/wineDEBSUFFIX usr/bin
 
 # wine application loader
-debian/tmp/wineapploader usr/lib/wineVERSION
+debian/tmp/usr/lib/wineVERSION/wineapploader usr/lib/wineVERSION
 
 # wine icon
 debian/tmp/wineDEBSUFFIX.svg usr/share/icons/hicolor/scalable/apps/
