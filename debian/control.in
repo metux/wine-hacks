@@ -34,7 +34,7 @@ Build-Depends:
  khronos-api (>= 4.6),
  unicode-data (>= 15),
  unicode-data (<< 17),
- unicode-idna (>= 16),
+ unicode-idna (>= 15),
  unicode-idna (<< 17),
  unicode-cldr-core (>= 46),
  unicode-cldr-core (<< 47),
