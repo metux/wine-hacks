@@ -119,6 +119,8 @@ override_dh_auto_configure:
 	# image files used to generate icons for parts of wine
 	# execute wine's configure script
 	autoreconf -fi
+	echo "DEB_HOST_ARCH=$(DEB_HOST_ARCH)"
+	echo "ARCHDEP_ARGS=$(ARCHDEP_ARGS)"
 	./configure $(CONFLAGS)
 
 override_dh_auto_build-indep:
@@ -133,11 +135,6 @@ override_dh_auto_build-arch:
 
 override_dh_auto_test:
 	# disabled, there are currently too many failing tests
-
-#override_dh_install:
-#	dh_install
-#	mkdir -p debian/libwine$(VERSION)/usr/lib
-#	cp -a debian/tmp/usr/lib/* debian/libwine$(VERSION)/usr/lib/
 
 override_dh_install-indep:
 	dh_install
