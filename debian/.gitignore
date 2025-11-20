@@ -6,30 +6,22 @@
 /bug-control
 /control
 /debhelper-build-stamp
+/files
 
+*.debhelper.log
 *.lintian-overrides
-
-# /libwine-dev/
-# /libwine/
-# /wine64
-# /wine64-tools
-# /wine-binfmt
-# /wine-common/
-# /wine/
-
-# /libwine10.19-dev
-# /libwine10.19-dev.*
-# /libwine10.19
 
 /wine64*-preloader/
 /wine6410.19/
 
-# /libwine10.19.*
-# /libwine10.19-dev.*
-
+/libwine-10.19/
 /libwine-10.19.*
+/libwine-10.19-dev/
+/libwine10.19-dev/
 /libwine-10.19-dev.*
+/libwine10.19/
 
+/wine-10.19/
 /wine-10.19.*
 /wine32-10.19.*
 /wine32-10.19-preloader.*
@@ -38,4 +30,12 @@
 /wine64-10.19-preloader.*
 /wine64-10.19-tools.*
 
-*.debhelper.log
+/fonts-wine.substvars
+/wine-binfmt.substvars
+/wine-binfmt/
+/wine-common.substvars
+/wine-common/
+/wine10.19/
+/wine64-10.19-tools/
+/wine64-10.19/
+/wine6410.19-tools/
