@@ -3,13 +3,20 @@
 VERSION := -10.19
 SUBDIR := wine$(VERSION)
 
-export DEB_SOURCE = wine$(VERSION)
-export DEB_BUILD_OPTIONS=parallel=$(shell nproc)
-
 # add DEB_* variables to the environment
 include /usr/share/dpkg/architecture.mk
 include /usr/share/dpkg/pkg-info.mk
 include /usr/share/dpkg/vendor.mk
+
+export DEB_SOURCE = wine$(VERSION)
+export DEB_BUILD_OPTIONS=parallel=$(shell nproc)
+
+# Detect 32-bit vs 64-bit
+ifeq ($(DEB_HOST_ARCH),i386)
+    ARCHDEP_ARGS :=
+else ifeq ($(DEB_HOST_ARCH),amd64)
+    ARCHDEP_ARGS := --enable-win64
+endif
 
 DEBSUFFIX=$(VERSION)
 export DEBSUFFIX
@@ -33,7 +40,7 @@ CONFLAGS=--with-gnutls \
          --without-sane \
          --without-netapi \
          --disable-tests \
-         --enable-win64 \
+         $(ARCHDEP_ARGS) \
          --bindir=/$(BINDIR) \
          --libdir=/$(LIBDIR) \
          --includedir=/$(INCDIR) \
