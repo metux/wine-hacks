@@ -2,3 +2,4 @@ usr/share/*/wine/nls/*
 usr/share/*/wine/fonts/*.fon
 usr/share/*/wine/fonts/*.ttf
 usr/share
+!usr/share/*/wine/wine.inf
