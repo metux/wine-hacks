@@ -1,13 +1,13 @@
-debian/tmp/usr/lib/wineVERSION/wmc
-debian/tmp/usr/lib/wineVERSION/wrc
-debian/tmp/usr/lib/wineVERSION/widl
-debian/tmp/usr/lib/wineVERSION/winecpp
-debian/tmp/usr/lib/wineVERSION/winegcc
-debian/tmp/usr/lib/wineVERSION/wineg++
-debian/tmp/usr/lib/wineVERSION/winedump
-debian/tmp/usr/lib/wineVERSION/winebuild
-debian/tmp/usr/lib/wineVERSION/winemaker
-
-debian/tmp/usr/lib/wineVERSION/function_grep.pl usr/libexec/wineVERSION/function_grep.pl
+debian/tmp/usr/lib/*/wineVERSION/bin/winedump
+debian/tmp/usr/lib/*/wineVERSION/bin/wmc
+debian/tmp/usr/lib/*/wineVERSION/bin/wrc
+debian/tmp/usr/lib/*/wineVERSION/bin/widl
+debian/tmp/usr/lib/*/wineVERSION/bin/winecpp
+debian/tmp/usr/lib/*/wineVERSION/bin/winegcc
+debian/tmp/usr/lib/*/wineVERSION/bin/wineg++
+debian/tmp/usr/lib/*/wineVERSION/bin/winedump
+debian/tmp/usr/lib/*/wineVERSION/bin/winebuild
+debian/tmp/usr/lib/*/wineVERSION/bin/winemaker
+debian/tmp/usr/lib/*/wineVERSION/bin/function_grep.pl
 
 debian/tmp/winegccDEBSUFFIX usr/bin
