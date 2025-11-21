@@ -1,7 +1,7 @@
 # PE libraries
-debian/tmp/usr/lib/*/*/*/*/*.dll
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.dll
 
-debian/tmp/usr/lib usr/
+# debian/tmp/usr/lib usr/
 
 # wine server
 debian/tmp/wineserver usr/lib/wineVERSION
