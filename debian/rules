@@ -157,7 +157,6 @@ override_dh_auto_install-indep: $(INSTALLS)
 	rm -f debian/tmp/notepad*.man debian/tmp/winemine*.man
 	# extract hicolor icon from logo.svg
 	sed '/image\/png/d;s|width="611"|width="209"|' programs/winecfg/logo.svg > debian/tmp/wine$(VERSION).svg
-	(cd debian/tmp/wine-common && find -name "*.inf" -delete)
 
 override_dh_auto_install-arch: $(INSTALLS)
 	mkdir -p debian/tmp

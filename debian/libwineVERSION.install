@@ -8,3 +8,5 @@ debian/tmp/wineserver usr/lib/wineVERSION
 
 # configuration files
 debian/tmp/usr/share/*/*/*.inf
+
+debian/tmp/usr/share/*/wine/winmd/*.winmd
