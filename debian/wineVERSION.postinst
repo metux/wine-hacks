@@ -7,7 +7,7 @@ case "$1" in
         dpkg-trigger wineVERSION
         ;;
     triggered)
-        PRIORITY=70;;
+        PRIORITY=70
         apps="wineserver
               msiexec
               regedit
