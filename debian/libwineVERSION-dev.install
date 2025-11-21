@@ -1,2 +1,2 @@
 debian/tmp/usr/include
-debian/tmp/usr/lib/*/wineVERSION/lib/*/*/libwow64.a
+debian/tmp/usr/lib/*/wineVERSION/lib/*/*/*.a
