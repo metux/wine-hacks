@@ -15,7 +15,7 @@ export DEB_BUILD_OPTIONS=parallel=$(shell nproc)
 ifeq ($(DEB_HOST_ARCH),i386)
     ARCHDEP_ARGS :=
 else ifeq ($(DEB_HOST_ARCH),amd64)
-    ARCHDEP_ARGS := --enable-win64
+#    ARCHDEP_ARGS := --enable-win64
 endif
 
 DEBSUFFIX=$(VERSION)
