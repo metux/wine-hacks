@@ -167,7 +167,6 @@ override_dh_auto_install-arch: $(INSTALLS)
 ifeq ($(DEB_HOST_ARCH), i386)
 	echo >> debian/libwine$(VERSION).install
 	echo "# 16-bit windows PE files" >> debian/libwine$(VERSION).install
-	echo "debian/tmp/usr/lib/*/wine$(VERSION)/lib/wine/*/*.dll16
 	echo "debian/tmp/usr/lib/*/wine$(VERSION)/lib/wine/*/*.vxd" >> debian/libwine$(VERSION).install
 	echo "debian/tmp/usr/lib/*/wine$(VERSION)/lib/wine/*/*.dll16" >> debian/libwine$(VERSION).install
 	echo "debian/tmp/usr/lib/*/wine$(VERSION)/lib/wine/*/*.drv16" >> debian/libwine$(VERSION).install
