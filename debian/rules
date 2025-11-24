@@ -50,15 +50,15 @@ CONFLAGS=--with-gnutls \
 
 # enable wine64 on 64-bit architectures
 ifeq ($(DEB_HOST_ARCH_BITS), 64)
-CONFLAGS+=--enable-win64
+#CONFLAGS+=--enable-win64
 # set "-Wno-format" (many format strings are not yet updated for 64-bit)
-export DEB_CFLAGS_MAINT_APPEND+=-Wno-format
-export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-fortify,-stackprotector,-format optimize=-lto
+#export DEB_CFLAGS_MAINT_APPEND+=-Wno-format
+#export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-fortify,-stackprotector,-format optimize=-lto
 endif
 
 # build with mingw on intel architectures
 ifneq (,$(filter $(DEB_HOST_ARCH),i386 amd64))
-CONFLAGS+=--with-mingw ZLIB_PE_LIBS=z
+#CONFLAGS+=--with-mingw ZLIB_PE_LIBS=z
 endif
 
 # ignore -fstack-clash-protection on arm64
