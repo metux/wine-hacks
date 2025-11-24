@@ -102,7 +102,6 @@ Build-Depends:
  libglu1-mesa-dev:i386 [amd64],
  libxcomposite-dev:i386 [amd64],
  libxkbregistry-dev:i386 [amd64],
- libxml-libxml-perl:i386 [amd64],
  libssl-dev:i386 [amd64],
  libv4l-dev:i386 [amd64],
  libsdl2-dev:i386 [amd64],
