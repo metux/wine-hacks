@@ -38,6 +38,6 @@ cd "$tmpdir"
 # solink always points to the default soname, which is what wine uses.
 SOLINKS="$(echo $@ | sed "s|\([[:alnum:]]*\.so\)[\.[0-9]*]*|\1|g")"
 printf 'INPUT(%s)\n' "$SOLINKS" > libeverything.so
-gcc -shared -Wl,--no-as-needed -L. -leverything -o elf
+gcc $(ARCHDEP_GCC_ARGS) -shared -Wl,--no-as-needed -L. -leverything -o elf
 cat elf
 rm -rf "$tmpdir"

@@ -13,10 +13,12 @@ export DEB_BUILD_OPTIONS=parallel=$(shell nproc)
 
 # Detect 32-bit vs 64-bit
 ifeq ($(DEB_HOST_ARCH),i386)
-    ARCHDEP_ARGS :=
+    ARCHDEP_GCC_ARGS := -m32
 else ifeq ($(DEB_HOST_ARCH),amd64)
-#    ARCHDEP_ARGS := --enable-win64
+    ARCHDEP_GCC_ARGS := -m32
 endif
+
+export ARCHDEP_GCC_ARGS
 
 DEBSUFFIX=$(VERSION)
 export DEBSUFFIX
@@ -41,7 +43,6 @@ CONFLAGS=\
          --without-sane \
          --without-netapi \
          --disable-tests \
-         $(ARCHDEP_ARGS) \
          --prefix=$(PREFIX) \
          --includedir=/$(INCDIR) \
          --datarootdir=/$(DATDIR) \
