@@ -1,19 +1,4 @@
-# PE libraries
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.dll*
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.exe*
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.sys
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.tlb
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.so
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.cpl
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.acm
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.drv*
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.ax
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.com
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.ocx
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.msstyles
-#debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.ds
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.vxd
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.mod16
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*
 
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/wine
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/wine-preloader
