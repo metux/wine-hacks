@@ -6,7 +6,7 @@ debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.tlb
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.so
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.cpl
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.acm
-debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.drv
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.drv*
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.ax
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.com
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.ocx
