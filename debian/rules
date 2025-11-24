@@ -213,7 +213,9 @@ override_dh_makeshlibs:
 
 override_dh_shlibdeps:
 	mkdir -p debian/tmp
-	./debian/scripts/config2elf debian/tmp/elf.recommends
+# doesn't work yet on amd64
+	echo -n > debian/tmp/elf.recommends
+#	./debian/scripts/config2elf debian/tmp/elf.recommends
 	./debian/scripts/config2elf debian/tmp/elf.depends "libfontconfig|libfreetype|libncurses"
 	dpkg-shlibdeps --warnings=1 -v -pdlopen \
 	    -dDepends -edebian/tmp/elf.depends \
