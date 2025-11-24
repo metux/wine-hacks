@@ -36,7 +36,7 @@ export DH_VERBOSE=1
 export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-fortify,-stackprotector optimize=-lto
 
 # configure options
-CONFLAGS=--with-gnutls \
+CONFLAGS=\
          --without-oss \
          --without-sane \
          --without-netapi \
