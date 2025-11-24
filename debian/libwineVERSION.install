@@ -13,6 +13,7 @@ debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.ocx
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.msstyles
 #debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.ds
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.vxd
+debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/*.mod16
 
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/wine
 debian/tmp/usr/lib/*/wineVERSION/lib/wine/*/wine-preloader
